@@ -46,14 +46,12 @@
 }
 
 .Suport-view_1 {
-  margin-top: calc(10px + 2vmin);
-  margin-left: calc(2px + 1vmin);
   color: white;
 }
 
 .Suport-view_1 h1 {
   padding-left: calc(0.1px + 0.1vmin);
-  padding-top: calc(1px + 2vmin);
-  font-size: calc(10px + 2vmin);
+  padding-top: calc(0.1px + 1vmin);
+  font-size: calc(12px + 2vmin);
   color: white;
 }
