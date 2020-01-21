@@ -1,0 +1,78 @@
+.App-logo {
+  margin-top: 1vh;
+  text-align: left;
+  height: 5vmin;
+  pointer-events: none;
+}
+
+.App-Title {
+  font-size: 3vh;
+  margin-top: -4vh;
+  margin-left: calc(10px + 5vmin);
+  margin-bottom: 2vh;
+  color: #00d9ff;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+/* 
+  Dashboard
+*/
+
+.Dashboard-view_1 {
+  margin-top: calc(10px + 2vmin);
+  margin-left: calc(2px + 1vmin);
+}
+
+.Dashboard-view_1 h1 {
+  padding-left: calc(0.1px + 0.1vmin);
+  padding-top: calc(1px + 2vmin);
+  font-size: calc(8px + 2vmin);
+  color: white;
+}
+
+.Dashboard-view_1 h2 {
+  padding-left: calc(0.1px + 0.1vmin);
+  font-size: calc(14px + 2vmin);
+  color: white;
+}
+
+/* 
+  Clients
+*/
+
+.Clients-view_1 {
+  margin-top: calc(10px + 2vmin);
+  margin-left: calc(2px + 1vmin);
+  color: white;
+}
+
+/* 
+  Suport
+*/
+
+.Suport-view_1 {
+  margin-top: calc(2px + 1vmin);
+  margin-left: calc(2px + 1vmin);
+  color: white;
+}
+
+.Suport-view_1 h1 {
+  padding-left: calc(2px + 1vmin);
+  padding-top: calc(2px + 1vmin);
+  padding-bottom: calc(2px + 1vmin);
+  font-size: calc(12px + 2vmin);
+  width: 1565px;
+}

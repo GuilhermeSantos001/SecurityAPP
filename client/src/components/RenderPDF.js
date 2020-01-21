@@ -1,5 +1,5 @@
 import React from 'react';
-import { PDFDownloadLink, Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
+import { PDFDownloadLink, Page, Text, Document, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
     body: {
@@ -21,6 +21,12 @@ const styles = StyleSheet.create({
         margin: 12,
         fontSize: 14,
         textAlign: 'justify'
+    },
+    textHidden: {
+        margin: 12,
+        fontSize: 14,
+        textAlign: 'justify',
+        opacity: 0
     },
     date: {
         margin: 12,
@@ -54,66 +60,81 @@ const styles = StyleSheet.create({
 });
 
 // Create Document Component
-const MyDocument = () => (
-    <Document>
-        <Page orientation="landscape" style={styles.body}>
-            <Text style={styles.header} fixed>
-                ~ Relatorio de Postos Cobertos ~
-      </Text>
-            <Text style={styles.title} fixed>Ano de 2020</Text>
-            <Text style={styles.subtitle}>
-                Postos cobertos no Domingo
-      </Text>
-            <Text style={styles.date} wrap>
-                Postos do dia 10 de Janeiro de 2020
-      </Text>
-            <Text style={styles.text} wrap>
-                Villa Amalfi
-      </Text>
-            <Text style={styles.text} wrap>
-                Condominio Plaza
-      </Text>
-            <Text style={styles.text} wrap>
-                Igreja Nossa Senhora de Madalena
-      </Text>
-            <Text style={styles.text} wrap>
-                Posto nova iguaçu
-      </Text>
-            <Text style={styles.date} wrap>
-                Postos do dia 17 de Janeiro de 2020
-      </Text>
-            <Text style={styles.text} wrap>
-                Villa Amalfi
-      </Text>
-            <Text style={styles.text} wrap>
-                Condominio Plaza
-      </Text>
-            <Text style={styles.text} wrap>
-                Igreja Nossa Senhora de Madalena
-      </Text>
-            <Text style={styles.text} wrap>
-                Posto nova iguaçu
-      </Text>
-            <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
-                `${pageNumber} / ${totalPages}`
-            )} fixed />
-            <Text style={styles.footer} fixed >
-                19/01/2020
-            </Text>
-        </Page>
-    </Document >
-);
+class MyDocument extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {};
+    }
 
-const App = () => (
-    <div>
-        <PDFDownloadLink document={<MyDocument />} fileName="somename.pdf">
-            {({ blob, url, loading, error }) => (loading ? 'Loading document...' : 'Exportar para PDF')}
-        </PDFDownloadLink>
-    </div>
-);
+    render() {
+        let data = [],
+            line = 0,
+            addLine = (callback) => {
+                if (line >= 8) {
+                    line = 0;
+                    data.push(
+                        <Text style={styles.textHidden} wrap>\n\r</Text>,
+                        <Text style={styles.textHidden} wrap>\n\r</Text>,
+                        <Text style={styles.textHidden} wrap>\n\r</Text>
+                    );
+                }
+                callback();
+                line++;
+            }
+        this.props.configs.data.forEach(item => {
+            addLine(() => {
+                data.push(
+                    <Text style={styles.subtitle}>
+                        {item.subtitle}
+                    </Text>
+                )
+            });
+            addLine(() => {
+                data.push(
+                    <Text style={styles.date} wrap>
+                        {item.date}
+                    </Text>
+                )
+            })
+            item.texts.forEach(text => {
+                addLine(() => {
+                    data.push(
+                        <Text style={styles.text} wrap>
+                            {text}
+                        </Text>
+                    )
+                });
+            })
+        })
+
+        return (
+            <Document>
+                <Page orientation="landscape" style={styles.body}>
+                    <Text style={styles.header} fixed>
+                        ~ {this.props.configs.header} ~
+              </Text>
+                    <Text style={styles.title} fixed>
+                        {this.props.configs.title}
+                    </Text>
+                    {data}
+                    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
+                        `${pageNumber} / ${totalPages}`
+                    )} fixed />
+                    <Text style={styles.footer} fixed >
+                        {`${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear())} - ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`}
+                    </Text>
+                </Page>
+            </Document>
+        );
+    }
+}
 
 export default {
-    printNow: () => (
-        <App />
+    printNow: (configs) => (
+        <div>
+            <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf">
+                {({ blob, url, loading, error }) => (loading ? 'Carregando Documento...' : 'Exportar para PDF')}
+            </PDFDownloadLink>
+        </div>
     )
 }
