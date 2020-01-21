@@ -1,5 +1,5 @@
 import React from 'react';
-import { PDFDownloadLink, Page, Text, Document, StyleSheet } from '@react-pdf/renderer';
+import { PDFDownloadLink, Page, Text, Document, Image, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
     body: {
@@ -80,7 +80,18 @@ class MyDocument extends React.Component {
                 }
                 callback();
                 line++;
-            }
+            },
+            chart = ((res) => {
+                if (res) {
+                    let url = res.exportChart({ format: "png", toDataURL: true });
+                    console.log(url);
+                    return (
+                        <Text>TESTE</Text>
+                        // <Image src={url} />
+                    )
+                }
+            })(this.props.configs.chart);
+
         this.props.configs.data.forEach(item => {
             addLine(() => {
                 data.push(
@@ -109,13 +120,14 @@ class MyDocument extends React.Component {
 
         return (
             <Document>
-                <Page orientation="landscape" style={styles.body}>
+                <Page size="A4" orientation="landscape" style={styles.body}>
                     <Text style={styles.header} fixed>
                         ~ {this.props.configs.header} ~
               </Text>
                     <Text style={styles.title} fixed>
                         {this.props.configs.title}
                     </Text>
+                    {chart}
                     {data}
                     <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
                         `${pageNumber} / ${totalPages}`
@@ -131,10 +143,8 @@ class MyDocument extends React.Component {
 
 export default {
     printNow: (configs) => (
-        <div>
-            <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf">
-                {({ blob, url, loading, error }) => (loading ? 'Carregando Documento...' : 'Exportar para PDF')}
-            </PDFDownloadLink>
-        </div>
+        <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf">
+            {({ blob, url, loading, error }) => (loading ? 'Carregando Documento...' : 'Exportar para PDF')}
+        </PDFDownloadLink>
     )
 }

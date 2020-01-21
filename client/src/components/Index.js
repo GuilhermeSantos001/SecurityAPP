@@ -59,7 +59,7 @@ export default class Render extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            menu: 'suport',
+            menu: 'dashboard',
             clock: this.getClock(),
             data: {
                 dashboard: [
@@ -68,6 +68,7 @@ export default class Render extends React.Component {
                 ],
                 graphics: {
                     "Postos Cobertos": {
+                        "chart": null,
                         "2020": {
                             color: '#0099ff',
                             data: [
@@ -128,6 +129,7 @@ export default class Render extends React.Component {
         window.setInterval(() => {
             this.setClock();
         }, 1000);
+        this.chartCanvas('Postos Cobertos');
     }
 
     componentDidUpdate(prop, state) {
@@ -143,6 +145,142 @@ export default class Render extends React.Component {
     getClock = () => {
         return `${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear())} - \n\r\
         ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+    }
+
+    chartCanvas(graphic) {
+        const options = {};
+        options[graphic] = {
+            title: {
+                text: "Postos Descobertos",
+                fontSize: 42,
+                padding: {
+                    top: 10
+                }
+            },
+            axisY: {
+                margin: 10
+            },
+            theme: "light2",
+            animationEnabled: true,
+            toolTip: {
+                content: "{name} não foi/foram coberto(s) {y} posto(s)"
+            },
+            data: [
+                {
+                    name: "Ano de 2020",
+                    showInLegend: true,
+                    type: "column",
+                    color: this.state.data.graphics["Postos Descobertos"]["2020"].color,
+                    dataPoints: [
+                        { label: "Domingo", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[0] },
+                        { label: "Segunda-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[1] },
+                        { label: "Terça-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[2] },
+                        { label: "Quarta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[3] },
+                        { label: "Quinta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[4] },
+                        { label: "Sexta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[5] },
+                        { label: "Sabado", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[6] }
+                    ]
+                },
+                {
+                    name: "Ano de 2021",
+                    showInLegend: true,
+                    type: "column",
+                    color: this.state.data.graphics["Postos Descobertos"]["2021"].color,
+                    dataPoints: [
+                        { label: "Domingo", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[0] },
+                        { label: "Segunda-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[1] },
+                        { label: "Terça-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[2] },
+                        { label: "Quarta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[3] },
+                        { label: "Quinta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[4] },
+                        { label: "Sexta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[5] },
+                        { label: "Sabado", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[6] }
+                    ]
+                }
+            ]
+        }
+
+        if (this.state.data.graphics[graphic]) {
+            var chart = new CanvasJSReact.CanvasJS.Chart(`chartContainer-${graphic}`, options[graphic]),
+                state = Object.assign({}, this.state.data);
+            chart.render();
+            state.graphics[graphic].chart = chart;
+            this.setState({ data: state });
+        }
+    }
+
+    chartDonwload(graphic) {
+        if (!this.state.data.graphics[graphic] || !this.state.data.graphics[graphic].chart)
+            return (
+                <p className="text-secondary" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>Download Indisponivel!</p>
+            )
+        else
+            return (
+                <p style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>
+                    {GraphicsPDF.printNow({
+                        chart: this.state.data.graphics[graphic].chart,
+                        header: 'Relatorio de Postos Cobertos',
+                        title: 'Ano de 2020',
+                        data: [
+                            {
+                                subtitle: 'Postos cobertos no Domingo',
+                                date: 'Postos do dia 10 de Janeiro de 2020',
+                                texts: [
+                                    'Villa Amalfi 1 - 08:30:32',
+                                    'Hospital Guaruja 1 - 10:30:16',
+                                ]
+                            },
+                            {
+                                subtitle: 'Postos cobertos na Segunda',
+                                date: 'Postos do dia 11 de Janeiro de 2020',
+                                texts: [
+                                    'Villa Amalfi 2 - 12:23:46',
+                                    'Hospital Guaruja 2 - 13:52:10',
+                                ]
+                            },
+                            {
+                                subtitle: 'Postos cobertos na Terça-Feira',
+                                date: 'Postos do dia 12 de Janeiro de 2020',
+                                texts: [
+                                    'Villa Amalfi 3 - 10:12:20',
+                                    'Hospital Guaruja 3 - 14:12:08',
+                                ]
+                            },
+                            {
+                                subtitle: 'Postos cobertos na Quarta-Feira',
+                                date: 'Postos do dia 12 de Janeiro de 2020',
+                                texts: [
+                                    'Villa Amalfi 4 - 22:46:36',
+                                    'Hospital Guaruja 4 - 23:38:50',
+                                ]
+                            },
+                            {
+                                subtitle: 'Postos cobertos na Quinta-Feira',
+                                date: 'Postos do dia 12 de Janeiro de 2020',
+                                texts: [
+                                    'Villa Amalfi 5 - 00:40:25',
+                                    'Hospital Guaruja 5 - 03:00:00',
+                                ]
+                            },
+                            {
+                                subtitle: 'Postos cobertos na Sexta-Feira',
+                                date: 'Postos do dia 12 de Janeiro de 2020',
+                                texts: [
+                                    'Villa Amalfi 6 - 06:18:12',
+                                    'Hospital Guaruja 6 - 07:30:00',
+                                ]
+                            },
+                            {
+                                subtitle: 'Postos cobertos na Sabado',
+                                date: 'Postos do dia 12 de Janeiro de 2020',
+                                texts: [
+                                    'Villa Amalfi 7 - 04:48:36',
+                                    'Hospital Guaruja 7 - 11:50:30',
+                                ]
+                            }
+                        ]
+                    })}
+                </p>
+            )
     }
 
     render() {
@@ -260,7 +398,10 @@ export default class Render extends React.Component {
                     </div>
                     <div className="Dashboard-view_2">
                         <div>
-                            {this.graphics()}
+                            <div className="row">
+                                <div id={'chartContainer-Postos Cobertos'} className="col-6 mt-2 bg-transparent" style={{ 'marginLeft': 'calc(0.1px + 0.5vmin)' }} />
+                                <div className="col-12 mt-2" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>{this.chartDonwload('Postos Cobertos')}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -286,266 +427,18 @@ export default class Render extends React.Component {
                         <h1 className="bg-dark">
                             <MdLiveHelp /> Precisa de ajuda?
                         </h1>
-                        <div className="bg-light border-top border border-dark pl-2 pt-2" style={{ 'fontSize': 'calc(10px + 1vmin)', 'width': '1565px', 'marginTop': 'calc(-0.1px + -1vmin)' }}>
-                            <p className="text-dark text-left font-weight-bold pt-3">
-                                <MdHdrStrong /> <a href="https://react-icons.netlify.com/#/icons/md" target="_blank">
-                                    Como cadastrar um cliente?
-                                </a>
+                        <div className="bg-light border-top border border-dark pl-2 pt-2" style={{ 'fontSize': 'calc(10px + 1vmin)', 'marginTop': 'calc(-0.1px + -1vmin)' }}>
+                            <p className="text-dark text-left font-weight-bold pt-3 pr-3">
+                                <MdHdrStrong /> Suporte Telefone: (11) 98497-9536
                             </p>
-                            <p className="text-dark text-left font-weight-bold">
-                                <MdHdrStrong /> Suporte Telefone: (11) 98497-9536 | Email: suporte@grupomave.com.br
+                            <p className="text-dark text-left font-weight-bold pr-3">
+                                <MdHdrStrong /> Suporte Email: suporte@grupomave.com.br
                             </p>
                         </div>
                     </div>
                 </div>
             )
         }
-    }
-
-    graphics() {
-        const options = [
-            {
-                title: {
-                    text: "Postos Cobertos",
-                    fontSize: 42,
-                    padding: {
-                        top: 10
-                    }
-                },
-                axisY: {
-                    margin: 10
-                },
-                theme: "light2",
-                animationEnabled: true,
-                toolTip: {
-                    content: "{name} foi/foram coberto(s) {y} posto(s)"
-                },
-                data: [
-                    {
-                        name: "Ano de 2020",
-                        showInLegend: true,
-                        type: "column",
-                        color: this.state.data.graphics["Postos Cobertos"]["2020"].color,
-                        dataPoints: [
-                            { label: "Domingo", y: this.state.data.graphics["Postos Cobertos"]["2020"].data[0] },
-                            { label: "Segunda-Feira", y: this.state.data.graphics["Postos Cobertos"]["2020"].data[1] },
-                            { label: "Terça-Feira", y: this.state.data.graphics["Postos Cobertos"]["2020"].data[2] },
-                            { label: "Quarta-Feira", y: this.state.data.graphics["Postos Cobertos"]["2020"].data[3] },
-                            { label: "Quinta-Feira", y: this.state.data.graphics["Postos Cobertos"]["2020"].data[4] },
-                            { label: "Sexta-Feira", y: this.state.data.graphics["Postos Cobertos"]["2020"].data[5] },
-                            { label: "Sabado", y: this.state.data.graphics["Postos Cobertos"]["2020"].data[6] }
-                        ]
-                    },
-                    {
-                        name: "Ano de 2021",
-                        showInLegend: true,
-                        type: "column",
-                        color: this.state.data.graphics["Postos Cobertos"]["2021"].color,
-                        dataPoints: [
-                            { label: "Domingo", y: this.state.data.graphics["Postos Cobertos"]["2021"].data[0] },
-                            { label: "Segunda-Feira", y: this.state.data.graphics["Postos Cobertos"]["2021"].data[1] },
-                            { label: "Terça-Feira", y: this.state.data.graphics["Postos Cobertos"]["2021"].data[2] },
-                            { label: "Quarta-Feira", y: this.state.data.graphics["Postos Cobertos"]["2021"].data[3] },
-                            { label: "Quinta-Feira", y: this.state.data.graphics["Postos Cobertos"]["2021"].data[4] },
-                            { label: "Sexta-Feira", y: this.state.data.graphics["Postos Cobertos"]["2021"].data[5] },
-                            { label: "Sabado", y: this.state.data.graphics["Postos Cobertos"]["2021"].data[6] }
-                        ]
-                    }
-                ]
-            },
-            {
-                title: {
-                    text: "Postos Descobertos",
-                    fontSize: 42,
-                    padding: {
-                        top: 10
-                    }
-                },
-                axisY: {
-                    margin: 10
-                },
-                theme: "light2",
-                animationEnabled: true,
-                toolTip: {
-                    content: "{name} não foi/foram coberto(s) {y} posto(s)"
-                },
-                data: [
-                    {
-                        name: "Ano de 2020",
-                        showInLegend: true,
-                        type: "column",
-                        color: this.state.data.graphics["Postos Descobertos"]["2020"].color,
-                        dataPoints: [
-                            { label: "Domingo", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[0] },
-                            { label: "Segunda-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[1] },
-                            { label: "Terça-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[2] },
-                            { label: "Quarta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[3] },
-                            { label: "Quinta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[4] },
-                            { label: "Sexta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[5] },
-                            { label: "Sabado", y: this.state.data.graphics["Postos Descobertos"]["2020"].data[6] }
-                        ]
-                    },
-                    {
-                        name: "Ano de 2021",
-                        showInLegend: true,
-                        type: "column",
-                        color: this.state.data.graphics["Postos Descobertos"]["2021"].color,
-                        dataPoints: [
-                            { label: "Domingo", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[0] },
-                            { label: "Segunda-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[1] },
-                            { label: "Terça-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[2] },
-                            { label: "Quarta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[3] },
-                            { label: "Quinta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[4] },
-                            { label: "Sexta-Feira", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[5] },
-                            { label: "Sabado", y: this.state.data.graphics["Postos Descobertos"]["2021"].data[6] }
-                        ]
-                    }
-                ]
-            }
-        ]
-
-        return (
-            <div>
-                <div className="row">
-                    <div className="col-6 mt-2 bg-transparent" style={{ 'marginLeft': 'calc(0.1px + 0.5vmin)' }}>
-                        <CanvasJSReact.CanvasJSChart
-                            options={options[0]}
-                        // onRef={ref => this.chart = ref}
-                        />
-                        <p>{GraphicsPDF.printNow({
-                            header: 'Relatorio de Postos Cobertos',
-                            title: 'Ano de 2020',
-                            data: [
-                                {
-                                    subtitle: 'Postos cobertos no Domingo',
-                                    date: 'Postos do dia 10 de Janeiro de 2020',
-                                    texts: [
-                                        'Villa Amalfi 1 - 08:30:32',
-                                        'Hospital Guaruja 1 - 10:30:16',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Segunda',
-                                    date: 'Postos do dia 11 de Janeiro de 2020',
-                                    texts: [
-                                        'Villa Amalfi 2 - 12:23:46',
-                                        'Hospital Guaruja 2 - 13:52:10',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Terça-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2020',
-                                    texts: [
-                                        'Villa Amalfi 3 - 10:12:20',
-                                        'Hospital Guaruja 3 - 14:12:08',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Quarta-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2020',
-                                    texts: [
-                                        'Villa Amalfi 4 - 22:46:36',
-                                        'Hospital Guaruja 4 - 23:38:50',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Quinta-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2020',
-                                    texts: [
-                                        'Villa Amalfi 5 - 00:40:25',
-                                        'Hospital Guaruja 5 - 03:00:00',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Sexta-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2020',
-                                    texts: [
-                                        'Villa Amalfi 6 - 06:18:12',
-                                        'Hospital Guaruja 6 - 07:30:00',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Sabado',
-                                    date: 'Postos do dia 12 de Janeiro de 2020',
-                                    texts: [
-                                        'Villa Amalfi 7 - 04:48:36',
-                                        'Hospital Guaruja 7 - 11:50:30',
-                                    ]
-                                }
-                            ]
-                        })}</p>
-                    </div>
-                    <div className="col-6 mt-2 bg-transparent" style={{ 'marginLeft': 'calc(-8px + -1vmin)' }}>
-                        <CanvasJSReact.CanvasJSChart
-                            options={options[1]}
-                        // onRef={ref => this.chart = ref}
-                        />
-                        <p>{GraphicsPDF.printNow({
-                            header: 'Relatorio de Postos Cobertos',
-                            title: 'Ano de 2021',
-                            data: [
-                                {
-                                    subtitle: 'Postos cobertos no Domingo',
-                                    date: 'Postos do dia 10 de Janeiro de 2021',
-                                    texts: [
-                                        'Villa Amalfi 1 - 08:30:32',
-                                        'Hospital Guaruja 1 - 10:30:16',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Segunda',
-                                    date: 'Postos do dia 11 de Janeiro de 2021',
-                                    texts: [
-                                        'Villa Amalfi 2 - 12:23:46',
-                                        'Hospital Guaruja 2 - 13:52:10',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Terça-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2021',
-                                    texts: [
-                                        'Villa Amalfi 3 - 10:12:20',
-                                        'Hospital Guaruja 3 - 14:12:08',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Quarta-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2021',
-                                    texts: [
-                                        'Villa Amalfi 4 - 22:46:36',
-                                        'Hospital Guaruja 4 - 23:38:50',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Quinta-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2021',
-                                    texts: [
-                                        'Villa Amalfi 5 - 00:40:25',
-                                        'Hospital Guaruja 5 - 03:00:00',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Sexta-Feira',
-                                    date: 'Postos do dia 12 de Janeiro de 2021',
-                                    texts: [
-                                        'Villa Amalfi 6 - 06:18:12',
-                                        'Hospital Guaruja 6 - 07:30:00',
-                                    ]
-                                },
-                                {
-                                    subtitle: 'Postos cobertos na Sabado',
-                                    date: 'Postos do dia 12 de Janeiro de 2021',
-                                    texts: [
-                                        'Villa Amalfi 7 - 04:48:36',
-                                        'Hospital Guaruja 7 - 11:50:30',
-                                    ]
-                                }
-                            ]
-                        })}</p>
-                    </div>
-                </div>
-            </div>
-        );
     }
 }
 
