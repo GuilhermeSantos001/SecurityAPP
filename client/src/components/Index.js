@@ -38,7 +38,9 @@ import {
     MdUpdate,
     MdHdrWeak,
     MdLiveHelp,
-    MdHdrStrong
+    MdHdrStrong,
+    MdHeadsetMic,
+    MdFace
 } from 'react-icons/md';
 
 /**
@@ -130,6 +132,7 @@ export default class Render extends React.Component {
             this.setClock();
         }, 1000);
         this.chartCanvas('Postos Cobertos');
+        this.chartCanvas('Postos Descobertos');
     }
 
     componentDidUpdate(prop, state) {
@@ -148,8 +151,7 @@ export default class Render extends React.Component {
     }
 
     chartCanvas(graphic) {
-        const options = {};
-        options[graphic] = {
+        const options = {
             title: {
                 text: "Postos Descobertos",
                 fontSize: 42,
@@ -199,25 +201,29 @@ export default class Render extends React.Component {
             ]
         }
 
-        if (this.state.data.graphics[graphic]) {
-            var chart = new CanvasJSReact.CanvasJS.Chart(`chartContainer-${graphic}`, options[graphic]),
-                state = Object.assign({}, this.state.data);
-            chart.render();
-            state.graphics[graphic].chart = chart;
-            this.setState({ data: state });
-        }
+        let chart = new CanvasJSReact.CanvasJS.Chart(`chartContainer-${graphic}`, options),
+            state = Object.assign({}, this.state.data);
+        chart.render();
+        state.graphics[graphic].chart = chart;
+        this.setState({ data: state });
     }
 
     chartDonwload(graphic) {
         if (!this.state.data.graphics[graphic] || !this.state.data.graphics[graphic].chart)
-            return (
-                <p className="text-secondary" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>Download Indisponivel!</p>
-            )
+            return;
         else
             return (
                 <p style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>
                     {GraphicsPDF.printNow({
-                        chart: this.state.data.graphics[graphic].chart,
+                        chart: {
+                            text: 'Grafico de Postos Cobertos em 2020/2021',
+                            canvas: this.state.data.graphics[graphic].chart,
+                            style: {
+                                width: '680px',
+                                height: '440px',
+                                align: 'center'
+                            }
+                        },
                         header: 'Relatorio de Postos Cobertos',
                         title: 'Ano de 2020',
                         data: [
@@ -324,7 +330,7 @@ export default class Render extends React.Component {
                         </ButtonToolbar>
                     </div>
                 </div>
-                <div>
+                <div style={{ 'width': '82%' }}>
                     {this.content()}
                 </div>
             </div >
@@ -338,51 +344,51 @@ export default class Render extends React.Component {
                 <div className='dashboard'>
                     <div className="Dashboard-view_1">
                         <div className="row">
-                            <div className="bg-success border border-dark col-3 ml-3">
-                                <h1><MdRssFeed /> Postos Cobertos</h1>
+                            <div className="bg-success border border-dark col-3 ml-4 mt-3 pt-2 text-white">
+                                <h1 style={{ 'fontSize': 32 }}><MdRssFeed /> Postos Cobertos</h1>
                                 <h2>{this.state.data.dashboard[0]}</h2>
                             </div>
-                            <div className="bg-danger border border-dark col-3">
-                                <h1><MdRssFeed /> Postos Descobertos</h1>
+                            <div className="bg-danger border border-dark col-3 ml-2 mt-3 pt-2 text-white">
+                                <h1 style={{ 'fontSize': 32 }}><MdRssFeed /> Postos Descobertos</h1>
                                 <h2>{this.state.data.dashboard[1]}</h2>
                             </div>
-                            <div className="bg-info border border-dark col-5 ml-3">
-                                <h1><MdDateRange /> Data e Hora</h1>
+                            <div className="bg-info border border-dark ml-2 mt-3 pt-2 text-white" style={{ 'width': '47%', 'paddingLeft': 'calc(2px + 1vmin)' }}>
+                                <h1 style={{ 'fontSize': 32 }}><MdDateRange /> Data e Hora</h1>
                                 <h2>{this.state.clock}</h2>
                             </div>
                         </div>
                         <div className="row">
-                            <div className="bg-light border-top border border-dark col-3 ml-3 pt-2">
+                            <div className="bg-light border-top border border-dark col-3 ml-4 pt-2">
                                 <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 'calc(10px + 1vmin)' }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
                                 <ul className="list-group">
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)', 'marginLeft': 'calc(-1px + -1vmin)' }}>
+                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)' }}>
                                         <MdMood /> Forest Park
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)', 'marginLeft': 'calc(-1px + -1vmin)' }}>
+                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
                                         <MdMood /> Pão de Açucar
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)', 'marginLeft': 'calc(-1px + -1vmin)' }}>
+                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
                                         <MdMood /> Açai Atacadista
                                     </li>
                                 </ul>
                             </div>
-                            <div className="bg-light border border-dark col-3 pt-2">
+                            <div className="bg-light border border-dark col-3 ml-2 pt-2">
                                 <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 'calc(10px + 1vmin)' }}><MdError /> Clientes Importantes Descobertos</p>
                                 <ul className="list-group">
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)', 'marginLeft': 'calc(-1px + -1vmin)' }}>
+                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)' }}>
                                         <MdMoodBad /> Condominio Renascimento
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)', 'marginLeft': 'calc(-1px + -1vmin)' }}>
+                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
                                         <MdMoodBad /> Villa Amalfi
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)', 'marginLeft': 'calc(-1px + -1vmin)' }}>
+                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
                                         <MdMoodBad /> Condominio Jaguare
                                     </li>
                                 </ul>
                             </div>
-                            <div className="bg-light border border-dark col-5 ml-3 pt-2">
-                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 'calc(10px + 1vmin)' }}><MdUpdate /> Suas ultimas atualizações</p>
-                                <ul className="list-group">
+                            <div className="bg-light border border-dark ml-2 pt-2" style={{ 'width': '47%' }}>
+                                <p className="text-dark text-left font-weight-bold ml-2" style={{ 'fontSize': 'calc(10px + 1vmin)' }}><MdUpdate /> Suas ultimas atualizações</p>
+                                <ul className="list-group ml-1">
                                     <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)' }}>
                                         <MdHdrWeak /> Confirmação de cobertura de posto no Forest Park <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 'calc(2.5px + 1vmin)' }}>23/05/2020</span>
                                     </li>
@@ -397,12 +403,29 @@ export default class Render extends React.Component {
                         </div>
                     </div>
                     <div className="Dashboard-view_2">
-                        <div>
-                            <div className="row">
-                                <div id={'chartContainer-Postos Cobertos'} className="col-6 mt-2 bg-transparent" style={{ 'marginLeft': 'calc(0.1px + 0.5vmin)' }} />
-                                <div className="col-12 mt-2" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>{this.chartDonwload('Postos Cobertos')}</div>
+                        <div className="row">
+                            <div className="col-6 mt-4">
+                                <div id={'chartContainer-Postos Cobertos'} className="bg-transparent ml-2">
+                                    <p className="text-secondary" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>Grafico Indisponivel!</p>
+                                </div>
+                            </div>
+                            <div className="col-6 mt-4">
+                                <div id={'chartContainer-Postos Descobertos'} className="bg-transparent ml-2">
+                                    <p className="text-secondary" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>Grafico Indisponivel!</p>
+                                </div>
                             </div>
                         </div>
+                        {/* <div className="row">
+                                <div id={'chartContainer-Postos Descobertos'} className="bg-transparent col-6">
+                                    <p className="text-secondary" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>Grafico Indisponivel!</p>
+                                </div>
+                            </div> */}
+                        {/* <p className="col-12 bg-secondary" style={{ 'marginTop': 'calc(380px + 2vmin)', 'marginLeft': 'calc(1px + 1vmin)' }}>
+                                {this.chartDonwload('Postos Cobertos')}
+                            </p>
+                            <p className="col-12 bg-secondary" style={{ 'marginTop': 'calc(380px + 2vmin)', 'marginLeft': 'calc(1px + 1vmin)' }}>
+                                {this.chartDonwload('Postos Descobertos')}
+                            </p> */}
                     </div>
                 </div>
             )
@@ -412,8 +435,10 @@ export default class Render extends React.Component {
             return (
                 <div className='clients'>
                     <div className="Clients-view_1">
-                        <div className="bg-info col-12 ml-3">
-                            <h1>Lista de Clientes</h1>
+                        <div className="row">
+                            <div className="bg-success border border-dark col-3 ml-4 mt-3 pt-2 text-white">
+                                <h1>Lista de Clientes</h1>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -424,16 +449,34 @@ export default class Render extends React.Component {
             return (
                 <div className='suport'>
                     <div className="Suport-view_1">
-                        <h1 className="bg-dark">
-                            <MdLiveHelp /> Precisa de ajuda?
-                        </h1>
-                        <div className="bg-light border-top border border-dark pl-2 pt-2" style={{ 'fontSize': 'calc(10px + 1vmin)', 'marginTop': 'calc(-0.1px + -1vmin)' }}>
-                            <p className="text-dark text-left font-weight-bold pt-3 pr-3">
-                                <MdHdrStrong /> Suporte Telefone: (11) 98497-9536
-                            </p>
-                            <p className="text-dark text-left font-weight-bold pr-3">
-                                <MdHdrStrong /> Suporte Email: suporte@grupomave.com.br
-                            </p>
+                        <div className="row">
+                            <div className="bg-secondary border border-dark ml-4 mt-3 text-white" style={{ 'width': '100%' }}>
+                                <h1 className="p-2"><MdLiveHelp /> Precisa de ajuda?</h1>
+                                <div className="bg-light border-top border border-dark pl-2 pt-2" style={{ 'fontSize': 'calc(10px + 1vmin)', 'marginTop': 'calc(-0.1px + -1vmin)' }}>
+                                    <p className="text-dark text-left font-weight-bold">
+                                        <MdHeadsetMic /> Suporte
+                                    </p>
+                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                        <MdFace /> Luiz
+                                    </p>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                        <MdHdrStrong /> Telefone: (11) 98497-9536
+                                    </p>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                        <MdHdrStrong /> Email: suporte@grupomave.com.br
+                                    </p>
+                                    <hr style={{'width': '100%', 'marginLeft': 'calc(-0.4px + -0.4vmin)'}} />
+                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                        <MdFace /> Jefferson
+                                    </p>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                        <MdHdrStrong /> Telefone: (11) 98276-6134
+                                    </p>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                        <MdHdrStrong /> Email: ti@grupomave.com.br
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

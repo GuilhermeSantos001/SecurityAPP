@@ -28,6 +28,11 @@ const styles = StyleSheet.create({
         textAlign: 'justify',
         opacity: 0
     },
+    chart: {
+        fontSize: 24,
+        textAlign: 'center',
+        backgroundColor: '#f0f0f0'
+    },
     date: {
         margin: 12,
         fontSize: 14,
@@ -63,7 +68,9 @@ const styles = StyleSheet.create({
 class MyDocument extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {};
+        this.state = {
+            chart: null
+        };
     }
 
     render() {
@@ -73,9 +80,9 @@ class MyDocument extends React.Component {
                 if (line >= 8) {
                     line = 0;
                     data.push(
-                        <Text style={styles.textHidden} wrap>\n\r</Text>,
-                        <Text style={styles.textHidden} wrap>\n\r</Text>,
-                        <Text style={styles.textHidden} wrap>\n\r</Text>
+                        <Text key={`${'line'}_${line + Math.random()}`} style={styles.textHidden} wrap>\n\r</Text>,
+                        <Text key={`${'line'}_${line + Math.random()}`} style={styles.textHidden} wrap>\n\r</Text>,
+                        <Text key={`${'line'}_${line + Math.random()}`} style={styles.textHidden} wrap>\n\r</Text>
                     );
                 }
                 callback();
@@ -84,25 +91,27 @@ class MyDocument extends React.Component {
             chart = ((res) => {
                 if (res) {
                     let url = res.exportChart({ format: "png", toDataURL: true });
-                    console.log(url);
                     return (
-                        <Text>TESTE</Text>
-                        // <Image src={url} />
+                        <Image source={url} style={{
+                            width: this.props.configs.chart.style.width,
+                            height: this.props.configs.chart.style.height,
+                            alignSelf: this.props.configs.chart.style.align
+                        }} />
                     )
                 }
-            })(this.props.configs.chart);
+            })(this.props.configs.chart.canvas);
 
-        this.props.configs.data.forEach(item => {
+        this.props.configs.data.forEach((item, i) => {
             addLine(() => {
                 data.push(
-                    <Text style={styles.subtitle}>
+                    <Text key={`${item.subtitle}_${i}`} style={styles.subtitle}>
                         {item.subtitle}
                     </Text>
                 )
             });
             addLine(() => {
                 data.push(
-                    <Text style={styles.date} wrap>
+                    <Text key={`${item.date}_${i}`} style={styles.date} wrap>
                         {item.date}
                     </Text>
                 )
@@ -110,7 +119,7 @@ class MyDocument extends React.Component {
             item.texts.forEach(text => {
                 addLine(() => {
                     data.push(
-                        <Text style={styles.text} wrap>
+                        <Text key={`${text}_${i}`} style={styles.text} wrap>
                             {text}
                         </Text>
                     )
@@ -121,13 +130,24 @@ class MyDocument extends React.Component {
         return (
             <Document>
                 <Page size="A4" orientation="landscape" style={styles.body}>
+                    <Text style={styles.chart}>
+                        {this.props.configs.chart.text}
+                    </Text>
+                    {chart}
+                    <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
+                        `${pageNumber} / ${totalPages}`
+                    )} fixed />
+                    <Text style={styles.footer} fixed >
+                        {`${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear())} - ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`}
+                    </Text>
+                </Page>
+                <Page size="A4" orientation="landscape" style={styles.body}>
                     <Text style={styles.header} fixed>
                         ~ {this.props.configs.header} ~
               </Text>
                     <Text style={styles.title} fixed>
                         {this.props.configs.title}
                     </Text>
-                    {chart}
                     {data}
                     <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
                         `${pageNumber} / ${totalPages}`
