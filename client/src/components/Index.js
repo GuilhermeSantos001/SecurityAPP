@@ -131,13 +131,13 @@ export default class Render extends React.Component {
         window.setInterval(() => {
             this.setClock();
         }, 1000);
-        this.chartCanvas('Postos Cobertos');
-        this.chartCanvas('Postos Descobertos');
+        this.renderChartCanvas();
     }
 
     componentDidUpdate(prop, state) {
         if (this.state.menu !== state.menu) {
             animateCSS(this.state.menu, 'bounceInRight');
+            if (this.state.menu === 'dashboard') this.renderChartCanvas();
         }
     }
 
@@ -148,6 +148,11 @@ export default class Render extends React.Component {
     getClock = () => {
         return `${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${String(new Date().getFullYear())} - \n\r\
         ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+    }
+
+    renderChartCanvas() {
+        this.chartCanvas('Postos Cobertos');
+        this.chartCanvas('Postos Descobertos');
     }
 
     chartCanvas(graphic) {
@@ -201,6 +206,8 @@ export default class Render extends React.Component {
             ]
         }
 
+        if (!this.state.data.graphics[graphic]) return;
+        else if (this.state.menu != 'dashboard') return;
         let chart = new CanvasJSReact.CanvasJS.Chart(`chartContainer-${graphic}`, options),
             state = Object.assign({}, this.state.data);
         chart.render();
@@ -213,7 +220,7 @@ export default class Render extends React.Component {
             return;
         else
             return (
-                <p style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>
+                <p style={{ 'marginLeft': 14 }}>
                     {GraphicsPDF.printNow({
                         chart: {
                             text: 'Grafico de Postos Cobertos em 2020/2021',
@@ -344,59 +351,74 @@ export default class Render extends React.Component {
                 <div className='dashboard'>
                     <div className="Dashboard-view_1">
                         <div className="row">
-                            <div className="bg-success border border-dark col-3 ml-4 mt-3 pt-2 text-white">
-                                <h1 style={{ 'fontSize': 32 }}><MdRssFeed /> Postos Cobertos</h1>
-                                <h2>{this.state.data.dashboard[0]}</h2>
+                            <div className="bg-success border border-dark col-3 ml-4 mt-3 pt-2 text-white" style={{ 'height': 100, 'paddingLeft': 10 }}>
+                                <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Cobertos</h1>
+                                <h2 className="pt-2">{this.state.data.dashboard[0]}</h2>
                             </div>
-                            <div className="bg-danger border border-dark col-3 ml-2 mt-3 pt-2 text-white">
-                                <h1 style={{ 'fontSize': 32 }}><MdRssFeed /> Postos Descobertos</h1>
-                                <h2>{this.state.data.dashboard[1]}</h2>
+                            <div className="bg-danger border border-dark col-3 ml-2 mt-3 pt-2 text-white" style={{ 'height': 100, 'paddingLeft': 10 }}>
+                                <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Descobertos</h1>
+                                <h2 className="pt-2">{this.state.data.dashboard[1]}</h2>
                             </div>
-                            <div className="bg-info border border-dark ml-2 mt-3 pt-2 text-white" style={{ 'width': '47%', 'paddingLeft': 'calc(2px + 1vmin)' }}>
-                                <h1 style={{ 'fontSize': 32 }}><MdDateRange /> Data e Hora</h1>
-                                <h2>{this.state.clock}</h2>
+                            <div className="bg-info border border-dark col-5 ml-2 mt-3 pt-2 text-white" style={{ 'height': 100, 'paddingLeft': 10 }}>
+                                <h1 style={{ 'fontSize': 24 }}><MdDateRange /> Data e Hora</h1>
+                                <h2 className="pt-2">{this.state.clock}</h2>
                             </div>
                         </div>
                         <div className="row">
-                            <div className="bg-light border-top border border-dark col-3 ml-4 pt-2">
-                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 'calc(10px + 1vmin)' }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
-                                <ul className="list-group">
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)' }}>
+                            <div className="bg-light border-bottom border-left border-right border-dark col-3 ml-4 pt-2" style={{ 'height': 180 }}>
+                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 16, 'marginLeft': -8 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
+                                <hr />
+                                <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
                                         <MdMood /> Forest Park
+                                        <hr />
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
                                         <MdMood /> Pão de Açucar
+                                        <hr />
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
                                         <MdMood /> Açai Atacadista
+                                        <hr />
                                     </li>
                                 </ul>
                             </div>
-                            <div className="bg-light border border-dark col-3 ml-2 pt-2">
-                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 'calc(10px + 1vmin)' }}><MdError /> Clientes Importantes Descobertos</p>
-                                <ul className="list-group">
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)' }}>
+                            <div className="bg-light border-bottom border-left border-right border-dark col-3 ml-2 pt-2" style={{ 'height': 180 }}>
+                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 16, 'marginLeft': -8 }}><MdError /> Clientes Importantes Descobertos</p>
+                                <hr />
+                                <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
                                         <MdMoodBad /> Condominio Renascimento
+                                        <hr />
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
                                         <MdMoodBad /> Villa Amalfi
+                                        <hr />
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
                                         <MdMoodBad /> Condominio Jaguare
+                                        <hr />
                                     </li>
                                 </ul>
                             </div>
-                            <div className="bg-light border border-dark ml-2 pt-2" style={{ 'width': '47%' }}>
-                                <p className="text-dark text-left font-weight-bold ml-2" style={{ 'fontSize': 'calc(10px + 1vmin)' }}><MdUpdate /> Suas ultimas atualizações</p>
-                                <ul className="list-group ml-1">
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-8px + -2vmin)' }}>
-                                        <MdHdrWeak /> Confirmação de cobertura de posto no Forest Park <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 'calc(2.5px + 1vmin)' }}>23/05/2020</span>
+                            <div className="bg-light border-bottom border-left border-right border-dark col-5 ml-2 pt-2" style={{ 'height': 180 }}>
+                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 24, 'marginLeft': -8 }}><MdUpdate /> Suas ultimas alterações</p>
+                                <hr />
+                                <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 90 }}>
+                                    <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 14, 'alignSelf': 'center', 'marginBottom': 8 }}>21/05/2020</span>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'marginTop': -14 }}>
+                                        <MdHdrWeak /> Confirmação de cobertura de posto no Forest Park
+                                        <hr />
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
-                                        <MdHdrWeak /> Alteração cadastral de posto no Villa Amalfi <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 'calc(2.5px + 1vmin)' }}>19/05/2020</span>
+                                    <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 14, 'alignSelf': 'center', 'marginBottom': 8 }}>20/05/2020</span>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'marginTop': -14 }}>
+                                        <MdHdrWeak /> Alteração cadastral de posto no Villa Amalfi
+                                        <hr />
                                     </li>
-                                    <li className="list-group-item border-0 bg-transparent" style={{ 'fontSize': 'calc(6px + 1vmin)', 'marginTop': 'calc(-2px + -2vmin)' }}>
-                                        <MdHdrWeak /> Cadastro de um novo vigilante no posto do Villa Amalfi <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 'calc(2.5px + 1vmin)' }}>19/05/2020</span>
+                                    <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 14, 'alignSelf': 'center', 'marginBottom': 8 }}>19/05/2020</span>
+                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'marginTop': -14 }}>
+                                        <MdHdrWeak /> Cadastro de um novo vigilante no posto do Villa Amalfi
+                                        <hr />
                                     </li>
                                 </ul>
                             </div>
@@ -406,12 +428,12 @@ export default class Render extends React.Component {
                         <div className="row">
                             <div className="col-6 mt-4">
                                 <div id={'chartContainer-Postos Cobertos'} className="bg-transparent ml-2">
-                                    <p className="text-secondary" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>Grafico Indisponivel!</p>
+                                    <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
                                 </div>
                             </div>
                             <div className="col-6 mt-4">
                                 <div id={'chartContainer-Postos Descobertos'} className="bg-transparent ml-2">
-                                    <p className="text-secondary" style={{ 'marginLeft': 'calc(1px + 1vmin)' }}>Grafico Indisponivel!</p>
+                                    <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
                                 </div>
                             </div>
                         </div>
@@ -450,29 +472,30 @@ export default class Render extends React.Component {
                 <div className='suport'>
                     <div className="Suport-view_1">
                         <div className="row">
-                            <div className="bg-secondary border border-dark ml-4 mt-3 text-white" style={{ 'width': '100%' }}>
+                            <div className="bg-secondary border border-dark ml-4 mt-3 text-white" style={{ 'width': 1165 }}>
                                 <h1 className="p-2"><MdLiveHelp /> Precisa de ajuda?</h1>
-                                <div className="bg-light border-top border border-dark pl-2 pt-2" style={{ 'fontSize': 'calc(10px + 1vmin)', 'marginTop': 'calc(-0.1px + -1vmin)' }}>
-                                    <p className="text-dark text-left font-weight-bold">
+                                <div className="bg-light border-top border border-dark pt-2" style={{ 'fontSize': 14, 'marginTop': 8 }}>
+                                    <p className="text-dark text-left font-weight-bold pl-2" style={{ 'fontSize': 32 }}>
                                         <MdHeadsetMic /> Suporte
                                     </p>
-                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                    <hr style={{ 'width': 1120 }} />
+                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'fontSize': 20, 'marginTop': -8 }}>
                                         <MdFace /> Luiz
                                     </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
                                         <MdHdrStrong /> Telefone: (11) 98497-9536
                                     </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
                                         <MdHdrStrong /> Email: suporte@grupomave.com.br
                                     </p>
-                                    <hr style={{'width': '100%', 'marginLeft': 'calc(-0.4px + -0.4vmin)'}} />
-                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                    <hr style={{ 'width': 1120 }} />
+                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'fontSize': 20, 'marginTop': -12 }}>
                                         <MdFace /> Jefferson
                                     </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
                                         <MdHdrStrong /> Telefone: (11) 98276-6134
                                     </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'marginTop': 'calc(-2px + -1vmin)' }}>
+                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
                                         <MdHdrStrong /> Email: ti@grupomave.com.br
                                     </p>
                                 </div>
