@@ -57,7 +57,7 @@ import '../css/Index.css';
 /**
  * Class
  */
-export default class Render extends React.Component {
+export default class Index extends React.Component {
     constructor(props) {
         super(props);
         this.state = {

@@ -1,42 +1,47 @@
+const express = require('express');
+const router = express.Router();
 const mongoose = require('mongoose');
+const authMiddleware = require('../middlewares/auth');
 const Product = mongoose.model('products');
 
-module.exports = (app) => {
+router.use(authMiddleware);
 
-    app.get(`/api/product`, async (req, res) => {
-        let products = await Product.find();
-        return res.status(200).send(products);
-    });
+router.get(`/product`, async (req, res) => {
+    let products = await Product.find();
+    return res.status(200).send(products);
+});
 
-    app.post(`/api/product`, async (req, res) => {
-        let product = await Product.create(req.body);
-        return res.status(201).send({
-            error: false,
-            product
-        })
+router.post(`/product`, async (req, res) => {
+    let product = await Product.create(req.body);
+    return res.status(201).send({
+        error: false,
+        product
+    })
+})
+
+router.put(`/product/:id`, async (req, res) => {
+    const { id } = req.params;
+
+    let product = await Product.findOneAndUpdate(id, req.body);
+
+    return res.status(202).send({
+        error: false,
+        product
     })
 
-    app.put(`/api/product/:id`, async (req, res) => {
-        const { id } = req.params;
+});
 
-        let product = await Product.findOneAndUpdate(id, req.body);
+router.delete(`/product/:id`, async (req, res) => {
+    const { id } = req.params;
 
-        return res.status(202).send({
-            error: false,
-            product
-        })
+    let product = await Product.findByIdAndDelete(id);
 
-    });
-
-    app.delete(`/api/product/:id`, async (req, res) => {
-        const { id } = req.params;
-
-        let product = await Product.findByIdAndDelete(id);
-
-        return res.status(202).send({
-            error: false,
-            product
-        })
-
+    return res.status(202).send({
+        error: false,
+        product
     })
-}
+
+})
+
+
+module.exports = (app) => app.use('/api', router);

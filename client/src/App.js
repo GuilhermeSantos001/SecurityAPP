@@ -1,42 +1,10 @@
-/**
- * Import React
- */
 import React from "react";
 
-/**
- * Import Bootstrap
- */
-import {
-  Container
-} from 'react-bootstrap';
+import Routes from './routes/routes';
 
+const App = () => <Routes />;
 
-// /**
-//  * Import Services
-//  */
-// import productService from './services/productService';
-
-/**
- * Import Menu App
- */
-import Index from './components/Index';
-
-export default class App extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {};
-  }
-
-  render() {
-    return (
-      <div className="App">
-        <Container fluid={true}>
-          <Index />
-        </Container>
-      </div>
-    )
-  }
-}
+export default App;
 
 // function App() {
 //   const [products, setproducts] = useState(null);
