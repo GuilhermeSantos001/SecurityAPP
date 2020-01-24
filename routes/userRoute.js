@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mysql = require('../modules/mysql');
 const jwt = require('jsonwebtoken');
 const authConfig = require('../config/auth');
-const User = mongoose.model('users');
 
 function generateToken(params = {}) {
     return jwt.sign(params, authConfig.secret, {
@@ -14,15 +12,35 @@ function generateToken(params = {}) {
 
 router.get(`/`, async (req, res) => {
     try {
-        let users = await User.find();
-
-        if (users.length <= 0)
-            return res.status(400).send({ error: 'Not has registered users in database' });
-
-        return res.status(200).send(users);
-
+        mysql.createDatabase('SecurityAPP', 'utf8mb4')
+            .then(({ sql, query }) => {
+                mysql.createTable('SecurityAPP', 'users', "(\n" +
+                    "ID int NOT NULL AUTO_INCREMENT,\n" +
+                    "Nome varchar(150) NOT NULL,\n" +
+                    "Email varchar(320) NOT NULL UNIQUE,\n" +
+                    "DateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),\n" +
+                    "PRIMARY KEY (ID)\n" +
+                    ");")
+                    .then(({ sql, query }) => {
+                        mysql.insertInTable('SecurityAPP', 'users', '(Nome, Email)', [
+                            ['Guilherme', 'suporte@grupomave.com.br'],
+                            ['Jefferson', 'ti@grupomave.com.br'],
+                        ])
+                            .then(({ sql, query }) => {
+                                return res.status(200).send({ success: 'Insertion in table is success', sql: sql, query: query });
+                            })
+                            .catch(({ err, details }) => {
+                                if (err) return res.status(400).send({ error: err, details });
+                            })
+                    })
+                    .catch(({ err, details }) => {
+                        if (err) return res.status(400).send({ error: err, details });
+                    })
+            }).catch(({ err, details }) => {
+                if (err) return res.status(400).send({ error: err, details });
+            })
     } catch (err) {
-        return res.status(400).send({ error: 'Get users failed' });
+        return res.status(400).send({ error: 'Get users failed', details: err });
     }
 });
 

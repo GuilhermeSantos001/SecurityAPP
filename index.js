@@ -1,28 +1,10 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 
 const app = express();
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-
-/**
-* Import models to database
-*/
-require('./models/User');
-require('./models/Product');
-
-/**
- * Connect to Database
- */
-mongoose.Promise = global.Promise;
-mongoose
-    .set('useNewUrlParser', true)
-    .set('useFindAndModify', false)
-    .set('useCreateIndex', true)
-    .set('useUnifiedTopology', true)
-    .connect(process.env.MONGODB_URI || `mongodb://localhost:27017/node-react-starter`);
+app.use(bodyParser.urlencoded({ extended: true }));
 
 /**
  * Import Routes
