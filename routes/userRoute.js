@@ -1,43 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
+const table_user = require('../config/tables').users;
 const apiMiddleware = require('../middlewares/api');
 const crypto = require('../api/crypto');
 const lzstring = require('lz-string');
-
-/**
- * Create DATABASE and TABLE
- */
-
-const table = {
-    'users': {
-        'varchar': {
-            'limits': {
-                'nome': 120,
-                'email': 320
-            }
-        }
-    }
-}
-
-mysql.createDatabase('SecurityAPP', 'utf8mb4')
-    .then(({ sql, query }) => {
-
-        mysql.createTable('SecurityAPP', 'users', "(\n" +
-            "ID int NOT NULL AUTO_INCREMENT,\n" +
-            `Nome varchar(${table.users.varchar.limits.nome}) NOT NULL,\n` +
-            `Email varchar(${table.users.varchar.limits.email}) NOT NULL UNIQUE,\n` +
-            `Password LONGTEXT NOT NULL,\n` +
-            "DateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),\n" +
-            "PRIMARY KEY (ID)\n" +
-            ");")
-            .catch(({ err, details }) => {
-                if (err) return console.error({ error: err, details });
-            })
-
-    }).catch(({ err, details }) => {
-        if (err) return console.error({ error: err, details });
-    })
 
 router.use(apiMiddleware);
 
@@ -47,8 +14,12 @@ router.get([`/`, `/:id`], async (req, res) => {
 
     try {
 
-        mysql.getInTable('SecurityAPP', 'users', id)
+        mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [id])
             .then(({ sql, query }) => {
+                query.results = query.results.map(result => {
+                    result['Password'] = undefined;
+                    return result;
+                });
                 return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
             })
             .catch(({ err, details }) => {
@@ -67,20 +38,12 @@ router.post(`/register`, async (req, res) => {
 
         let encoded_password = crypto.encrypt(password);
 
-        encoded_password.tag = encoded_password.tag.toString('binary');
-
-        encoded_password = lzstring.compressToBase64(JSON.stringify(encoded_password));
-
-        // let decoded_pass = JSON.parse(lzstring.decompressFromBase64(encoded_password));
-
-        // decoded_pass.tag = Buffer.from(decoded_pass.tag, 'binary');
-
-        // decoded_pass = crypto.decrypt(decoded_pass);
+        encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
 
         mysql.insertInTable('SecurityAPP', 'users', '(Nome, Email, Password)', [
             [
-                name.substring(0, table.users.varchar.limits.nome),
-                email.substring(0, table.users.varchar.limits.email),
+                name.substring(0, table_user.varchar.limits.nome),
+                email.substring(0, table_user.varchar.limits.email),
                 encoded_password,
             ]
         ])
@@ -102,8 +65,8 @@ router.put([`/update`, `/update/:id`], async (req, res) => {
 
     try {
         mysql.updateInTable('SecurityAPP', 'users',
-            `Nome='${name.substring(0, table.users.varchar.limits.nome)}',` +
-            `Email='${email.substring(0, table.users.varchar.limits.email)}',` +
+            `Nome='${name.substring(0, table_user.varchar.limits.nome)}',` +
+            `Email='${email.substring(0, table_user.varchar.limits.email)}',` +
             `Password='${password}'`,
             id)
             .then(({ sql, query }) => {
@@ -136,4 +99,71 @@ router.delete([`/remove`, `/remove/:id`], async (req, res) => {
     }
 })
 
-module.exports = (app) => app.use('/users', router);
+module.exports = (app) => {
+    /**
+     * Set Router
+     */
+
+    app.use('/users', router);
+
+    /**
+     * Create DATABASE and TABLE
+     */
+
+    mysql.createDatabase('SecurityAPP', 'utf8mb4')
+        .then(({ sql, query }) => {
+
+            const database = "SecurityAPP", table = "users";
+
+            let definitions = "(\n" +
+                "ID int NOT NULL AUTO_INCREMENT,\n" +
+                `Nome varchar(${table_user.varchar.limits.nome}) NOT NULL,\n` +
+                `Email varchar(${table_user.varchar.limits.email}) NOT NULL UNIQUE,\n` +
+                `Password LONGTEXT NOT NULL,\n` +
+                `Password_Reset LONGTEXT,\n` +
+                "DateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),\n" +
+                "PRIMARY KEY (ID)\n" +
+                ");"
+
+            mysql.createTable(database, table, definitions)
+                .then(({ sql, query }) => {
+
+                    if (query.code === 1062) {
+
+                        let columns = [],
+                            i = 0,
+                            l = definitions.length,
+                            str = '';
+
+                        for (; i < l; i++) {
+                            let letter = definitions[i]
+                            if (letter === ',') {
+                                columns.push(str);
+                                str = '';
+                            }
+                            if (letter != '\n' && letter != ',') {
+                                if (letter === '(' && i <= 0)
+                                    letter = '';
+                                str += letter;
+                            }
+                        }
+
+                        console.log(columns)
+
+                        // mysql.modifyTable(database, table, definitions)
+                        //     .then(({ sql, query }) => {
+
+                        //     })
+                    }
+
+                    // return console.log({ sql, query: query.results, code: query.code });
+                })
+                .catch(({ err, details }) => {
+                    if (err) return console.error({ error: err, details });
+                })
+
+        }).catch(({ err, details }) => {
+            if (err) return console.error({ error: err, details });
+        })
+
+}

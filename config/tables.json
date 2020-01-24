@@ -1,0 +1,10 @@
+{
+    "users": {
+        "varchar": {
+            "limits": {
+                "nome": 120,
+                "email": 320
+            }
+        }
+    }
+}

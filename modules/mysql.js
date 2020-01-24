@@ -12,19 +12,34 @@ module.exports = {
                     return connection.destroy();
                 }
 
-                const sql = `CREATE DATABASE IF NOT EXISTS ${database} CHARACTER SET ${characterset}`;
+                let sql = `SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA= ? `;
 
-                connection.query(sql, (err, results, fields) => {
+                connection.query(sql, [database], (err, results, fields) => {
                     if (err) {
-                        reject({ err: 'Creation of database is failed', details: err });
+                        reject({ err: 'Select of databae is failed', details: err });
                         return connection.destroy();
                     }
 
-                    resolve({ sql, query: { results, fields } });
+                    if (results.length <= 0) {
+                        sql = `CREATE DATABASE IF NOT EXISTS ${database} CHARACTER SET ${characterset}`;
 
-                    return connection.end();
+                        connection.query(sql, (err, results, fields) => {
+                            if (err) {
+                                reject({ err: 'Creation of database is failed', details: err });
+                                return connection.destroy();
+                            }
+
+                            resolve({ sql, query: { results, fields } });
+
+                            return connection.end();
+                        });
+                    } else {
+                        resolve({ sql, query: { results, fields } });
+                        return connection.end();
+                    }
+
                 });
-            });
+            })
         })
     },
     createTable: (database, table, definitions) => {
@@ -38,22 +53,83 @@ module.exports = {
                     return connection.destroy();
                 }
 
-                const sql = `CREATE TABLE IF NOT EXISTS ${table} ${definitions}`;
+                let sql = `SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA= ? AND TABLE_NAME= ? `;
 
-                connection.query(sql, (err, results, fields) => {
+                connection.query(sql, [database, table], (err, results, fields) => {
                     if (err) {
-                        reject({ err: 'Creation of table is failed', details: err });
+                        reject({ err: 'Select of table is failed', details: err });
                         return connection.destroy();
                     }
 
-                    resolve({ sql, query: { results, fields } });
+                    if (results.length <= 0) {
+                        sql = `CREATE TABLE IF NOT EXISTS ${table} ${definitions}`;
 
-                    return connection.end();
+                        connection.query(sql, (err, results, fields) => {
+                            if (err) {
+                                reject({ err: 'Creation of table is failed', details: err });
+                                return connection.destroy();
+                            }
+
+                            resolve({ sql, query: { results, fields } });
+
+                            return connection.end();
+                        });
+                    } else {
+                        resolve({ sql, query: { results, fields, code: 1062 } });
+                        return connection.end();
+                    }
+
                 });
+
             });
         })
     },
-    getInTable: (database, table, filter = '') => {
+    modifyTable: (database, table, definitions) => {
+        return new Promise(async (resolve, reject) => {
+
+            const connection = await mysql.createConnection(Object.assign({ database: database }, mysqlConfig));
+
+            connection.connect((err) => {
+                if (err) {
+                    reject({ err: 'Connection with database failed', details: err });
+                    return connection.destroy();
+                }
+
+                let sql = `SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA= ? AND TABLE_NAME= ? `;
+
+                connection.query(sql, [database, table], (err, results, fields) => {
+                    if (err) {
+                        reject({ err: 'Select of table is failed', details: err });
+                        return connection.destroy();
+                    }
+
+                    if (results.length > 0) {
+                        sql = `ALTER TABLE ${table} ${definitions}`;
+
+                        resolve({ sql, query: definitions });
+                        return connection.end();
+
+                        // connection.query(sql, (err, results, fields) => {
+                        //     if (err) {
+                        //         reject({ err: 'Modify the table is failed', details: err });
+                        //         return connection.destroy();
+                        //     }
+
+                        //     resolve({ sql, query: { results, fields } });
+
+                        //     return connection.end();
+                        // });
+                    } else {
+                        resolve({ sql, query: { results, fields } });
+                        return connection.end();
+                    }
+
+                });
+
+            });
+        })
+    },
+    getInTable: (database, table, conditions = '', filters = []) => {
         return new Promise(async (resolve, reject) => {
             const connection = await mysql.createConnection(Object.assign({ database: database }, mysqlConfig));
 
@@ -63,9 +139,9 @@ module.exports = {
                     return connection.destroy();
                 }
 
-                if (filter.length > 0) {
-                    const sql = `SELECT * FROM ${table} WHERE ID= ?`;
-                    connection.query(sql, [filter], (err, results, fields) => {
+                if (filters.filter(filter => { return filter }).length > 0) {
+                    const sql = `SELECT * FROM ${table} WHERE ${conditions}`;
+                    connection.query(sql, [...filters], (err, results, fields) => {
                         if (err) {
                             reject({ err: 'Get in table is failed', details: err });
                             return connection.destroy();
