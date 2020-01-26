@@ -125,38 +125,48 @@ module.exports = (app) => {
                 "PRIMARY KEY (ID)\n" +
                 ");"
 
-            mysql.createTable(database, table, definitions)
+            mysql.createTable(database, table)
                 .then(({ sql, query }) => {
 
-                    if (query.code === 1062) {
+                    mysql.modifyTable(database, table, [
+                        [
+                            'Nome',
+                            `COLUMN Nome varchar(${table_user.varchar.limits.nome})`,
+                            ['NOT NULL']
+                        ],
+                        [
+                            'Email',
+                            `COLUMN Email varchar(${table_user.varchar.limits.email})`,
+                            ['NOT NULL', 'UNIQUE']
+                        ],
+                        [
+                            'Password',
+                            `COLUMN Password LONGTEXT`,
+                            ['NOT NULL']
+                        ]
+                    ]
+                    )
+                        .then(({ sql, query }) => {
 
-                        let columns = [],
-                            i = 0,
-                            l = definitions.length,
-                            str = '';
+                            mysql.setPositionColumnsInTable(database, table, [
+                                [
+                                    'Email',
+                                    `varchar(${table_user.varchar.limits.email}) NOT NULL UNIQUE AFTER Nome`
+                                ],
+                                [
+                                    'Password',
+                                    `LONGTEXT NOT NULL AFTER Email`
+                                ]
+                            ])
+                                .catch(({ err, details }) => {
+                                    if (err) return console.error({ error: err, details });
+                                })
 
-                        for (; i < l; i++) {
-                            let letter = definitions[i]
-                            if (letter === ',') {
-                                columns.push(str);
-                                str = '';
-                            }
-                            if (letter != '\n' && letter != ',') {
-                                if (letter === '(' && i <= 0)
-                                    letter = '';
-                                str += letter;
-                            }
-                        }
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return console.error({ error: err, details });
+                        })
 
-                        console.log(columns)
-
-                        // mysql.modifyTable(database, table, definitions)
-                        //     .then(({ sql, query }) => {
-
-                        //     })
-                    }
-
-                    // return console.log({ sql, query: query.results, code: query.code });
                 })
                 .catch(({ err, details }) => {
                     if (err) return console.error({ error: err, details });
