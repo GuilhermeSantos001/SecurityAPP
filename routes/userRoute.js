@@ -143,6 +143,11 @@ module.exports = (app) => {
                             'Password',
                             `COLUMN Password LONGTEXT`,
                             ['NOT NULL']
+                        ],
+                        [
+                            'DateAt',
+                            `COLUMN DateAt TIMESTAMP`,
+                            ['DEFAULT', 'CURRENT_TIMESTAMP()']
                         ]
                     ]
                     )
@@ -150,13 +155,21 @@ module.exports = (app) => {
 
                             mysql.setPositionColumnsInTable(database, table, [
                                 [
+                                    'Nome',
+                                    `varchar(${table_user.varchar.limits.nome}) NOT NULL FIRST`
+                                ],
+                                [
                                     'Email',
                                     `varchar(${table_user.varchar.limits.email}) NOT NULL UNIQUE AFTER Nome`
                                 ],
                                 [
                                     'Password',
                                     `LONGTEXT NOT NULL AFTER Email`
-                                ]
+                                ],
+                                [
+                                    'DateAt',
+                                    `TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER Password`
+                                ]                                
                             ])
                                 .catch(({ err, details }) => {
                                     if (err) return console.error({ error: err, details });

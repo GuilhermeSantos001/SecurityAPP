@@ -62,17 +62,22 @@ function ivGenerate(length) {
 /**
  * @description Cria uma criptografia para a string
  * @param {string} string Texto a ser criptografado
+ * @param {string} secret Texto para combinação da cifra
  * @author GuilhermeSantos
  * @version 1.0.0
  * @returns {{}}
  */
-function encrypt(string) {
+function encrypt(string, secret) {
     if (!string || string && typeof string != 'string' ||
         string && typeof string === 'string' && string.length <= 0) {
         return false;
     }
-    var iv = ivGenerate(64);
-    var cipher = crypto.createCipheriv(algorithm, password, iv)
+    if (!secret || secret && typeof secret != 'string' ||
+        secret && typeof secret === 'string' && secret.length <= 0) {
+        secret = string;
+    }
+    var iv = ivGenerate(256);
+    var cipher = crypto.createCipheriv(algorithm, password, iv + secret);
     var encrypted = cipher.update(string, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     var tag = cipher.getAuthTag();
@@ -86,14 +91,19 @@ function encrypt(string) {
 /**
  * @description Cria uma descriptografia para a string
  * @param {{}} encrypted Objeto a ser descriptografado
+ * @param {string} secret Texto para combinação da cifra
  * @author GuilhermeSantos
  * @version 1.0.0
  * @returns {string}
  */
-function decrypt(encrypted) {
+function decrypt(encrypted, secret) {
+    if (!secret || secret && typeof secret != 'string' ||
+        secret && typeof secret === 'string' && secret.length <= 0) {
+        return false;
+    }
     try {
         var iv = encrypted.iv;
-        var decipher = crypto.createDecipheriv(algorithm, password, iv);
+        var decipher = crypto.createDecipheriv(algorithm, password, iv + secret);
         decipher.setAuthTag(encrypted.tag);
         var dec = decipher.update(encrypted.content, 'hex', 'utf8');
         dec += decipher.final('utf8');
@@ -106,12 +116,13 @@ function decrypt(encrypted) {
 /**
  * @description Cria uma criptografia para a string que converte o Buffer em JSON
  * @param {string} string Texto a ser criptografado
+ * @param {string} secret Texto para combinação da cifra
  * @author GuilhermeSantos
  * @version 1.0.0
  * @returns {{}}
  */
-function encryptJSON(string) {
-    var encryptContent = encrypt(string);
+function encryptJSON(string, secret) {
+    var encryptContent = encrypt(string, secret);
     return {
         content: encryptContent.content,
         tag: JSON.stringify(encryptContent.tag),
@@ -122,14 +133,15 @@ function encryptJSON(string) {
 /**
  * @description Cria uma descriptografia para a string com o Buffer em JSON
  * @param {{}} encrypted Objeto a ser descriptografado
+ * @param {string} secret Texto para combinação da cifra
  * @author GuilhermeSantos
  * @version 1.0.0
  * @returns {string}
  */
-function decryptJSON(encrypted) {
+function decryptJSON(encrypted, secret) {
     try {
         var iv = encrypted.iv;
-        var decipher = crypto.createDecipheriv(algorithm, password, iv)
+        var decipher = crypto.createDecipheriv(algorithm, password, iv + secret);
         decipher.setAuthTag(Buffer.from(JSON.parse(encrypted.tag).data));
         var dec = decipher.update(encrypted.content, 'hex', 'utf8');
         dec += decipher.final('utf8');

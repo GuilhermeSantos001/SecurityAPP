@@ -29,7 +29,7 @@ router.post(`/sign`, async (req, res) => {
 
                     decoded_pass.tag = Buffer.from(decoded_pass.tag);
 
-                    decoded_pass = crypto.decrypt(decoded_pass);
+                    decoded_pass = crypto.decrypt(decoded_pass, password);
 
                     if (decoded_pass !== password)
                         return res.status(400).send({ error: 'Invalid password' });
@@ -59,8 +59,6 @@ router.post('/reset_password', async (req, res) => {
     const { email, token, password } = req.body;
 
     try {
-
-        
 
         const user = await User.findOne({ email })
             .select('+passwordResetToken passwordResetExpires');

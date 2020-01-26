@@ -29,12 +29,12 @@ module.exports = (req, res, next) => {
     if (!authHeader)
         return res.status(401).send({ error: 'No Api Key provided' });
 
-    let key = JSON.parse(fs.readFileSync(file, 'utf8'));
+    let api_key = JSON.parse(fs.readFileSync(file, 'utf8'));
 
-    key.tag = Buffer.from(key.tag, 'binary');
-    key.iv = authHeader;
+    api_key.tag = Buffer.from(api_key.tag, 'binary');
+    api_key.iv = authHeader;
 
-    if (!crypto.decrypt(key))
+    if (!crypto.decrypt(api_key, key))
         return res.status(401).send({ error: 'Verify your Api Key' });
 
     return next();

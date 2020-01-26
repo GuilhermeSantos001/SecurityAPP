@@ -64,7 +64,6 @@ module.exports = {
                     if (results.length <= 0) {
                         sql = `CREATE TABLE IF NOT EXISTS ${table} ${"(\n" +
                             "ID int NOT NULL AUTO_INCREMENT,\n" +
-                            "DateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),\n" +
                             "PRIMARY KEY (ID)\n" +
                             ")"}`;
 
@@ -241,6 +240,9 @@ module.exports = {
                         const finish = await new Promise(resolve => {
 
                             const data = { column: definition[0], command: definition[1] };
+
+                            if (data['command'].indexOf('FIRST') != -1)
+                                data['command'] = data['command'].replace('FIRST', 'AFTER ID');
 
                             sql = `ALTER TABLE ${table} CHANGE COLUMN ${data['column']} ${data['column']} ${data['command']}`;
                             connection.query(sql, (err) => {
