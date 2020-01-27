@@ -64,10 +64,15 @@ router.put([`/update`, `/update/:id`], async (req, res) => {
     const { name, email, password } = req.body;
 
     try {
+
+        let encoded_password = crypto.encrypt(password);
+
+        encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
+
         mysql.updateInTable('SecurityAPP', 'users',
             `Nome='${name.substring(0, table_user.varchar.limits.nome)}',` +
             `Email='${email.substring(0, table_user.varchar.limits.email)}',` +
-            `Password='${password}'`,
+            `Password='${encoded_password}'`,
             id)
             .then(({ sql, query }) => {
                 return res.status(200).send({ success: 'Update in table is success', sql: sql, query: query });
@@ -114,39 +119,34 @@ module.exports = (app) => {
         .then(({ sql, query }) => {
 
             const database = "SecurityAPP", table = "users";
-
-            let definitions = "(\n" +
-                "ID int NOT NULL AUTO_INCREMENT,\n" +
-                `Nome varchar(${table_user.varchar.limits.nome}) NOT NULL,\n` +
-                `Email varchar(${table_user.varchar.limits.email}) NOT NULL UNIQUE,\n` +
-                `Password LONGTEXT NOT NULL,\n` +
-                `Password_Reset LONGTEXT,\n` +
-                "DateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),\n" +
-                "PRIMARY KEY (ID)\n" +
-                ");"
-
+            
             mysql.createTable(database, table)
                 .then(({ sql, query }) => {
 
                     mysql.modifyTable(database, table, [
                         [
                             'Nome',
-                            `COLUMN Nome varchar(${table_user.varchar.limits.nome})`,
+                            `COLUMN %COLUMN_NAME varchar(${table_user.varchar.limits.nome})`,
                             ['NOT NULL']
                         ],
                         [
                             'Email',
-                            `COLUMN Email varchar(${table_user.varchar.limits.email})`,
+                            `COLUMN %COLUMN_NAME varchar(${table_user.varchar.limits.email})`,
                             ['NOT NULL', 'UNIQUE']
                         ],
                         [
                             'Password',
-                            `COLUMN Password LONGTEXT`,
+                            `COLUMN %COLUMN_NAME LONGTEXT`,
                             ['NOT NULL']
                         ],
                         [
+                            'Password_Reset',
+                            'COLUMN %COLUMN_NAME LONGTEXT',
+                            []
+                        ],
+                        [
                             'DateAt',
-                            `COLUMN DateAt TIMESTAMP`,
+                            `COLUMN %COLUMN_NAME TIMESTAMP`,
                             ['DEFAULT', 'CURRENT_TIMESTAMP()']
                         ]
                     ]
@@ -167,9 +167,13 @@ module.exports = (app) => {
                                     `LONGTEXT NOT NULL AFTER Email`
                                 ],
                                 [
+                                    'Password_Reset AFTER Password',
+                                    `LONGTEXT`
+                                ],
+                                [
                                     'DateAt',
-                                    `TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER Password`
-                                ]                                
+                                    `TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER Password_Reset`
+                                ]
                             ])
                                 .catch(({ err, details }) => {
                                     if (err) return console.error({ error: err, details });

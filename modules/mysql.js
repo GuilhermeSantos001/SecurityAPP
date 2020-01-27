@@ -113,6 +113,8 @@ module.exports = {
                             const finish = await new Promise(resolve => {
                                 let data = { column: definition[0], command: definition[1], props: definition[2] };
 
+                                data.command = data.command.replace(/%(COLUMN_NAME)/i, data.column);
+
                                 sql = `SELECT ${data['column']} FROM ${table}`;
 
                                 connection.query(sql, async err => {
@@ -412,7 +414,7 @@ module.exports = {
                     return connection.destroy();
                 }
 
-                if (filter.length > 0) {
+                if (String(filter).length > 0) {
                     const sql = `UPDATE ${table} SET ${values} WHERE ID= ?`;
                     connection.query(sql, [filter], (err, results, fields) => {
                         if (err) {
@@ -452,7 +454,7 @@ module.exports = {
                     return connection.destroy();
                 }
 
-                if (filter.length > 0) filter = `WHERE ID=${filter}`;
+                if (String(filter).length > 0) filter = `WHERE ID=${filter}`;
                 const sql = `DELETE FROM ${table} ${filter}`;
 
                 connection.query(sql, (err, results, fields) => {

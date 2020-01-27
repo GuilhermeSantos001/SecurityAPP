@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authConfig = require('../config/auth');
 const authMiddleware = require('../middlewares/auth');
 const crypto = require('../api/crypto');
+const cryptoNodeJs = require('crypto');
 const mailer = require('../modules/mailer');
 const lzstring = require('lz-string');
+const path = require('path');
 
 function generateToken(params = {}) {
     return jwt.sign(params, authConfig.secret, {
@@ -41,7 +42,7 @@ router.post(`/sign`, async (req, res) => {
                             results: {
                                 user,
                                 token: generateToken({ id: user['ID'] })
-                            },
+                            }
                         }
                     });
                 }
@@ -60,26 +61,53 @@ router.post('/reset_password', async (req, res) => {
 
     try {
 
-        const user = await User.findOne({ email })
-            .select('+passwordResetToken passwordResetExpires');
-        if (!user)
-            return res.status(400).send({ error: 'User not found' });
+        const database = 'SecurityAPP', table = 'users';
 
-        if (token !== user.passwordResetToken)
-            return res.status(400).send({ error: 'Token invalid' });
+        mysql.getInTable(database, table, 'Email= ?', [email])
+            .then(async ({ sql, query }) => {
+                if (query.results.length > 0) {
+                    let user = query.results[0];
 
-        const now = new Date();
+                    const Password_Reset = JSON.parse(lzstring.decompressFromBase64(user['Password_Reset'])),
+                        now = new Date();
 
-        if (now > user.passwordResetExpires)
-            return res.status(400).send({ error: 'Token expired, generate a new one' });
+                    if (token !== Password_Reset['passwordResetToken'])
+                        return res.status(400).send({ error: 'Token invalid' });
 
-        user.password = password;
-        user.passwordResetToken = undefined;
-        user.passwordResetExpires = undefined;
+                    if (now > Password_Reset['passwordResetExpires'])
+                        return res.status(400).send({ error: 'Token expired, generate a new one' });
 
-        await user.save();
+                    let encoded_password = crypto.encrypt(password);
 
-        return res.status(202).send({ user });
+                    encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
+
+                    await mysql.updateInTable(database, table,
+                        `Password='${encoded_password}',` +
+                        `Password_Reset='${null}'`,
+                        user['ID'])
+                        .then(({ sql, query }) => {
+
+                            return res.status(200).send({
+                                success: 'Reset password user is success', sql: sql, query: {
+                                    results: {
+                                        user,
+                                        token: generateToken({ id: user['ID'] })
+                                    }
+                                }
+                            });
+
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } else {
+                    return res.status(400).send({ error: 'User not exist' });
+                }
+            })
+            .catch(({ err, details }) => {
+                if (err) return res.status(400).send({ error: err, details });
+            })
 
     } catch (err) {
         return res.status(400).send({ error: 'Cannot reset password, try again' });
@@ -92,33 +120,90 @@ router.post(`/forgot_password`, async (req, res) => {
     const { email } = req.body;
 
     try {
-        const user = await User.findOne({ email });
-        if (!user)
-            return res.status(400).send({ error: 'User not found' });
 
-        const token = crypto.randomBytes(20).toString('hex');
+        const database = 'SecurityAPP', table = 'users';
 
-        const now = new Date();
-        now.setHours(now.getHours() + 1);
+        mysql.getInTable(database, table, 'Email= ?', [email])
+            .then(async ({ sql, query }) => {
+                if (query.results.length > 0) {
+                    let user = query.results[0];
 
-        await User.findByIdAndUpdate(user.id, {
-            '$set': {
-                passwordResetToken: token,
-                passwordResetExpires: now
-            }
-        })
+                    const token = cryptoNodeJs.randomBytes(20).toString('hex');
 
-        mailer.sendMail({
-            to: email,
-            from: 'suporte@grupomave.com.br',
-            template: 'auth/forgot_password',
-            context: { token }
-        }, (err) => {
-            if (err)
-                return res.status(400).send({ error: 'Cannot send forgot password email' });
-        })
+                    const now = new Date();
+                    now.setHours(now.getHours() + 1);
 
-        return res.status(202).send({ user });
+                    const Password_Reset = lzstring.compressToBase64(JSON.stringify({
+                        passwordResetToken: token,
+                        passwordResetExpires: now
+                    }))
+
+                    const name = user['Nome'];
+
+                    await mysql.updateInTable(database, table, `Password_Reset='${Password_Reset}'`, user['ID'])
+                        .then(({ sql, query }) => {
+
+                            mailer.sendMail({
+                                from: 'suporte@grupomave.com.br',
+                                to: email,
+                                subject: "SecurityAPP - Codigo para redefinir a senha",
+                                template: 'auth/forgot_password',
+                                context: {
+                                    name, token, expires: {
+                                        fullHours: `${("0" + now.getHours()).slice(-2)}:${("0" + now.getMinutes()).slice(-2)}:${("0" + now.getSeconds()).slice(-2)}`,
+                                        day: [
+                                            'Domingo',
+                                            'Segunda-Feira',
+                                            'Terça-Feira',
+                                            'Quarta-Feira',
+                                            'Quinta-Feira',
+                                            'Sexta-Feira',
+                                            'Sabado'
+                                        ][now.getDay()],
+                                        dayMonth: now.getDate(),
+                                        year: now.getFullYear(),
+                                        month: [
+                                            'Janeiro',
+                                            'Fevereiro',
+                                            'Março',
+                                            'Abril',
+                                            'Maio',
+                                            'Junho',
+                                            'Julho',
+                                            'Agosto',
+                                            'Setembro',
+                                            'Outubro',
+                                            'Novembro',
+                                            'Dezembro'
+                                        ][now.getMonth()]
+                                    }
+                                }
+                            }, (err) => {
+                                if (err)
+                                    return res.status(400).send({ error: 'Cannot send forgot password for address email' });
+                            })
+
+                            return res.status(200).send({
+                                success: 'Get user in table from Email with token autorization is success', sql: sql, query: {
+                                    results: {
+                                        user
+                                    }
+                                }
+                            });
+
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } else {
+                    return res.status(400).send({ error: 'User not exist' });
+                }
+            })
+            .catch(({ err, details }) => {
+                if (err) return res.status(400).send({ error: err, details });
+            })
+
     } catch (err) {
         return res.status(400).send({ error: 'Error on forgot password, try again' });
     }

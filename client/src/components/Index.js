@@ -128,6 +128,16 @@ export default class Index extends React.Component {
     }
 
     componentDidMount() {
+        const loadingElement = document.getElementById('ipl-progress-indicator');
+        if (loadingElement) {
+            // fade out
+            loadingElement.classList.add('available');
+            setTimeout(() => {
+                // remove from DOM
+                if (loadingElement) loadingElement.outerHTML = '';
+            }, 2000);
+        }
+        
         window.setInterval(() => {
             this.setClock();
         }, 1000);
@@ -207,7 +217,7 @@ export default class Index extends React.Component {
         }
 
         if (!this.state.data.graphics[graphic]) return;
-        else if (this.state.menu != 'dashboard') return;
+        else if (this.state.menu !== 'dashboard') return;
         let chart = new CanvasJSReact.CanvasJS.Chart(`chartContainer-${graphic}`, options),
             state = Object.assign({}, this.state.data);
         chart.render();
@@ -527,11 +537,11 @@ function animateCSS(element, animationName, callback) {
     }
 }
 
-function getRandomColor() {
-    var letters = '0123456789ABCDEF';
-    var color = '#';
-    for (var i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-}
+// function getRandomColor() {
+//     var letters = '0123456789ABCDEF';
+//     var color = '#';
+//     for (var i = 0; i < 6; i++) {
+//         color += letters[Math.floor(Math.random() * 16)];
+//     }
+//     return color;
+// }
