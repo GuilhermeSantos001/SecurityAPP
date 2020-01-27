@@ -9,6 +9,6 @@ body {
     height: 100vh;
 }
 
-#alertUser {
+#alertUser, #alertUser2 {
     animation-duration: 0.3s;
 }

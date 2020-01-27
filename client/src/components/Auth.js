@@ -21,6 +21,9 @@ import '../css/Auth.css';
 export default class Index extends React.Component {
     constructor(props) {
         super(props);
+        this.state = {
+            new_account: false
+        }
     }
 
     componentDidMount() {
@@ -32,6 +35,60 @@ export default class Index extends React.Component {
                 // remove from DOM
                 if (loadingElement) loadingElement.outerHTML = '';
             }, 2000);
+        }
+        window.setInterval(() => {
+            this.update()
+        }, 500);
+    }
+
+    update() {
+        if (this.state.new_account) {
+            if (
+                document.getElementById('password_confirm').value != document.getElementById('password').value
+            ) {
+                if (
+                    String(document.getElementById('password_confirm').value).length > 0 &&
+                    !document.getElementById('password').classList.contains("is-invalid")
+                ) {
+                    document.getElementById('password').classList.add("is-invalid");
+                    document.getElementById('password_confirm').classList.add("is-invalid");
+                    document.getElementById('alertUser2').classList.remove("invisible");
+                    animateCSS('alertUser2', 'fadeInUp');
+                }
+
+                if (
+                    String(document.getElementById('password_confirm').value).length <= 0 &&
+                    document.getElementById('password').classList.contains("is-invalid")
+                ) {
+                    animateCSS('alertUser2', 'fadeOutDown', () => {
+                        document.getElementById('alertUser2').classList.add("invisible");
+                        document.getElementById('password').classList.remove("is-invalid");
+                        document.getElementById('password_confirm').classList.remove("is-invalid");
+                    });
+                }
+
+                if (document.getElementById('password').classList.contains("is-valid")) {
+                    document.getElementById('password').classList.remove("is-valid");
+                    document.getElementById('password_confirm').classList.remove("is-valid");
+                }
+
+            } else {
+                if (
+                    String(document.getElementById('password_confirm').value).length > 0 &&
+                    !document.getElementById('password').classList.contains("is-valid")
+                ) {
+                    document.getElementById('password').classList.add("is-valid");
+                    document.getElementById('password_confirm').classList.add("is-valid");
+                }
+
+                if (document.getElementById('password').classList.contains("is-invalid")) {
+                    animateCSS('alertUser2', 'fadeOutDown', () => {
+                        document.getElementById('alertUser2').classList.add("invisible");
+                        document.getElementById('password').classList.remove("is-invalid");
+                        document.getElementById('password_confirm').classList.remove("is-invalid");
+                    });
+                }
+            }
         }
     }
 
@@ -92,34 +149,98 @@ export default class Index extends React.Component {
             })
     }
 
+    handleClickNewAccount = () => {
+
+    }
+
+    Auth(props) {
+        const context = props.context;
+        const new_account = props.newAccount;
+        if (!new_account) {
+            return (
+                <div className="col-4 align-self-center m-auto" id="form-container">
+                    <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
+                        Nome de usuario/senha invalidos!
+                    </div>
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="email"
+                        type="text"
+                        placeholder="Endereço de email"
+                        onFocus={context.handleFocusRemoveAlert.bind(context)} />
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="password"
+                        type="password"
+                        placeholder="Senha"
+                        onFocus={context.handleFocusRemoveAlert.bind(context)} />
+                    <button
+                        type="button"
+                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        onClick={context.handleClickLogin.bind(context)}>
+                        Acessar
+                        </button>
+                    <button
+                        type="button"
+                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        onClick={() => {
+                            animateCSS('form-container', 'bounceIn');
+                            context.setState({ 'new_account': true });
+                        }}>
+                        Criar uma conta
+                    </button>
+                </div>
+            )
+        } else {
+            return (
+                <div className="col-4 align-self-center m-auto" id="form-container">
+                    <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
+                        Endereço de email em uso
+                    </div>
+                    <div className="mb-2 alert alert-danger invisible" id="alertUser2" role="alert">
+                        As duas senhas não coincidem
+                    </div>
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="email"
+                        type="text"
+                        placeholder="Endereço de email"
+                        onFocus={context.handleFocusRemoveAlert.bind(context)} />
+                    <input
+                        className="mb-2 mr-2 form-control form-control-sm"
+                        id="password"
+                        type="password"
+                        placeholder="Senha" />
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="password_confirm"
+                        type="password"
+                        placeholder="Confirme a senha" />
+                    <button
+                        type="button"
+                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        onClick={context.handleClickNewAccount.bind(context)}>
+                        Criar a conta
+                    </button>
+                    <button
+                        type="button"
+                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        onClick={() => {
+                            animateCSS('form-container', 'bounceIn');
+                            context.setState({ 'new_account': false });
+                        }}>
+                        Acessar
+                    </button>
+                </div>
+            )
+        }
+    }
+
     render() {
         return (
             <div className="container-fluid">
                 <div className="row auth-container">
-                    <div className="col-4 align-self-center m-auto">
-                        <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
-                            Nome de usuario/senha invalidos!
-                        </div>
-                        <input
-                            className="mb-2 form-control form-control-sm"
-                            id="email"
-                            type="text"
-                            placeholder="Endereço de email"
-                            onFocus={this.handleFocusRemoveAlert.bind(this)} />
-                        <input
-                            className="mb-2 form-control form-control-sm"
-                            id="password"
-                            type="password"
-                            placeholder="Senha"
-                            onFocus={this.handleFocusRemoveAlert.bind(this)} />
-                        <button
-                            type="button"
-                            className="mb-2 btn btn-primary btn-sm btn-block"
-                            onClick={this.handleClickLogin.bind(this)}>
-                            Acessar
-                        </button>
-                        {/* <button type="button" className="mb-2 btn btn-primary btn-sm btn-block">Criar uma conta</button> */}
-                    </div>
+                    <this.Auth context={this} newAccount={this.state.new_account} />
                 </div>
             </div >
         )
