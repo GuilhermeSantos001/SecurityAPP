@@ -22,7 +22,43 @@ export default class Index extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            new_account: false
+            new_account: false,
+            record_email: '',
+            message_error: '',
+            new_account_name: false,
+            new_account_email: false
+        }
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        if (prevState.new_account !== this.state.new_account) {
+            if (this.state.new_account)
+                document.getElementById('password_confirm').value = '';
+
+            if (
+                document.getElementById('alertUser') &&
+                !document.getElementById('alertUser').classList.contains('invisible')
+            )
+                document.getElementById('alertUser').classList.add("invisible");
+
+            if (
+                document.getElementById('name')) {
+                document.getElementById('name').classList.remove('is-invalid');
+                document.getElementById('name').classList.remove('is-valid');
+            }
+
+            if (document.getElementById('email')) {
+                document.getElementById('email').classList.remove('is-invalid');
+                document.getElementById('email').classList.remove('is-valid');
+            }
+
+            if (document.getElementById('password')) {
+                document.getElementById('password').classList.remove('is-invalid');
+                document.getElementById('password').classList.remove('is-valid');
+            }
+
+            document.getElementById('email').value = this.state.record_email;
+            document.getElementById('password').value = '';
         }
     }
 
@@ -36,32 +72,32 @@ export default class Index extends React.Component {
                 if (loadingElement) loadingElement.outerHTML = '';
             }, 2000);
         }
-        window.setInterval(() => {
-            this.update()
-        }, 500);
     }
 
-    update() {
+    handleConfirmPassword() {
         if (this.state.new_account) {
             if (
-                document.getElementById('password_confirm').value != document.getElementById('password').value
+                document.getElementById('password_confirm').value !== document.getElementById('password').value
             ) {
                 if (
                     String(document.getElementById('password_confirm').value).length > 0 &&
                     !document.getElementById('password').classList.contains("is-invalid")
                 ) {
+                    this.setState({ 'message_error': `As senhas não coincidem` });
                     document.getElementById('password').classList.add("is-invalid");
                     document.getElementById('password_confirm').classList.add("is-invalid");
-                    document.getElementById('alertUser2').classList.remove("invisible");
-                    animateCSS('alertUser2', 'fadeInUp');
+                    if (document.getElementById('alertUser').classList.contains('invisible')) {
+                        document.getElementById('alertUser').classList.remove("invisible");
+                        animateCSS('alertUser', 'fadeInUp');
+                    }
                 }
 
                 if (
                     String(document.getElementById('password_confirm').value).length <= 0 &&
                     document.getElementById('password').classList.contains("is-invalid")
                 ) {
-                    animateCSS('alertUser2', 'fadeOutDown', () => {
-                        document.getElementById('alertUser2').classList.add("invisible");
+                    animateCSS('alertUser', 'fadeOutDown', () => {
+                        document.getElementById('alertUser').classList.add("invisible");
                         document.getElementById('password').classList.remove("is-invalid");
                         document.getElementById('password_confirm').classList.remove("is-invalid");
                     });
@@ -82,8 +118,8 @@ export default class Index extends React.Component {
                 }
 
                 if (document.getElementById('password').classList.contains("is-invalid")) {
-                    animateCSS('alertUser2', 'fadeOutDown', () => {
-                        document.getElementById('alertUser2').classList.add("invisible");
+                    animateCSS('alertUser', 'fadeOutDown', () => {
+                        document.getElementById('alertUser').classList.add("invisible");
                         document.getElementById('password').classList.remove("is-invalid");
                         document.getElementById('password_confirm').classList.remove("is-invalid");
                     });
@@ -149,8 +185,166 @@ export default class Index extends React.Component {
             })
     }
 
-    handleClickNewAccount = () => {
+    handleEmailExist = () => {
+        const
+            email = document.getElementById('email').value,
+            validation = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i;
 
+        if (email.length <= 0) return;
+        else if (!validation.test(email)) {
+            if (
+                document.getElementById('email').classList.contains('is-invalid') ||
+                document.getElementById('email').classList.contains('is-valid')
+            ) {
+                document.getElementById('email').classList.remove('is-invalid');
+                document.getElementById('email').classList.remove('is-valid');
+            }
+
+            if (!document.getElementById('alertUser').classList.contains('invisible')) {
+                animateCSS('alertUser', 'fadeOutDown', () => {
+                    document.getElementById('alertUser').classList.add('invisible');
+                });
+            }
+            return;
+        };
+
+        axios.get('http://localhost:5000/users', {
+            headers: {
+                'Content-Type': 'application/json',
+                'api_key': 'b2$tp3i$Nw6uS9B$O_n64B7!!1$3$_*_!!t!@q*5lW6EuG@Hh6$BH$#2t453_$9839#p8_V33_$!@6H4m3-8@8_2f9##464e7ESEey*bjN432--r_#N5d_7T-jCW65f3@4-l6gd!5O1#-@i-5!84K#Q@**!#$-!9*-uG2-2R_r*N-7_u-k-P*b8y8@Cu@U!Jm@@#282pF7-2D#!S_*Tob39#@g_M8e43D7!i_!_9aI3up-b-d_83tJ*6585J*G9-'
+            },
+            params: {
+                email: String(email)
+            }
+        })
+            .then((response) => {
+                const users = response.data.query.results;
+
+                if (users.length > 0) {
+                    this.setState({ 'message_error': `Endereço de email (${email}) já está em uso.` });
+                    this.setState({ 'new_account_email': false });
+
+                    if (document.getElementById('alertUser').classList.contains('invisible')) {
+                        document.getElementById('alertUser').classList.remove('invisible');
+                        document.getElementById('email').classList.add('is-invalid');
+                        animateCSS('alertUser', 'fadeInUp');
+                    }
+                } else {
+                    this.setState({ 'new_account_email': true });
+
+                    if (!document.getElementById('alertUser').classList.contains('invisible')) {
+                        animateCSS('alertUser', 'fadeOutDown', () => {
+                            document.getElementById('alertUser').classList.add('invisible');
+                        });
+                    }
+
+                    if (
+                        document.getElementById('email').classList.contains('is-invalid') ||
+                        !document.getElementById('email').classList.contains('is-valid')
+                    ) {
+                        document.getElementById('email').classList.remove('is-invalid');
+                        document.getElementById('email').classList.add('is-valid');
+                    }
+                }
+            })
+            .catch((error) => {
+                animateCSS('alertUser', 'fadeOutDown', () => {
+                    document.getElementById('alertUser').classList.add('invisible');
+
+                    document.getElementById('name').classList.remove('is-invalid');
+                    document.getElementById('name').classList.remove('is-valid');
+
+                    document.getElementById('email').classList.remove('is-invalid');
+                    document.getElementById('email').classList.remove('is-valid');
+
+                    document.getElementById('password').classList.remove('is-invalid');
+                    document.getElementById('password').classList.remove('is-valid');
+
+                    document.getElementById('password_confirm').classList.remove('is-invalid');
+                    document.getElementById('password_confirm').classList.remove('is-valid');
+                });
+            })
+    }
+
+    handleClickNewAccount = () => {
+        if (this.state.new_account_name && this.state.new_account_email) {
+            const
+                name = document.getElementById('name').value,
+                email = document.getElementById('email').value,
+                password = document.getElementById('password').value;
+
+            axios.post('http://localhost:5000/users/register', {
+                name: String(name),
+                email: String(email),
+                password: String(password)
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api_key': 'b2$tp3i$Nw6uS9B$O_n64B7!!1$3$_*_!!t!@q*5lW6EuG@Hh6$BH$#2t453_$9839#p8_V33_$!@6H4m3-8@8_2f9##464e7ESEey*bjN432--r_#N5d_7T-jCW65f3@4-l6gd!5O1#-@i-5!84K#Q@**!#$-!9*-uG2-2R_r*N-7_u-k-P*b8y8@Cu@U!Jm@@#282pF7-2D#!S_*Tob39#@g_M8e43D7!i_!_9aI3up-b-d_83tJ*6585J*G9-'
+                }
+            })
+                .then((response) => {
+
+                    console.log(response);
+
+                    // this.props.history.push({ pathname: '/app', state: this.props.location.state });
+                })
+                .catch((error) => {
+
+                    return console.error(error);
+
+                    document.getElementById('name').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('password').value = '';
+                    document.getElementById('password_confirm').value = '';
+
+                    animateCSS('alertUser', 'fadeOutDown', () => {
+                        document.getElementById('alertUser').classList.add('invisible');
+
+                        document.getElementById('name').classList.remove('is-invalid');
+                        document.getElementById('name').classList.remove('is-valid');
+
+                        document.getElementById('email').classList.remove('is-invalid');
+                        document.getElementById('email').classList.remove('is-valid');
+
+                        document.getElementById('password').classList.remove('is-invalid');
+                        document.getElementById('password').classList.remove('is-valid');
+
+                        document.getElementById('password_confirm').classList.remove('is-invalid');
+                        document.getElementById('password_confirm').classList.remove('is-valid');
+                    });
+
+                })
+        }
+    }
+
+    handleNameConfirm = () => {
+        const name = document.getElementById('name').value;
+
+        if (name.length < 5) {
+            this.setState({ 'message_error': `Por favor, seu nome deve conter pelo menos 5 caracteres.` });
+            this.setState({ 'new_account_name': false });
+
+            if (document.getElementById('alertUser').classList.contains('invisible')) {
+                document.getElementById('alertUser').classList.remove('invisible');
+                animateCSS('alertUser', 'fadeInUp');
+            }
+
+            if (!document.getElementById('name').classList.contains('is-invalid')) {
+                document.getElementById('name').classList.add('is-invalid');
+                document.getElementById('name').classList.remove('is-valid');
+            }
+        } else {
+            this.setState({ 'new_account_name': true });
+            if (!document.getElementById('alertUser').classList.contains('invisible')) {
+                animateCSS('alertUser', 'fadeOutDown', () => {
+                    document.getElementById('alertUser').classList.add('invisible');
+
+                    document.getElementById('name').classList.remove('is-invalid');
+                    document.getElementById('name').classList.add('is-valid');
+                });
+            }
+        }
     }
 
     Auth(props) {
@@ -165,7 +359,7 @@ export default class Index extends React.Component {
                     <input
                         className="mb-2 form-control form-control-sm"
                         id="email"
-                        type="text"
+                        type="email"
                         placeholder="Endereço de email"
                         onFocus={context.handleFocusRemoveAlert.bind(context)} />
                     <input
@@ -185,7 +379,7 @@ export default class Index extends React.Component {
                         className="mb-2 btn btn-primary btn-sm btn-block"
                         onClick={() => {
                             animateCSS('form-container', 'bounceIn');
-                            context.setState({ 'new_account': true });
+                            context.setState({ 'new_account': true, 'record_email': document.getElementById('email').value });
                         }}>
                         Criar uma conta
                     </button>
@@ -195,26 +389,31 @@ export default class Index extends React.Component {
             return (
                 <div className="col-4 align-self-center m-auto" id="form-container">
                     <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
-                        Endereço de email em uso
-                    </div>
-                    <div className="mb-2 alert alert-danger invisible" id="alertUser2" role="alert">
-                        As duas senhas não coincidem
+                        {context.state.message_error}
                     </div>
                     <input
                         className="mb-2 form-control form-control-sm"
-                        id="email"
+                        id="name"
                         type="text"
+                        placeholder="Nome completo"
+                        onChange={context.handleNameConfirm.bind(context)} />
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="email"
+                        type="email"
                         placeholder="Endereço de email"
-                        onFocus={context.handleFocusRemoveAlert.bind(context)} />
+                        onChange={context.handleEmailExist.bind(context)} />
                     <input
                         className="mb-2 mr-2 form-control form-control-sm"
                         id="password"
                         type="password"
+                        onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Senha" />
                     <input
                         className="mb-2 form-control form-control-sm"
                         id="password_confirm"
                         type="password"
+                        onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Confirme a senha" />
                     <button
                         type="button"
@@ -227,7 +426,7 @@ export default class Index extends React.Component {
                         className="mb-2 btn btn-primary btn-sm btn-block"
                         onClick={() => {
                             animateCSS('form-container', 'bounceIn');
-                            context.setState({ 'new_account': false });
+                            context.setState({ 'new_account': false, 'record_email': document.getElementById('email').value });
                         }}>
                         Acessar
                     </button>

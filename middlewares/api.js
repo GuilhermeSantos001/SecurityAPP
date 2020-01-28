@@ -21,7 +21,7 @@ if (!fs.existsSync(file)) {
 }
 
 module.exports = (req, res, next) => {
-    const authHeader = req.headers.api_key;
+    const authHeader = req.headers['api_key'];
 
     if (!fs.existsSync(file))
         return res.status(401).send({ error: 'Not possible access the Api Key' });

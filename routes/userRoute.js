@@ -10,11 +10,21 @@ router.use(apiMiddleware);
 
 router.get([`/`, `/:id`], async (req, res) => {
 
-    const { id } = req.params;
+    let { id, email } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
     try {
 
-        mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [id])
+        let filter = '';
+
+        if (!email) {
+            filter = 'ID= ?';
+        } else {
+            filter = 'Email= ?';
+            id = email;
+        }
+
+        mysql.getInTable('SecurityAPP', 'users', filter, [id])
             .then(({ sql, query }) => {
                 query.results = query.results.map(result => {
                     result['Password'] = undefined;
@@ -32,6 +42,7 @@ router.get([`/`, `/:id`], async (req, res) => {
 });
 
 router.post(`/register`, async (req, res) => {
+
     const { name, email, password } = req.body;
 
     try {
@@ -119,7 +130,7 @@ module.exports = (app) => {
         .then(({ sql, query }) => {
 
             const database = "SecurityAPP", table = "users";
-            
+
             mysql.createTable(database, table)
                 .then(({ sql, query }) => {
 
