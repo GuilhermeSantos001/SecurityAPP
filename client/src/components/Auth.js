@@ -30,6 +30,22 @@ export default class Index extends React.Component {
         }
     }
 
+    componentWillMount() {
+        document.body.style.backgroundImage = `url('./wallpaper_01.jpg')`;
+        document.body.style.backgroundRepeat = `no-repeat`;
+        document.body.style.backgroundSize = `cover`;
+        document.body.style.animationDuration = `1s`;
+
+        this.componentCallLoading('stop');
+    }
+
+    componentWillUnmount() {
+        document.body.style.backgroundImage = null;
+        document.body.style.backgroundRepeat = null;
+        document.body.style.backgroundSize = null;
+        document.body.style.animationDuration = null;
+    }
+
     componentDidUpdate(prevProps, prevState) {
         if (prevState.new_account !== this.state.new_account) {
             if (this.state.new_account)
@@ -62,16 +78,23 @@ export default class Index extends React.Component {
         }
     }
 
-    componentDidMount() {
+
+    componentCallLoading(state) {
         const loadingElement = document.getElementById('ipl-progress-indicator');
         if (loadingElement) {
-            // fade out
-            loadingElement.classList.add('available');
-            setTimeout(() => {
-                // remove from DOM
-                if (loadingElement) loadingElement.outerHTML = '';
-            }, 2000);
+            if (state === 'stop')
+                loadingElement.classList.add('available');
+            if (state === 'start')
+                loadingElement.classList.remove('available');
         }
+    }
+
+    componentCallChangePage(path, state) {
+        this.componentCallLoading('start');
+
+        setTimeout(() => {
+            this.props.history.push({ pathname: path, state: state });
+        }, 1000);
     }
 
     handleConfirmPassword() {
@@ -163,7 +186,9 @@ export default class Index extends React.Component {
                     password: document.getElementById('password').value
                 })));
 
-                this.props.history.push({ pathname: '/app', state: this.props.location.state });
+                animateCSS()
+
+                this.componentCallChangePage('/app', {});
             })
             .catch((error) => {
                 document.getElementById('email').value = '';
@@ -451,6 +476,22 @@ export default class Index extends React.Component {
  */
 function animateCSS(element, animationName, callback) {
     const node = document.getElementById(`${element}`);
+    if (node) {
+        node.classList.add('animated', animationName);
+
+        let handleAnimationEnd = () => {
+            node.classList.remove('animated', animationName);
+            node.removeEventListener('animationend', handleAnimationEnd);
+
+            if (typeof callback === 'function') callback()
+        }
+
+        node.addEventListener('animationend', handleAnimationEnd);
+    }
+}
+
+function animateBodyCSS(animationName, callback) {
+    const node = document.body;
     if (node) {
         node.classList.add('animated', animationName);
 

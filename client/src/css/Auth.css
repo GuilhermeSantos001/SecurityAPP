@@ -1,9 +1,3 @@
-body {
-    background-image: url('../assets/images/wallpaper_01.jpg');
-    background-repeat: no-repeat;
-    background-size: cover;
-}
-
 .auth-container {
     width: 100vw;
     height: 100vh;
