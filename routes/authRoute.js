@@ -22,7 +22,7 @@ router.post(`/sign`, async (req, res) => {
     try {
 
         mysql.getInTable('SecurityAPP', 'users', 'Email= ?', [email])
-            .then(({ sql, query }) => {
+            .then(async ({ sql, query }) => {
                 if (query.results.length > 0) {
                     let user = query.results[0];
 
@@ -30,7 +30,7 @@ router.post(`/sign`, async (req, res) => {
 
                     decoded_pass.tag = Buffer.from(decoded_pass.tag);
 
-                    decoded_pass = crypto.decrypt(decoded_pass, password);
+                    decoded_pass = await crypto.decrypt(decoded_pass, password);
 
                     if (decoded_pass !== password)
                         return res.status(400).send({ error: 'Invalid password' });
@@ -77,7 +77,7 @@ router.post('/reset_password', async (req, res) => {
                     if (now > Password_Reset['passwordResetExpires'])
                         return res.status(400).send({ error: 'Token expired, generate a new one' });
 
-                    let encoded_password = crypto.encrypt(password);
+                    let encoded_password = await crypto.encrypt(password);
 
                     encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
 
@@ -113,8 +113,6 @@ router.post('/reset_password', async (req, res) => {
         return res.status(400).send({ error: 'Cannot reset password, try again' });
     }
 })
-
-router.use(authMiddleware);
 
 router.post(`/forgot_password`, async (req, res) => {
     const { email } = req.body;
@@ -208,5 +206,10 @@ router.post(`/forgot_password`, async (req, res) => {
         return res.status(400).send({ error: 'Error on forgot password, try again' });
     }
 })
+
+/**
+ * Routes with Authorization of user
+ */
+router.use(authMiddleware);
 
 module.exports = (app) => app.use('/auth', router);

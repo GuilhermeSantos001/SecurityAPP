@@ -23,6 +23,7 @@ export default class Index extends React.Component {
         super(props);
         this.state = {
             new_account: false,
+            forgot_password: false,
             record_email: '',
             message_error: '',
             new_account_name: false,
@@ -95,6 +96,42 @@ export default class Index extends React.Component {
         setTimeout(() => {
             this.props.history.push({ pathname: path, state: state });
         }, 1000);
+    }
+
+    handleClickForgotPassword() {
+
+        const email = document.getElementById('email').value;
+
+        if (
+            String(email).length <= 0
+        ) return;
+
+        axios.post('http://localhost:5000/auth/forgot_password', {
+            email: String(email)
+        }, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then((response) => {
+                if (response.data.query.results.user) {
+                    animateCSS('form-container', 'fadeOutDown', () => {
+                        this.setState({ 'forgot_password': { 'email': email } });
+                        animateCSS('alertForgotPassword', 'fadeInUp');
+                    });
+                }
+            })
+            .catch((error) => {
+                this.setState({ 'message_error': `Não foi possivel enviar a solicitação para a troca de senha no endereço de email (${email})` });
+                if (document.getElementById('alertUser').classList.contains('invisible')) {
+                    document.getElementById('alertUser').classList.remove("invisible");
+                    animateCSS('alertUser', 'fadeInUp');
+                }
+            })
+    }
+
+    handleClickResetPassword() {
+
     }
 
     handleConfirmPassword() {
@@ -171,6 +208,11 @@ export default class Index extends React.Component {
             email = document.getElementById('email').value,
             password = document.getElementById('password').value;
 
+        if (
+            String(email).length <= 0 ||
+            String(password).length <= 0
+        ) return;
+
         axios.post('http://localhost:5000/auth/sign', {
             email: String(email),
             password: String(password)
@@ -202,6 +244,7 @@ export default class Index extends React.Component {
                     document.getElementById('password').classList.add("is-invalid");
                 }
 
+                this.setState({ 'message_error': `Endereço de Email/Senha Invalidos` });
                 if (document.getElementById('alertUser').classList.contains("invisible")) {
                     document.getElementById('alertUser').classList.remove("invisible");
                     animateCSS('alertUser', 'fadeInUp');
@@ -215,8 +258,8 @@ export default class Index extends React.Component {
             email = document.getElementById('email').value,
             validation = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i;
 
-        if (email.length <= 0) return;
-        else if (!validation.test(email)) {
+        if (String(email).length <= 0) return;
+        else if (!validation.test(String(email))) {
             if (
                 document.getElementById('email').classList.contains('is-invalid') ||
                 document.getElementById('email').classList.contains('is-valid')
@@ -373,13 +416,84 @@ export default class Index extends React.Component {
     }
 
     Auth(props) {
-        const context = props.context;
-        const new_account = props.newAccount;
+        const
+            context = props.context,
+            new_account = props.newAccount,
+            forgot_password = props.forgotPassword;
+
+        if (
+            forgot_password &&
+            forgot_password['reset_password']
+        ) {
+            return (
+                <div className="col-4 align-self-center m-auto" id="form-container">
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="token_resetPassword"
+                        type="text"
+                        placeholder="Codigo de verificação" />
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="email"
+                        type="email"
+                        placeholder="Endereço de email"
+                        defaultValue={forgot_password.email}
+                        disabled />
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="password"
+                        type="password"
+                        placeholder="Nova senha" />
+                    <input
+                        className="mb-2 form-control form-control-sm"
+                        id="password_confirm"
+                        type="password"
+                        placeholder="Confirme a senha" />
+                    <button
+                        type="button"
+                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        onClick={context.handleClickResetPassword.bind(context)}>
+                        Confirmar nova senha
+                    </button>
+                    <button
+                        type="button"
+                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        onClick={() => {
+                            animateCSS('form-container', 'fadeOutDown', () => {
+                                context.setState({ 'forgot_password': false });
+                                animateCSS('form-container', 'bounceIn');
+                            });
+                        }}>
+                        Login
+                    </button>
+                </div>
+            )
+        } else if (forgot_password) {
+            return (
+                <div id="alertForgotPassword" ref={alert => context.alertForgotPassword = alert} className="col-8 m-auto alert alert-success alert-dismissible" role="alert">
+                    <h4 className="text-center">
+                        <strong>Solicitação de redefinição de senha enviada!</strong><br />
+                        Verifique sua caixa de entrada, endereço de email: {forgot_password.email}
+                    </h4>
+                    <button type="button" className="close" data-dismiss="alert" aria-label="Close"
+                        onClick={() => {
+                            animateCSS('alertForgotPassword', 'fadeOut', () => {
+                                context.alertForgotPassword.classList.remove('show');
+                                context.setState({ 'forgot_password': { 'email': forgot_password.email, 'reset_password': true } });
+                                animateCSS('form-container', 'bounceIn');
+                            });
+                        }}>
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            )
+        }
+
         if (!new_account) {
             return (
                 <div className="col-4 align-self-center m-auto" id="form-container">
                     <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
-                        Nome de usuario/senha invalidos!
+                        {context.state.message_error}
                     </div>
                     <input
                         className="mb-2 form-control form-control-sm"
@@ -395,10 +509,16 @@ export default class Index extends React.Component {
                         onFocus={context.handleFocusRemoveAlert.bind(context)} />
                     <button
                         type="button"
+                        className="mb-2 btn btn-secondary btn-sm btn-block"
+                        onClick={context.handleClickForgotPassword.bind(context)}>
+                        Esqueceu sua senha?
+                    </button>
+                    <button
+                        type="button"
                         className="mb-2 btn btn-primary btn-sm btn-block"
                         onClick={context.handleClickLogin.bind(context)}>
                         Acessar
-                        </button>
+                    </button>
                     <button
                         type="button"
                         className="mb-2 btn btn-primary btn-sm btn-block"
@@ -464,7 +584,7 @@ export default class Index extends React.Component {
         return (
             <div className="container-fluid">
                 <div className="row auth-container">
-                    <this.Auth context={this} newAccount={this.state.new_account} />
+                    <this.Auth context={this} newAccount={this.state.new_account} forgotPassword={this.state.forgot_password} />
                 </div>
             </div >
         )
@@ -476,22 +596,6 @@ export default class Index extends React.Component {
  */
 function animateCSS(element, animationName, callback) {
     const node = document.getElementById(`${element}`);
-    if (node) {
-        node.classList.add('animated', animationName);
-
-        let handleAnimationEnd = () => {
-            node.classList.remove('animated', animationName);
-            node.removeEventListener('animationend', handleAnimationEnd);
-
-            if (typeof callback === 'function') callback()
-        }
-
-        node.addEventListener('animationend', handleAnimationEnd);
-    }
-}
-
-function animateBodyCSS(animationName, callback) {
-    const node = document.body;
     if (node) {
         node.classList.add('animated', animationName);
 
