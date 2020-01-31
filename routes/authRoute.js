@@ -1,20 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
-const jwt = require('jsonwebtoken');
-const authConfig = require('../config/auth');
+const generateToken = require('../modules/generateToken');
 const authMiddleware = require('../middlewares/auth');
 const crypto = require('../api/crypto');
 const cryptoNodeJs = require('crypto');
 const mailer = require('../modules/mailer');
 const lzstring = require('lz-string');
-const path = require('path');
-
-function generateToken(params = {}) {
-    return jwt.sign(params, authConfig.secret, {
-        expiresIn: 86400 // 1 Day
-    });
-}
 
 router.post(`/sign`, async (req, res) => {
     const { email, password } = req.body;
@@ -68,14 +60,17 @@ router.post('/reset_password', async (req, res) => {
                 if (query.results.length > 0) {
                     let user = query.results[0];
 
+                    if (!user['Password_Reset'])
+                        return res.status(400).send({ error: 'Token not found', code: 1 });
+
                     const Password_Reset = JSON.parse(lzstring.decompressFromBase64(user['Password_Reset'])),
                         now = new Date();
 
                     if (token !== Password_Reset['passwordResetToken'])
-                        return res.status(400).send({ error: 'Token invalid' });
+                        return res.status(400).send({ error: 'Token invalid', code: 2 });
 
                     if (now > Password_Reset['passwordResetExpires'])
-                        return res.status(400).send({ error: 'Token expired, generate a new one' });
+                        return res.status(400).send({ error: 'Token expired, generate a new one', code: 3 });
 
                     let encoded_password = await crypto.encrypt(password);
 
@@ -83,15 +78,14 @@ router.post('/reset_password', async (req, res) => {
 
                     await mysql.updateInTable(database, table,
                         `Password='${encoded_password}',` +
-                        `Password_Reset='${null}'`,
+                        `Password_Reset=${null}`,
                         user['ID'])
                         .then(({ sql, query }) => {
 
                             return res.status(200).send({
                                 success: 'Reset password user is success', sql: sql, query: {
                                     results: {
-                                        user,
-                                        token: generateToken({ id: user['ID'] })
+                                        user
                                     }
                                 }
                             });

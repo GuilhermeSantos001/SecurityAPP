@@ -5,6 +5,7 @@ const table_user = require('../config/tables').users;
 const apiMiddleware = require('../middlewares/api');
 const crypto = require('../api/crypto');
 const lzstring = require('lz-string');
+const generateToken = require('../modules/generateToken');
 
 router.use(apiMiddleware);
 
@@ -59,7 +60,38 @@ router.post(`/register`, async (req, res) => {
             ]
         ])
             .then(({ sql, query }) => {
-                return res.status(200).send({ success: 'Insertion in table is success', sql: sql, query: query });
+                mysql.getInTable('SecurityAPP', 'users', 'Email= ?', [email])
+                    .then(async ({ sql, query }) => {
+                        if (query.results.length > 0) {
+                            let user = query.results[0];
+
+                            let decoded_pass = JSON.parse(lzstring.decompressFromBase64(user['Password']));
+
+                            decoded_pass.tag = Buffer.from(decoded_pass.tag);
+
+                            decoded_pass = await crypto.decrypt(decoded_pass, password);
+
+                            if (decoded_pass !== password)
+                                return res.status(400).send({ error: 'Invalid password' });
+
+                            user['Password'] = undefined;
+                            user['Password_Reset'] = undefined;
+                            user['DateAt'] = undefined;
+
+                            return res.status(200).send({
+                                success: 'Get user in table from Email and Password values is success', sql: sql, query: {
+                                    results: {
+                                        user,
+                                        token: generateToken({ id: user['ID'] })
+                                    }
+                                }
+                            });
+                        }
+                        return res.status(400).send({ error: 'User not exist' });
+                    })
+                    .catch(({ err, details }) => {
+                        if (err) return res.status(400).send({ error: err, details });
+                    })
             })
             .catch(({ err, details }) => {
                 if (err) return res.status(400).send({ error: err, details });
