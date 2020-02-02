@@ -90,7 +90,7 @@ export default class Index extends React.Component {
                     "Postos Cobertos": {
                         "chart": null,
                         "2020": {
-                            color: '#0099ff',
+                            color: '#33ccff',
                             data: [
                                 Math.floor(1 + Math.random() * 100),
                                 Math.floor(1 + Math.random() * 100),
@@ -159,6 +159,7 @@ export default class Index extends React.Component {
         window.setInterval(() => {
             this.setClock();
         }, 1000);
+
         this.renderChartCanvas();
     }
 
@@ -192,16 +193,31 @@ export default class Index extends React.Component {
     chartCanvas(graphic) {
         const options = {
             title: {
-                text: "Postos Descobertos",
+                fontColor: "#00d9ff",
+                text: graphic,
                 fontSize: 42,
                 padding: {
                     top: 10
                 }
             },
-            axisY: {
-                margin: 10
+            legend: {
+                fontColor: "#00d9ff"
             },
-            theme: "light2",
+            axisX: {
+                margin: 10,
+                labelFontColor: "#00d9ff",
+                lineColor: "#33ccff",
+                tickColor: "#33ccff",
+                gridColor: "#33ccff"
+            },
+            axisY: {
+                margin: 10,
+                labelFontColor: "#00d9ff",
+                lineColor: "#33ccff",
+                tickColor: "#33ccff",
+                gridColor: "#33ccff"
+            },
+            backgroundColor: "#2c313a",
             animationEnabled: true,
             toolTip: {
                 content: "{name} não foi/foram coberto(s) {y} posto(s)"
@@ -210,7 +226,7 @@ export default class Index extends React.Component {
                 {
                     name: "Ano de 2020",
                     showInLegend: true,
-                    type: "column",
+                    type: "spline",
                     color: this.state.data.graphics[graphic]["2020"].color,
                     dataPoints: [
                         { label: "Domingo", y: this.state.data.graphics[graphic]["2020"].data[0] },
@@ -225,7 +241,7 @@ export default class Index extends React.Component {
                 {
                     name: "Ano de 2021",
                     showInLegend: true,
-                    type: "column",
+                    type: "spline",
                     color: this.state.data.graphics[graphic]["2021"].color,
                     dataPoints: [
                         { label: "Domingo", y: this.state.data.graphics[graphic]["2021"].data[0] },
@@ -244,99 +260,97 @@ export default class Index extends React.Component {
         else if (this.state.menu !== 'dashboard') return;
         let chart = new CanvasJSReact.CanvasJS.Chart(`chartContainer-${graphic}`, options),
             state = Object.assign({}, this.state.data);
-        chart.render();
         state.graphics[graphic].chart = chart;
+        chart.render();
         this.setState({ data: state });
     }
 
     chartDonwload(graphic) {
         if (!this.state.data.graphics[graphic] || !this.state.data.graphics[graphic].chart)
             return;
-        else
-            return (
-                <p style={{ 'marginLeft': 14 }}>
-                    {GraphicsPDF.printNow({
-                        chart: {
-                            text: 'Grafico de Postos Cobertos em 2020/2021',
-                            canvas: this.state.data.graphics[graphic].chart,
-                            style: {
-                                width: '680px',
-                                height: '440px',
-                                align: 'center'
-                            }
-                        },
-                        header: 'Relatorio de Postos Cobertos',
-                        title: 'Ano de 2020',
-                        data: [
-                            {
-                                subtitle: 'Postos cobertos no Domingo',
-                                date: 'Postos do dia 10 de Janeiro de 2020',
-                                texts: [
-                                    'Villa Amalfi 1 - 08:30:32',
-                                    'Hospital Guaruja 1 - 10:30:16',
-                                ]
-                            },
-                            {
-                                subtitle: 'Postos cobertos na Segunda',
-                                date: 'Postos do dia 11 de Janeiro de 2020',
-                                texts: [
-                                    'Villa Amalfi 2 - 12:23:46',
-                                    'Hospital Guaruja 2 - 13:52:10',
-                                ]
-                            },
-                            {
-                                subtitle: 'Postos cobertos na Terça-Feira',
-                                date: 'Postos do dia 12 de Janeiro de 2020',
-                                texts: [
-                                    'Villa Amalfi 3 - 10:12:20',
-                                    'Hospital Guaruja 3 - 14:12:08',
-                                ]
-                            },
-                            {
-                                subtitle: 'Postos cobertos na Quarta-Feira',
-                                date: 'Postos do dia 12 de Janeiro de 2020',
-                                texts: [
-                                    'Villa Amalfi 4 - 22:46:36',
-                                    'Hospital Guaruja 4 - 23:38:50',
-                                ]
-                            },
-                            {
-                                subtitle: 'Postos cobertos na Quinta-Feira',
-                                date: 'Postos do dia 12 de Janeiro de 2020',
-                                texts: [
-                                    'Villa Amalfi 5 - 00:40:25',
-                                    'Hospital Guaruja 5 - 03:00:00',
-                                ]
-                            },
-                            {
-                                subtitle: 'Postos cobertos na Sexta-Feira',
-                                date: 'Postos do dia 12 de Janeiro de 2020',
-                                texts: [
-                                    'Villa Amalfi 6 - 06:18:12',
-                                    'Hospital Guaruja 6 - 07:30:00',
-                                ]
-                            },
-                            {
-                                subtitle: 'Postos cobertos na Sabado',
-                                date: 'Postos do dia 12 de Janeiro de 2020',
-                                texts: [
-                                    'Villa Amalfi 7 - 04:48:36',
-                                    'Hospital Guaruja 7 - 11:50:30',
-                                ]
-                            }
+        else {
+            const download = GraphicsPDF({
+                chart: {
+                    text: 'Grafico de Postos Cobertos em 2020/2021',
+                    canvas: this.state.data.graphics[graphic].chart,
+                    style: {
+                        width: '680px',
+                        height: '440px',
+                        align: 'center'
+                    }
+                },
+                header: 'Relatorio de Postos Cobertos',
+                title: 'Ano de 2020',
+                data: [
+                    {
+                        subtitle: 'Postos cobertos no Domingo',
+                        date: 'Postos do dia 10 de Janeiro de 2020',
+                        texts: [
+                            'Villa Amalfi 1 - 08:30:32',
+                            'Hospital Guaruja 1 - 10:30:16',
                         ]
-                    })}
-                </p>
-            )
+                    },
+                    {
+                        subtitle: 'Postos cobertos na Segunda',
+                        date: 'Postos do dia 11 de Janeiro de 2020',
+                        texts: [
+                            'Villa Amalfi 2 - 12:23:46',
+                            'Hospital Guaruja 2 - 13:52:10',
+                        ]
+                    },
+                    {
+                        subtitle: 'Postos cobertos na Terça-Feira',
+                        date: 'Postos do dia 12 de Janeiro de 2020',
+                        texts: [
+                            'Villa Amalfi 3 - 10:12:20',
+                            'Hospital Guaruja 3 - 14:12:08',
+                        ]
+                    },
+                    {
+                        subtitle: 'Postos cobertos na Quarta-Feira',
+                        date: 'Postos do dia 12 de Janeiro de 2020',
+                        texts: [
+                            'Villa Amalfi 4 - 22:46:36',
+                            'Hospital Guaruja 4 - 23:38:50',
+                        ]
+                    },
+                    {
+                        subtitle: 'Postos cobertos na Quinta-Feira',
+                        date: 'Postos do dia 12 de Janeiro de 2020',
+                        texts: [
+                            'Villa Amalfi 5 - 00:40:25',
+                            'Hospital Guaruja 5 - 03:00:00',
+                        ]
+                    },
+                    {
+                        subtitle: 'Postos cobertos na Sexta-Feira',
+                        date: 'Postos do dia 12 de Janeiro de 2020',
+                        texts: [
+                            'Villa Amalfi 6 - 06:18:12',
+                            'Hospital Guaruja 6 - 07:30:00',
+                        ]
+                    },
+                    {
+                        subtitle: 'Postos cobertos na Sabado',
+                        date: 'Postos do dia 12 de Janeiro de 2020',
+                        texts: [
+                            'Villa Amalfi 7 - 04:48:36',
+                            'Hospital Guaruja 7 - 11:50:30',
+                        ]
+                    }
+                ]
+            });
+            return download;
+        }
     }
 
     render() {
         return (
             <div className="row">
-                <div className="col-2 bg-dark">
-                    <Image className="App-logo" src={logo} />
-                    <h1 className="App-Title">Grupo Mave</h1>
-                    <div className="App-header">
+                <div className="col-2" style={{ 'backgroundColor': '#282c34' }}>
+                    <Image className="mt-2 mx-auto d-block" src={logo} style={{ 'width': '8vw', 'height': '8vh' }} />
+                    <h1 className="text-info text-center text-uppercase">Grupo Mave</h1>
+                    <div id="_container-buttons" style={{ 'height': '80vh' }}>
                         <ButtonToolbar>
                             <Button
                                 id="_dashboard"
@@ -395,10 +409,10 @@ export default class Index extends React.Component {
                         </ButtonToolbar>
                     </div>
                 </div>
-                <div style={{ 'width': '82%' }}>
+                <div className="row col-10 overflow-auto" style={{ 'borderLeft': '1px solid #17a2b8', 'height': '100vh', 'backgroundColor': '#282c34' }}>
                     {this.content()}
                 </div>
-            </div >
+            </div>
         )
     }
 
@@ -408,100 +422,99 @@ export default class Index extends React.Component {
             return (
                 <div className='dashboard'>
                     <div className="Dashboard-view_1">
-                        <div className="container-fluid row">
-                            <div className="bg-light border border-dark ml-3 mt-2 pl-3 text-secondary" style={{ 'width': 1150 }}>
-                                <h2 className="mt-3">{this.state.username}</h2>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3 className="mb-4">Departamento - TI</h3>
+                        <div className="row ml-2" style={{ 'width': '82vw' }}>
+                            <div className="col-12 mt-2" style={{ 'height': 150, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <h2 className="mt-3 ml-3">
+                                    {this.state.username}
+                                </h2>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <h3 className="mb-4 ml-3">Departamento - TI</h3>
                             </div>
-                            <div className="bg-success border border-dark col-3 ml-3 mt-2 pt-2 text-white" style={{ 'height': 100, 'paddingLeft': 10 }}>
+                            <div className="col-3 mr-2 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
                                 <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Cobertos</h1>
                                 <h2 className="pt-2">{this.state.data.dashboard[0]}</h2>
                             </div>
-                            <div className="bg-danger border border-dark col-3 ml-2 mt-2 pt-2 text-white" style={{ 'height': 100, 'paddingLeft': 10 }}>
+                            <div className="col-3 mr-2 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
                                 <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Descobertos</h1>
                                 <h2 className="pt-2">{this.state.data.dashboard[1]}</h2>
                             </div>
-                            <div className="bg-info border border-dark ml-2 mt-2 pt-2 text-white" style={{ 'width': 545, 'height': 100, 'paddingLeft': 10 }}>
+                            <div className="col-5 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
                                 <h1 style={{ 'fontSize': 24 }}><MdDateRange /> Data e Hora</h1>
                                 <h2 className="pt-2">{this.state.clock}</h2>
                             </div>
                         </div>
-                        <div className="container-fluid row">
-                            <div className="bg-light border-bottom border-left border-right border-dark col-3 ml-3 pt-2" style={{ 'height': 180 }}>
-                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
-                                <hr />
+                        <div className="row ml-2" style={{ 'width': '82vw' }}>
+                            <div className="col-3 mt-1 pt-2" style={{ 'height': 180, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <p className="text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                 <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
                                         <MdMood /> Forest Park
-                                        <hr />
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
                                         <MdMood /> Pão de Açucar
-                                        <hr />
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
                                         <MdMood /> Açai Atacadista
-                                        <hr />
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
                                 </ul>
                             </div>
-                            <div className="bg-light border-bottom border-left border-right border-dark col-3 ml-2 pt-2" style={{ 'height': 180 }}>
-                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdError /> Clientes Importantes Descobertos</p>
-                                <hr />
+                            <div className="col-3 ml-2 mt-1 pt-2" style={{ 'height': 180, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <p className="text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                 <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
-                                        <MdMoodBad /> Condominio Renascimento
-                                        <hr />
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
+                                        <MdMood /> Forest Park
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMoodBad /> Villa Amalfi
-                                        <hr />
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                        <MdMood /> Pão de Açucar
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMoodBad /> Condominio Jaguare
-                                        <hr />
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                        <MdMood /> Açai Atacadista
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
                                 </ul>
                             </div>
-                            <div className="bg-light border-bottom border-left border-right border-dark ml-2 pt-2" style={{ 'width': 545, 'height': 180 }}>
-                                <p className="text-dark text-left font-weight-bold" style={{ 'fontSize': 24, 'marginLeft': 8 }}><MdUpdate /> Suas ultimas alterações</p>
-                                <hr style={{ 'width': '95%' }} />
-                                <ul className="list-group overflow-auto" style={{ 'marginLeft': 8, 'marginRight': 15, 'height': 90 }}>
-                                    <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 14, 'alignSelf': 'center', 'marginBottom': 8 }}>21/05/2020</span>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'marginTop': -14 }}>
-                                        <MdHdrWeak /> Confirmação de cobertura de posto no Forest Park
-                                        <hr />
+                            <div className="col-5 ml-2 mt-1 pt-2" style={{ 'height': 180, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <p className="text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdVerifiedUser /> Suas Ultimas Alterações</p>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
+                                        <MdMood /> Forest Park
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
-                                    <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 14, 'alignSelf': 'center', 'marginBottom': 8 }}>20/05/2020</span>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'marginTop': -14 }}>
-                                        <MdHdrWeak /> Alteração cadastral de posto no Villa Amalfi
-                                        <hr />
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                        <MdMood /> Pão de Açucar
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
-                                    <span className="badge badge-info font-weight-bold" style={{ 'fontSize': 14, 'alignSelf': 'center', 'marginBottom': 8 }}>19/05/2020</span>
-                                    <li className="text-secondary list-group-item border-0 bg-transparent font-weight-bold" style={{ 'marginTop': -14 }}>
-                                        <MdHdrWeak /> Cadastro de um novo vigilante no posto do Villa Amalfi
-                                        <hr />
+                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                        <MdMood /> Açai Atacadista
+                                        <hr style={{ 'backgroundColor': '#00d9ff' }} />
                                     </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
                     <div className="Dashboard-view_2">
-                        <div className="container-fluid row">
-                            <div className="col-6 mt-4">
-                                <div id={'chartContainer-Postos Cobertos'} className="bg-transparent ml-2">
+                        <div className="row" style={{ 'width': '82vw', 'marginLeft': -5 }}>
+                            <div className="col-12 mt-2">
+                                <div id={'chartContainer-Postos Cobertos'} className="bg-transparent" style={{ 'height': 500, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
                                     <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
                                 </div>
-                                <p className="mt-2" style={{ 'width': 700, 'height': 400, 'marginLeft': 4, 'paddingTop': 410 }}>
+                                <p className="mt-2" style={{ 'marginLeft': 4 }}>
                                     {this.chartDonwload('Postos Cobertos')}
                                 </p>
                             </div>
-                            <div className="col-6 mt-4">
-                                <div id={'chartContainer-Postos Descobertos'} className="bg-transparent ml-2">
+                            <div className="col-12 mt-2">
+                                <div id={'chartContainer-Postos Descobertos'} className="bg-transparent" style={{ 'height': 500, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
                                     <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
                                 </div>
-                                <p className="mt-2" style={{ 'width': 700, 'height': 400, 'marginLeft': 4, 'paddingTop': 410 }}>
+                                <p className="mt-2" style={{ 'marginLeft': 4 }}>
                                     {this.chartDonwload('Postos Descobertos')}
                                 </p>
                             </div>
@@ -521,17 +534,17 @@ export default class Index extends React.Component {
                                 <hr style={{ 'marginRight': 20 }} />
                                 <h3 className="ml-2 mt-3 text-secondary"><MdAssignment /> Cadastros</h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Empresa</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Cliente</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Tipo de Serviço</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Função</a><br />
+                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Empresa</p>
+                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Cliente</p>
+                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Tipo de Serviço</p>
+                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Função</p>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdWork /> Contratos</a></h3>
+                                <h3><p className="ml-2 mt-3" ><MdWork /> Contratos</p></h3>
                                 <hr style={{ 'marginRight': 20 }} />
                                 <h3 className="ml-2 mt-3 text-secondary"><MdLocalPrintshop /> Relatórios</h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de cadastro de clientes</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Contratos</a><br />
+                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Relatório de cadastro de clientes</p>
+                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Relatório de Contratos</p>
                                 <hr style={{ 'marginRight': 20 }} />
                             </div>
                         </div>
