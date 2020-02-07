@@ -158,18 +158,10 @@ class MyDocument extends React.Component {
     }
 }
 
-let loading = 0,
-    finish = () => {
-        loading++;
-        return 'Exportar para PDF';
-    }
-
 export default function GraphicsPDF(configs) {
     return (
-        <div>
-            <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf" style={{ 'color': '#00d9ff', 'textDecoration': 'none' }}>
-                {({ blob, url, loading, error }) => (loading ? 'Carregando Documento...' : finish())}
-            </PDFDownloadLink>
-        </div>
+        <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf" style={{ 'color': '#00d9ff', 'textDecoration': 'none' }}>
+            {({ blob, url, loading, error }) => (loading ? 'Carregando Documento...' : 'Exportar para PDF')}
+        </PDFDownloadLink>
     )
 }

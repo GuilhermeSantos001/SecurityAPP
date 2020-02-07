@@ -20,6 +20,9 @@
     "react-scripts": "3.3.0"
   },
   "scripts": {
+    "preinstall": "RMDIR /Q/S node_modules && DEL /F/S/Q package-lock.* yarn.lock > NUL",
+    "install": "npm install && yarn install && npm run update",
+    "update": "npm update -i && yarn upgrade",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

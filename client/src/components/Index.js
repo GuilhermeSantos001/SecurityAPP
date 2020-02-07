@@ -2,6 +2,7 @@
  * Import React
  */
 import React from "react";
+import ReactDOM from 'react-dom'
 
 /**
  * Import LZ-String
@@ -157,10 +158,25 @@ export default class Index extends React.Component {
         }
 
         window.setInterval(() => {
-            this.setClock();
+            this.update();
         }, 1000);
 
         this.renderChartCanvas();
+
+
+        ReactDOM.render(
+            this.chartDonwload('Postos Cobertos'),
+            document.getElementById('chartDonwload-Postos Cobertos')
+        )
+
+        ReactDOM.render(
+            this.chartDonwload('Postos Descobertos'),
+            document.getElementById('chartDonwload-Postos Descobertos')
+        )
+    }
+
+    update() {
+        this.setClock();
     }
 
     componentDidUpdate(prop, state) {
@@ -220,7 +236,7 @@ export default class Index extends React.Component {
             backgroundColor: "#2c313a",
             animationEnabled: true,
             toolTip: {
-                content: "{name} não foi/foram coberto(s) {y} posto(s)"
+                content: "{x}/{y} posto(s) coberto(s) em {name}"
             },
             data: [
                 {
@@ -348,7 +364,7 @@ export default class Index extends React.Component {
         return (
             <div className="row">
                 <div className="col-2" style={{ 'backgroundColor': '#282c34' }}>
-                    <Image className="mt-2 mx-auto d-block" src={logo} style={{ 'width': '8vw', 'height': '8vh' }} />
+                    <Image className="mt-2 mx-auto d-block" src={logo} style={{ 'width': '30vw', 'height': '8vh' }} />
                     <h1 className="text-info text-center text-uppercase">Grupo Mave</h1>
                     <div id="_container-buttons" style={{ 'height': '80vh' }}>
                         <ButtonToolbar>
@@ -506,17 +522,13 @@ export default class Index extends React.Component {
                                 <div id={'chartContainer-Postos Cobertos'} className="bg-transparent" style={{ 'height': 500, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
                                     <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
                                 </div>
-                                <p className="mt-2" style={{ 'marginLeft': 4 }}>
-                                    {this.chartDonwload('Postos Cobertos')}
-                                </p>
+                                <p id={'chartDonwload-Postos Cobertos'} className="mt-2" style={{ 'marginLeft': 4 }} onClick={() => { console.log('teste') }} />
                             </div>
                             <div className="col-12 mt-2">
                                 <div id={'chartContainer-Postos Descobertos'} className="bg-transparent" style={{ 'height': 500, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
                                     <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
                                 </div>
-                                <p className="mt-2" style={{ 'marginLeft': 4 }}>
-                                    {this.chartDonwload('Postos Descobertos')}
-                                </p>
+                                <p id={'chartDonwload-Postos Descobertos'} className="mt-2" style={{ 'marginLeft': 4 }} />
                             </div>
                         </div>
                     </div>

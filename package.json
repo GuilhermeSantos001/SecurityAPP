@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "preinstall": "RMDIR /Q/S node_modules && DEL /F/S/Q package-lock.* yarn.lock > NUL",
+    "install": "npm install && yarn install && npm run update",
+    "update": "npm update -i && yarn upgrade",
     "test": "echo \"Error: no test specified\" && exit 1",
     "client": "npm run start --prefix client",
     "server": "nodemon index.js",
@@ -20,13 +23,13 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "lz-string": "^1.4.4",
-    "mongoose": "^5.8.9",
+    "mongoose": "^5.8.11",
     "mysql": "^2.18.1",
     "nodemailer": "^6.4.2",
     "nodemailer-express-handlebars": "^3.1.0"
   },
   "devDependencies": {
-    "concurrently": "^5.0.2",
+    "concurrently": "^5.1.0",
     "nodemon": "^2.0.2"
   }
 }
