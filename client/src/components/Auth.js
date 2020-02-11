@@ -21,6 +21,11 @@ import '../css/Auth.css';
 export default class Index extends React.Component {
     constructor(props) {
         super(props);
+
+        this.api = {
+            key: '5i@41Yb#!##@P4!NsrvJ-D3DK$Q89-3*Y-#59#$*CW2#!P@U45#q*#$42H4q!63gsQ-64b991IK$R#8r_-$*_46#*1@5s!@A3@_56e36!*@65n517W76_@9P#!$54s@-dQ45#7rtp7-5!2!34@#4Fj44g1-_7-@8-#Smf37Bkg@1D$6-_eT#3@@3PHpPa55q_7@-4-aj2788K_@K1g!913_S72h3$@5#71-g!5vN34*uH834o-7t@t#$@9QH4sp1'
+        }
+
         this.state = {
             new_account: false,
             forgot_password: false,
@@ -40,6 +45,8 @@ export default class Index extends React.Component {
         document.body.style.animationDuration = `1s`;
 
         this.componentCallLoading('stop');
+        this.userSessionLogin();
+        this.forgotPasswordSessionStorage();
     }
 
     componentWillUnmount() {
@@ -102,7 +109,6 @@ export default class Index extends React.Component {
         }
     }
 
-
     componentCallLoading(state) {
         const loadingElement = document.getElementById('ipl-progress-indicator');
         if (loadingElement) {
@@ -125,7 +131,7 @@ export default class Index extends React.Component {
 
         if (typeof data !== 'object') return false;
 
-        return sessionStorage.setItem('auth', LZString.compressToBase64(JSON.stringify({
+        return localStorage.setItem('auth', LZString.compressToBase64(JSON.stringify({
             'id': data['id'],
             'name': data['name'],
             'email': data['email'],
@@ -134,7 +140,54 @@ export default class Index extends React.Component {
 
     }
 
+    userSessionLogin() {
+
+        if (sessionStorage.getItem('authRemove')) {
+            sessionStorage.removeItem('authRemove');
+            return localStorage.removeItem('auth');
+        }
+
+        if (localStorage.getItem('auth'))
+            return this.componentCallChangePage('/app', {});
+    }
+
+    forgotPasswordSessionStorage() {
+
+        try {
+            let
+                forgotPassword = JSON.parse(LZString.decompressFromBase64(sessionStorage.getItem('reset_password'))) || null,
+                now = new Date();
+
+            if (
+                typeof forgotPassword !== 'object' ||
+                typeof forgotPassword.email !== 'string' ||
+                !forgotPassword.expires
+            ) {
+                return sessionStorage.removeItem('reset_password');
+            }
+
+            forgotPassword.expires = new Date(forgotPassword.expires);
+
+            if (now > forgotPassword.expires) {
+                return sessionStorage.removeItem('reset_password');
+            } else {
+                this.setState({ 'forgot_password': { 'email': forgotPassword.email, 'reset_password': true } });
+                if (document.getElementById('email'))
+                    document.getElementById('email').value = String(forgotPassword.email);
+            }
+
+        } catch { return; }
+
+    }
+
     handleClickForgotPassword() {
+
+        if (sessionStorage.getItem('reset_password')) {
+            return animateCSS('form-container', 'fadeOutDown', () => {
+                animateCSS('form-container', 'bounceIn');
+                this.forgotPasswordSessionStorage();
+            });
+        }
 
         const email = document.getElementById('email').value;
 
@@ -151,6 +204,16 @@ export default class Index extends React.Component {
         })
             .then((response) => {
                 if (response.data.query.results.user) {
+
+                    let now = new Date();
+
+                    now.setHours(now.getHours() + 1);
+
+                    sessionStorage.setItem('reset_password', LZString.compressToBase64(JSON.stringify({
+                        'email': String(email),
+                        'expires': now
+                    })))
+
                     animateCSS('form-container', 'fadeOutDown', () => {
                         this.setState({ 'forgot_password': { 'email': email } });
                         animateCSS('alertForgotPassword', 'fadeInUp');
@@ -170,68 +233,82 @@ export default class Index extends React.Component {
         const
             email = document.getElementById('email').value,
             token = document.getElementById('token_resetPassword').value,
-            password = document.getElementById('password').value;
+            password = document.getElementById('password').value,
+            password_confirm = document.getElementById('password_confirm').value;
 
         if (
             String(token).length <= 0 ||
-            String(password).length <= 0
+            String(password).length <= 0 ||
+            String(password_confirm).length <= 0
         ) {
-            animateCSS('token', 'shake');
+            animateCSS('token_resetPassword', 'shake');
             animateCSS('password', 'shake');
+            animateCSS('password_confirm', 'shake');
             return;
         }
 
-        axios.post('http://localhost:5000/auth/reset_password', {
-            email: String(email),
-            token: String(token),
-            password: String(password)
-        }, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then((response) => {
-                if (response.data.query.results.user) {
+        if (this.state.new_account_password) {
+            axios.post('http://localhost:5000/auth/reset_password', {
+                email: String(email),
+                token: String(token),
+                password: String(password)
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then((response) => {
+                    if (response.data.query.results.user) {
 
-                    document.getElementById('token_resetPassword').disabled = true;
-                    document.getElementById('email').disabled = true;
-                    document.getElementById('password').disabled = true;
-                    document.getElementById('password_confirm').disabled = true;
-                    this.buttonResetPassword.disabled = true;
+                        sessionStorage.removeItem('reset_password');
+                        document.getElementById('token_resetPassword').disabled = true;
+                        document.getElementById('email').disabled = true;
+                        document.getElementById('password').disabled = true;
+                        document.getElementById('password_confirm').disabled = true;
+                        this.buttonResetPassword.disabled = true;
 
-                    this.setState({ 'message_error': `Senha alterada com sucesso!` });
-                    if (document.getElementById('alertUser').classList.contains('alert-danger')) {
-                        document.getElementById('alertUser').classList.remove("alert-danger");
-                        document.getElementById('alertUser').classList.add("alert-success");
+                        this.setState({ 'message_error': `Senha alterada com sucesso!` });
+                        if (document.getElementById('alertUser').classList.contains('alert-danger')) {
+                            document.getElementById('alertUser').classList.remove("alert-danger");
+                            document.getElementById('alertUser').classList.add("alert-success");
+                        }
+
+                        if (document.getElementById('alertUser').classList.contains('invisible')) {
+                            document.getElementById('alertUser').classList.remove("invisible");
+                            document.getElementById('alertUser').classList.add("alert-success");
+                            animateCSS('alertUser', 'fadeInUp');
+                        }
+                    }
+                })
+                .catch((error) => {
+                    if (error.response && error.response.data.code === 1) {
+                        this.setState({ 'message_error': `Não foi possivel encontrar seu token` });
+                        sessionStorage.removeItem('reset_password');
+                    } else if (error.response && error.response.data.code === 2) {
+                        this.setState({ 'message_error': `Token invalido` });
+                    } else if (error.response && error.response.data.code === 3) {
+                        this.setState({ 'message_error': `Token expirado` });
+                        sessionStorage.removeItem('reset_password');
+                    } else {
+                        this.setState({ 'message_error': `Não foi possivel redefinir sua senha` });
+                        sessionStorage.removeItem('reset_password');
                     }
 
                     if (document.getElementById('alertUser').classList.contains('invisible')) {
                         document.getElementById('alertUser').classList.remove("invisible");
-                        document.getElementById('alertUser').classList.add("alert-success");
                         animateCSS('alertUser', 'fadeInUp');
                     }
-                }
-            })
-            .catch((error) => {
-                if (error.response && error.response.data.code === 1) {
-                    this.setState({ 'message_error': `Não foi possivel encontrar seu token` });
-                } else if (error.response && error.response.data.code === 2) {
-                    this.setState({ 'message_error': `Token invalido` });
-                } else if (error.response && error.response.data.code === 3) {
-                    this.setState({ 'message_error': `Token expirado` });
-                } else {
-                    this.setState({ 'message_error': `Não foi possivel redefinir sua senha` });
-                }
+                })
+        }
 
-                if (document.getElementById('alertUser').classList.contains('invisible')) {
-                    document.getElementById('alertUser').classList.remove("invisible");
-                    animateCSS('alertUser', 'fadeInUp');
-                }
-            })
     }
 
     handleConfirmPassword() {
-        if (this.state.new_account) {
+        if (
+            this.state.new_account ||
+            this.state.forgot_password &&
+            this.state.forgot_password['reset_password']
+        ) {
             if (
                 document.getElementById('password_confirm').value !== document.getElementById('password').value
             ) {
@@ -395,7 +472,7 @@ export default class Index extends React.Component {
         axios.get('http://localhost:5000/users', {
             headers: {
                 'Content-Type': 'application/json',
-                'api_key': 'b2$tp3i$Nw6uS9B$O_n64B7!!1$3$_*_!!t!@q*5lW6EuG@Hh6$BH$#2t453_$9839#p8_V33_$!@6H4m3-8@8_2f9##464e7ESEey*bjN432--r_#N5d_7T-jCW65f3@4-l6gd!5O1#-@i-5!84K#Q@**!#$-!9*-uG2-2R_r*N-7_u-k-P*b8y8@Cu@U!Jm@@#282pF7-2D#!S_*Tob39#@g_M8e43D7!i_!_9aI3up-b-d_83tJ*6585J*G9-'
+                'api_key': this.api.key
             },
             params: {
                 email: String(email)
@@ -479,11 +556,10 @@ export default class Index extends React.Component {
             }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'api_key': 'b2$tp3i$Nw6uS9B$O_n64B7!!1$3$_*_!!t!@q*5lW6EuG@Hh6$BH$#2t453_$9839#p8_V33_$!@6H4m3-8@8_2f9##464e7ESEey*bjN432--r_#N5d_7T-jCW65f3@4-l6gd!5O1#-@i-5!84K#Q@**!#$-!9*-uG2-2R_r*N-7_u-k-P*b8y8@Cu@U!Jm@@#282pF7-2D#!S_*Tob39#@g_M8e43D7!i_!_9aI3up-b-d_83tJ*6585J*G9-'
+                    'api_key': this.api.key
                 }
             })
                 .then((response) => {
-
 
                     const
                         user = response.data.query.results.user,
@@ -588,7 +664,7 @@ export default class Index extends React.Component {
             forgot_password['reset_password']
         ) {
             return (
-                <div className="col-4 align-self-center m-auto" id="form-container">
+                <div className="col-sm-4 col-md-4 align-self-center m-auto" id="form-container">
                     <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
                         {context.state.message_error}
                     </div>
@@ -608,11 +684,13 @@ export default class Index extends React.Component {
                         className="mb-2 form-control form-control-sm"
                         id="password"
                         type="password"
+                        onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Nova senha" />
                     <input
                         className="mb-2 form-control form-control-sm"
                         id="password_confirm"
                         type="password"
+                        onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Confirme a senha" />
                     <button
                         type="button"
@@ -632,32 +710,41 @@ export default class Index extends React.Component {
                         }}>
                         Login
                     </button>
+                    <div className="mt-2 alert alert-light text-justify" id="alertUser" role="alert">
+                        Essa janela só será exibida na sessão atual, a mesma tem 1 hora de duração.
+                        Após o periodo de duração ao reiniciar a pagina a janela não será exibida.
+                        Caso a aba do navegador seja fechada e você precise abrir o site novamente
+                        um novo pedido de redefinição de senha devera ser feito.
+                    </div>
                 </div>
             )
         } else if (forgot_password) {
             return (
-                <div id="alertForgotPassword" ref={alert => context.alertForgotPassword = alert} className="col-8 m-auto alert alert-success alert-dismissible" role="alert">
-                    <h4 className="text-center">
-                        <strong>Solicitação de redefinição de senha enviada!</strong><br />
-                        Verifique sua caixa de entrada, endereço de email: {forgot_password.email}
-                    </h4>
-                    <button type="button" className="close" data-dismiss="alert" aria-label="Close"
-                        onClick={() => {
-                            animateCSS('alertForgotPassword', 'fadeOut', () => {
-                                context.alertForgotPassword.classList.remove('show');
-                                context.setState({ 'forgot_password': { 'email': forgot_password.email, 'reset_password': true } });
-                                animateCSS('form-container', 'bounceIn');
-                            });
-                        }}>
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div className="container-fluid m-auto">
+                    <div id="alertForgotPassword" ref={alert => context.alertForgotPassword = alert} className="col-12 alert alert-success alert-dismissible" role="alert">
+                        <p className="text-center text-justify m-2">
+                            <strong>Solicitação de redefinição de senha enviada!</strong>
+                            <br />
+                            Verifique sua caixa de entrada, endereço de email: {forgot_password.email}
+                        </p>
+                        <button type="button" className="close" data-dismiss="alert" aria-label="Close"
+                            onClick={() => {
+                                animateCSS('alertForgotPassword', 'fadeOut', () => {
+                                    context.alertForgotPassword.classList.remove('show');
+                                    context.setState({ 'forgot_password': { 'email': forgot_password.email, 'reset_password': true } });
+                                    animateCSS('form-container', 'bounceIn');
+                                });
+                            }}>
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
                 </div>
             )
         }
 
         if (!new_account) {
             return (
-                <div className="col-4 align-self-center m-auto" id="form-container">
+                <div className="col-sm-4 col-md-4 align-self-center m-auto" id="form-container">
                     <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
                         {context.state.message_error}
                     </div>
@@ -699,7 +786,7 @@ export default class Index extends React.Component {
             )
         } else {
             return (
-                <div className="col-4 align-self-center m-auto" id="form-container">
+                <div className="col-sm-4 col-md-4 align-self-center m-auto" id="form-container">
                     <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
                         {context.state.message_error}
                     </div>

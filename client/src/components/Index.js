@@ -38,10 +38,8 @@ import {
     MdRssFeed,
     MdDateRange,
     MdMood,
-    MdMoodBad,
+    MdExitToApp,
     MdVerifiedUser,
-    MdError,
-    MdUpdate,
     MdHdrWeak,
     MdLiveHelp,
     MdHdrStrong,
@@ -147,22 +145,13 @@ export default class Index extends React.Component {
     }
 
     componentDidMount() {
-        const loadingElement = document.getElementById('ipl-progress-indicator');
-        if (loadingElement) {
-            // fade out
-            loadingElement.classList.add('available');
-            setTimeout(() => {
-                // remove from DOM
-                if (loadingElement) loadingElement.outerHTML = '';
-            }, 2000);
-        }
 
         window.setInterval(() => {
             this.update();
         }, 1000);
 
+        this.componentCallLoading('stop');
         this.renderChartCanvas();
-
 
         ReactDOM.render(
             this.chartDonwload('Postos Cobertos'),
@@ -186,6 +175,24 @@ export default class Index extends React.Component {
         }
     }
 
+    componentCallLoading(state) {
+        const loadingElement = document.getElementById('ipl-progress-indicator');
+        if (loadingElement) {
+            if (state === 'stop')
+                loadingElement.classList.add('available');
+            if (state === 'start')
+                loadingElement.classList.remove('available');
+        }
+    }
+
+    componentCallChangePage(path, state) {
+        this.componentCallLoading('start');
+
+        setTimeout(() => {
+            this.props.history.push({ pathname: path, state: state });
+        }, 1000);
+    }
+
     setClock() {
         this.setState({ clock: this.getClock() });
     }
@@ -196,7 +203,7 @@ export default class Index extends React.Component {
     }
 
     getUsername() {
-        const data = JSON.parse(LZString.decompressFromBase64(sessionStorage.getItem('auth'))) || null;
+        const data = JSON.parse(LZString.decompressFromBase64(localStorage.getItem('auth'))) || null;
         if (!data) return '???';
         return data['name'];
     }
@@ -236,7 +243,7 @@ export default class Index extends React.Component {
             backgroundColor: "#2c313a",
             animationEnabled: true,
             toolTip: {
-                content: "{x}/{y} posto(s) coberto(s) em {name}"
+                content: "{y} posto(s) coberto(s) em {name}"
             },
             data: [
                 {
@@ -362,71 +369,95 @@ export default class Index extends React.Component {
 
     render() {
         return (
-            <div className="row">
-                <div className="col-2" style={{ 'backgroundColor': '#282c34' }}>
-                    <Image className="mt-2 mx-auto d-block" src={logo} style={{ 'width': '30vw', 'height': '8vh' }} />
-                    <h1 className="text-info text-center text-uppercase">Grupo Mave</h1>
-                    <div id="_container-buttons" style={{ 'height': '80vh' }}>
-                        <ButtonToolbar>
-                            <Button
-                                id="_dashboard"
-                                className={`m-2 ${this.state.menu === 'dashboard' ? 'active' : ''}`}
-                                variant="outline-info"
-                                size="lg"
-                                block
-                                onClick={() => this.setState({ menu: 'dashboard' })}>
-                                <MdDashboard /> Dashboard
+            <div className="container-all">
+                <div className="row d-none d-sm-flex">
+                    <div className="col-2" style={{ 'backgroundColor': '#282c34' }}>
+                        <Image className="mt-2 mx-auto" src={logo} style={{ 'width': '30vw', 'height': '8vh' }} />
+                        <h1 className="text-info text-center text-uppercase">Grupo Mave</h1>
+                        <div id="_container-buttons" style={{ 'height': '80vh' }}>
+                            <ButtonToolbar>
+                                <Button
+                                    id="_dashboard"
+                                    className={`m-2 ${this.state.menu === 'dashboard' ? 'active' : ''}`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => this.setState({ menu: 'dashboard' })}>
+                                    <MdDashboard /> Dashboard
                             </Button>
-                            <Button
-                                id="_comercial"
-                                className={`m-2 ${this.state.menu === 'comercial' ? 'active' : ''}`}
-                                variant="outline-info"
-                                size="lg"
-                                block
-                                onClick={() => this.setState({ menu: 'comercial' })}>
-                                <MdWork /> Comercial
+                                <Button
+                                    id="_comercial"
+                                    className={`m-2 ${this.state.menu === 'comercial' ? 'active' : ''}`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => this.setState({ menu: 'comercial' })}>
+                                    <MdWork /> Comercial
                             </Button>
-                            <Button
-                                id="_dp_rh"
-                                className={`m-2 ${this.state.menu === 'dp_rh' ? 'active' : ''}`}
-                                variant="outline-info"
-                                size="lg"
-                                block
-                                onClick={() => this.setState({ menu: 'dp_rh' })}>
-                                <MdFolderShared /> DP/RH
+                                <Button
+                                    id="_dp_rh"
+                                    className={`m-2 ${this.state.menu === 'dp_rh' ? 'active' : ''}`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => this.setState({ menu: 'dp_rh' })}>
+                                    <MdFolderShared /> DP/RH
                             </Button>
-                            <Button
-                                id="_operacional"
-                                className={`m-2 ${this.state.menu === 'operacional' ? 'active' : ''}`}
-                                variant="outline-info"
-                                size="lg"
-                                block
-                                onClick={() => this.setState({ menu: 'operacional' })}>
-                                <MdSecurity /> Operacional
+                                <Button
+                                    id="_operacional"
+                                    className={`m-2 ${this.state.menu === 'operacional' ? 'active' : ''}`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => this.setState({ menu: 'operacional' })}>
+                                    <MdSecurity /> Operacional
                             </Button>
-                            <Button
-                                id="_financeiro"
-                                className={`m-2 ${this.state.menu === 'financeiro' ? 'active' : ''}`}
-                                variant="outline-info"
-                                size="lg"
-                                block
-                                onClick={() => this.setState({ menu: 'financeiro' })}>
-                                <MdLocalAtm /> Financeiro
+                                <Button
+                                    id="_financeiro"
+                                    className={`m-2 ${this.state.menu === 'financeiro' ? 'active' : ''}`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => this.setState({ menu: 'financeiro' })}>
+                                    <MdLocalAtm /> Financeiro
                             </Button>
-                            <Button
-                                id="_suport"
-                                className={`m-2 ${this.state.menu === 'suport' ? 'active' : ''}`}
-                                variant="outline-info"
-                                size="lg"
-                                block
-                                onClick={() => this.setState({ menu: 'suport' })}>
-                                <MdAnnouncement /> Suporte
+                                <Button
+                                    id="_suport"
+                                    className={`m-2 ${this.state.menu === 'suport' ? 'active' : ''}`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => this.setState({ menu: 'suport' })}>
+                                    <MdAnnouncement /> Suporte
                             </Button>
-                        </ButtonToolbar>
+                                <Button
+                                    id="_suport"
+                                    className={`m-2`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => {
+                                        animateCSS('container-all', 'flash');
+                                        sessionStorage.setItem('authRemove', true);
+                                        this.componentCallChangePage('/', {});
+                                    }}>
+                                    <MdExitToApp /> Sair
+                            </Button>
+                            </ButtonToolbar>
+                        </div>
+                    </div>
+                    <div className="row col-10 overflow-auto" style={{ 'borderLeft': '1px solid #17a2b8', 'height': '100vh', 'backgroundColor': '#282c34' }}>
+                        {this.content()}
                     </div>
                 </div>
-                <div className="row col-10 overflow-auto" style={{ 'borderLeft': '1px solid #17a2b8', 'height': '100vh', 'backgroundColor': '#282c34' }}>
-                    {this.content()}
+                <div className="container-fluid">
+                    <div className="row d-flex d-sm-none">
+                        <div className="col-12" style={{ 'backgroundColor': '#282c34', 'height': '100vh' }}>
+                            <div className="container" style={{ 'marginTop': '50vh' }}>
+                                <h3 className="text-info text-center text-uppercase">No suport for mobile</h3>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )
