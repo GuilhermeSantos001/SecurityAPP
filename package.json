@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "preinstall": "DEL /F/S/Q package-lock.* yarn.* > NUL",
     "installer": "npm install && yarn install && npm run update",
     "update": "npm update -i && yarn upgrade",
     "test": "echo \"Error: no test specified\" && exit 1",

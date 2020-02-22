@@ -20,7 +20,6 @@
     "react-scripts": "3.4.0"
   },
   "scripts": {
-    "preinstall": "DEL /F/S/Q package-lock.* yarn.* > NUL",
     "installer": "npm install && yarn install && npm run update",
     "update": "npm update -i && yarn upgrade",
     "start": "react-scripts start",
