@@ -62,10 +62,12 @@ export default class Index extends React.Component {
             prevState.forgot_password !== this.state.forgot_password
         ) {
             if (this.state.new_account) {
+                document.getElementById('email').value = document.getElementById('name').value;
                 document.getElementById('name').value = '';
-                document.getElementById('email').value = '';
                 document.getElementById('password').value = '';
                 document.getElementById('password_confirm').value = '';
+
+                this.handleEmailExist();
             } else if (this.state.forgot_password && this.state.forgot_password['reset_password']) {
                 document.getElementById('token_resetPassword').value = '';
                 document.getElementById('password').value = '';
@@ -306,8 +308,7 @@ export default class Index extends React.Component {
     handleConfirmPassword() {
         if (
             this.state.new_account ||
-            this.state.forgot_password &&
-            this.state.forgot_password['reset_password']
+            (this.state.forgot_password && this.state.forgot_password['reset_password'])
         ) {
             if (
                 document.getElementById('password_confirm').value !== document.getElementById('password').value
@@ -417,7 +418,6 @@ export default class Index extends React.Component {
 
             })
             .catch((error) => {
-                document.getElementById('email').value = '';
                 document.getElementById('password').value = '';
 
                 if (

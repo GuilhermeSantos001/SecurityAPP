@@ -10,6 +10,11 @@ import ReactDOM from 'react-dom'
 import * as LZString from 'lz-string';
 
 /**
+ * Import Axios
+ */
+import axios from 'axios';
+
+/**
  * Import CanvasJSReact
  */
 import CanvasJSReact from '../assets/canvasjs.react';
@@ -56,7 +61,9 @@ import {
     MdConfirmationNumber,
     MdPersonPin,
     MdAvTimer,
-    MdYoutubeSearchedFor
+    MdYoutubeSearchedFor,
+    MdMessage,
+    MdMailOutline
 } from 'react-icons/md';
 
 /**
@@ -76,10 +83,23 @@ import '../css/Index.css';
 export default class Index extends React.Component {
     constructor(props) {
         super(props);
+
+        this.api = {
+            key: '5i@41Yb#!##@P4!NsrvJ-D3DK$Q89-3*Y-#59#$*CW2#!P@U45#q*#$42H4q!63gsQ-64b991IK$R#8r_-$*_46#*1@5s!@A3@_56e36!*@65n517W76_@9P#!$54s@-dQ45#7rtp7-5!2!34@#4Fj44g1-_7-@8-#Smf37Bkg@1D$6-_eT#3@@3PHpPa55q_7@-4-aj2788K_@K1g!913_S72h3$@5#71-g!5vN34*uH834o-7t@t#$@9QH4sp1'
+        }
+
         this.state = {
             menu: 'dashboard',
             clock: this.getClock(),
             username: this.getUsername(),
+            message: {
+                active: false
+            },
+            usermessages: {
+                menu: '',
+                data: [],
+                selected: 0
+            },
             data: {
                 dashboard: [
                     Math.floor(1 + Math.random() * 100),
@@ -162,16 +182,21 @@ export default class Index extends React.Component {
             this.chartDonwload('Postos Descobertos'),
             document.getElementById('chartDonwload-Postos Descobertos')
         )
+
     }
 
     update() {
         this.setClock();
+        this.updateUserMessages();
     }
 
     componentDidUpdate(prop, state) {
         if (this.state.menu !== state.menu) {
-            animateCSS(this.state.menu, 'bounceInRight');
+            animateCSS(this.state.menu, 'fadeInLeft');
             if (this.state.menu === 'dashboard') this.renderChartCanvas();
+        }
+        if (this.state.usermessages.menu != state.usermessages.menu) {
+            this.useremailanswer();
         }
     }
 
@@ -202,10 +227,46 @@ export default class Index extends React.Component {
         ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
     }
 
+    updateUserMessages() {
+        if (!this.state.message.active)
+            this.getUserMessages((messages) => {
+                this.setState({ 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+            })
+    }
+
     getUsername() {
         const data = JSON.parse(LZString.decompressFromBase64(localStorage.getItem('auth'))) || null;
         if (!data) return '???';
         return data['name'];
+    }
+
+    getUserEmail() {
+        const data = JSON.parse(LZString.decompressFromBase64(localStorage.getItem('auth'))) || null;
+        if (!data) return '???';
+        return data['email'];
+    }
+
+    getUserToken() {
+        const data = JSON.parse(LZString.decompressFromBase64(localStorage.getItem('auth'))) || null;
+        if (!data) return '???';
+        return data['token'];
+    }
+
+    getUserMessages(callback) {
+        axios.get('http://localhost:5000/users/messages', {
+            headers: {
+                'Content-Type': 'application/json',
+                'api_key': this.api.key,
+                'authorization': this.getUserToken()
+            },
+            params: {}
+        })
+            .then((res) => {
+                callback(res.data.query.results[0]);
+            })
+            .catch((err) => {
+                if (err) return console.error('Error get for http://localhost:5000/users/messages url!', err);
+            })
     }
 
     renderChartCanvas() {
@@ -367,12 +428,26 @@ export default class Index extends React.Component {
         }
     }
 
+    useremailanswer() {
+        if (this.state.usermessages.menu === 'send' && this.state.usermessages.answer) {
+            document.getElementById('message_email-1').value = this.state.usermessages.answer.emitter;
+            document.getElementById('message_email-1').classList.add('is-valid');
+            document.getElementById('message_email-1').setAttribute('disabled', true);
+
+            document.getElementById('message_email-2').value = this.state.usermessages.answer.copied;
+            document.getElementById('message_subject').value = this.state.usermessages.answer.subject;
+            document.getElementById('message_textarea').value = this.state.usermessages.answer.message;
+        }
+    }
+
     render() {
         return (
             <div className="container-all">
                 <div className="row d-none d-sm-flex">
                     <div className="col-2" style={{ 'backgroundColor': '#282c34' }}>
-                        <Image className="mt-2 mx-auto" src={logo} style={{ 'width': '30vw', 'height': '8vh' }} />
+                        <div className="row mt-2 ml-2">
+                            <Image className="col-12" src={logo} style={{ 'height': '10vh' }} />
+                        </div>
                         <h1 className="text-info text-center text-uppercase">Grupo Mave</h1>
                         <div id="_container-buttons" style={{ 'height': '80vh' }}>
                             <ButtonToolbar>
@@ -385,6 +460,18 @@ export default class Index extends React.Component {
                                     onClick={() => this.setState({ menu: 'dashboard' })}>
                                     <MdDashboard /> Dashboard
                             </Button>
+                                <Button
+                                    id="_messages"
+                                    className={`m-2 ${this.state.menu === 'messages' ? 'active' : ''}`}
+                                    variant="outline-info"
+                                    size="lg"
+                                    block
+                                    onClick={() => this.setState({ menu: 'messages' })}>
+                                    <MdMessage /> Mensagens(<span style={{ 'color': '#00d9ff' }}>{this.state.usermessages.data.length}</span>)
+                                </Button>
+                            </ButtonToolbar>
+                            <hr style={{ 'width': '10vw', 'backgroundColor': '#00d9ff' }} />
+                            <ButtonToolbar>
                                 <Button
                                     id="_comercial"
                                     className={`m-2 ${this.state.menu === 'comercial' ? 'active' : ''}`}
@@ -421,6 +508,9 @@ export default class Index extends React.Component {
                                     onClick={() => this.setState({ menu: 'financeiro' })}>
                                     <MdLocalAtm /> Financeiro
                             </Button>
+                            </ButtonToolbar>
+                            <hr style={{ 'width': '10vw', 'backgroundColor': '#00d9ff' }} />
+                            <ButtonToolbar>
                                 <Button
                                     id="_suport"
                                     className={`m-2 ${this.state.menu === 'suport' ? 'active' : ''}`}
@@ -464,86 +554,86 @@ export default class Index extends React.Component {
     }
 
     content() {
-        // Dashboard
+        /**
+         * Dashboard
+         */
         if (this.state.menu === 'dashboard') {
             return (
                 <div className='dashboard'>
                     <div className="Dashboard-view_1">
                         <div className="row ml-2" style={{ 'width': '82vw' }}>
-                            <div className="col-12 mt-2" style={{ 'height': 150, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <h2 className="mt-3 ml-3">
-                                    {this.state.username}
-                                </h2>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <h3 className="mb-4 ml-3">Departamento - TI</h3>
+                            <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
+                                    Prezado(a) {this.getUsername()}, esse é o seu resumo referente a todos os seus módulos utilizados no sistema.
+                                </p>
                             </div>
-                            <div className="col-3 mr-2 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Cobertos</h1>
-                                <h2 className="pt-2">{this.state.data.dashboard[0]}</h2>
-                            </div>
-                            <div className="col-3 mr-2 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Descobertos</h1>
-                                <h2 className="pt-2">{this.state.data.dashboard[1]}</h2>
-                            </div>
-                            <div className="col-5 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <h1 style={{ 'fontSize': 24 }}><MdDateRange /> Data e Hora</h1>
-                                <h2 className="pt-2">{this.state.clock}</h2>
-                            </div>
-                        </div>
-                        <div className="row ml-2" style={{ 'width': '82vw' }}>
-                            <div className="col-3 mt-1 pt-2" style={{ 'height': 180, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <p className="text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
-                                        <MdMood /> Forest Park
+                            <div className="row justify-content-center">
+                                <div className="col-3 mr-3 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Cobertos</h1>
+                                    <h2 className="pt-2">{this.state.data.dashboard[0]}</h2>
+                                </div>
+                                <div className="col-3 mr-3 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <h1 style={{ 'fontSize': 24 }}><MdRssFeed /> Postos Descobertos</h1>
+                                    <h2 className="pt-2">{this.state.data.dashboard[1]}</h2>
+                                </div>
+                                <div className="col-3 mt-2 pt-2" style={{ 'height': 100, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <h1 style={{ 'fontSize': 24 }}><MdDateRange /> Data e Hora</h1>
+                                    <h2 className="pt-2">{this.state.clock}</h2>
+                                </div>
+                                <div className="col-3 mr-3 mt-1 pt-2" style={{ 'height': 180, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold" style={{ 'fontSize': 15 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
+                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                    <ul className="list-group overflow-auto" style={{ 'height': 100 }}>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
+                                            <MdMood /> Forest Park
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMood /> Pão de Açucar
+                                        </li>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                            <MdMood /> Pão de Açucar
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMood /> Açai Atacadista
+                                        </li>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                            <MdMood /> Açai Atacadista
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                </ul>
-                            </div>
-                            <div className="col-3 ml-2 mt-1 pt-2" style={{ 'height': 180, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <p className="text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
-                                        <MdMood /> Forest Park
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div className="col-3 mr-3 mt-1 pt-2" style={{ 'height': 180, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold" style={{ 'fontSize': 15 }}><MdVerifiedUser /> Clientes Importantes Cobertos</p>
+                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                    <ul className="list-group overflow-auto" style={{ 'height': 100 }}>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
+                                            <MdMood /> Forest Park
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMood /> Pão de Açucar
+                                        </li>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                            <MdMood /> Pão de Açucar
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMood /> Açai Atacadista
+                                        </li>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                            <MdMood /> Açai Atacadista
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                </ul>
-                            </div>
-                            <div className="col-5 ml-2 mt-1 pt-2" style={{ 'height': 180, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <p className="text-left font-weight-bold" style={{ 'fontSize': 15, 'marginLeft': -8 }}><MdVerifiedUser /> Suas Ultimas Alterações</p>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ul className="list-group overflow-auto" style={{ 'marginLeft': -8, 'height': 100 }}>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
-                                        <MdMood /> Forest Park
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div className="col-3 mt-1 pt-2" style={{ 'height': 180, 'paddingLeft': 10, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold" style={{ 'fontSize': 15 }}><MdVerifiedUser /> Suas Ultimas Alterações</p>
+                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                    <ul className="list-group overflow-auto" style={{ 'height': 100 }}>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -14 }}>
+                                            <MdMood /> Forest Park
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMood /> Pão de Açucar
+                                        </li>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                            <MdMood /> Pão de Açucar
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                    <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
-                                        <MdMood /> Açai Atacadista
+                                        </li>
+                                        <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 14, 'marginTop': -30 }}>
+                                            <MdMood /> Açai Atacadista
                                         <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    </li>
-                                </ul>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -566,33 +656,439 @@ export default class Index extends React.Component {
                 </div>
             )
         }
-        // Comercial
+        /**
+         * Messages
+         */
+        else if (this.state.menu === 'messages') {
+            if (this.state.usermessages.menu === 'list') {
+                let messages = this.state.usermessages.data.map(message => {
+                    return <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 18, 'marginTop': -20 }}>
+                        <Button
+                            className={`col mt-2 mr-3 text-left font-weight-bold ${message['new'] ? '' : 'disabled'}`}
+                            style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                            variant="outline-info"
+                            size="lg"
+                            block
+                            onClick={() => {
+                                animateCSS('messages', 'fadeIn');
+                                this.getUserMessages((messages) => {
+                                    this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'message', data: messages, selected: message['id'] } })
+                                });
+                            }}>
+                            <MdPersonPin /> Por: {message['author']}<br />
+                            <MdMailOutline /> Assunto: {message['subject']}<br />
+                            <MdMessage /> Resumo: {String(message['message']).slice(0, 100)}...
+                        </Button>
+                    </li>
+                });
+                return (
+                    <div className='messages'>
+                        <div className="Messages-view_1">
+                            <div className="row ml-2" style={{ 'width': '82vw' }}>
+                                <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
+                                        Prezado(a) {this.getUsername()}, {this.state.usermessages.data.length <= 0 ? `você não tem mensagens.` : `você tem novas mensagens.`}
+                                    </p>
+                                </div>
+                                <div className="col-12 mt-2" style={{ 'height': '80vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 20, 'color': '#00d9ff' }}>
+                                        Caixa de entrada
+                                    </p>
+                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                    <ul className="list-group overflow-auto" style={{ 'height': '70vh' }}>
+                                        {messages}
+                                    </ul>
+                                </div>
+                                <ButtonToolbar>
+                                    <Button
+                                        className="col mt-2 mr-3"
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => {
+                                            animateCSS('messages', 'fadeIn');
+                                            this.getUserMessages((messages) => {
+                                                this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'send', data: messages, selected: 0 } })
+                                            });
+                                        }}>
+                                        <MdHdrWeak /><br /> Novo email
+                                    </Button>
+                                    <Button
+                                        className={"col mt-2 mr-3"}
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        disabled={this.state.usermessages.data.length <= 0}
+                                        onClick={() => {
+                                            axios.delete(`http://localhost:5000/users/messages/remove`, {
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'api_key': this.api.key,
+                                                    'authorization': this.getUserToken()
+                                                },
+                                                data: {
+                                                    email: this.getUserEmail()
+                                                }
+                                            })
+                                                .then((res) => {
+                                                    animateCSS('messages', 'fadeIn');
+                                                    this.getUserMessages((messages) => {
+                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                    });
+                                                })
+                                                .catch((err) => {
+                                                    animateCSS('messages', 'fadeIn');
+                                                    this.getUserMessages((messages) => {
+                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                    });
+                                                    if (err) return console.error('Error get for http://localhost:5000/users/messages/remove url!', err);
+                                                })
+                                        }}>
+                                        <MdHdrWeak /><br /> Remover todos os emails
+                                    </Button>
+                                </ButtonToolbar>
+                            </div>
+                        </div>
+                    </div>
+                )
+            } else if (this.state.usermessages.menu === 'message') {
+                let selected = this.state.usermessages.data.filter(message => { return message['id'] === this.state.usermessages.selected })[0];
+                return (
+                    <div className='messages'>
+                        <div className="Messages-view_1">
+                            <div className="row ml-2" style={{ 'width': '82vw' }}>
+                                <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
+                                        Prezado(a) {this.getUsername()}, {this.state.usermessages.data.length <= 0 ? `você não tem mensagens.` : `você tem novas mensagens.`}
+                                    </p>
+                                </div>
+                                <div className="col-12 mt-2" style={{ 'height': '80vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold pl-2 pt-2 col-12" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
+                                        De: {selected['emitter']}<br />
+                                        Para: {selected['receiver']}<br />
+                                        Cc: {selected['copied']}<br />
+                                        Enviado em: {selected['dateAt']}
+                                    </p>
+                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                    <h1>{selected['subject']}</h1>
+                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                    <p>
+                                        {selected['message'].split('\n').map(i => {
+                                            return <p>{i}</p>
+                                        })}
+                                    </p>
+                                </div>
+                                <ButtonToolbar>
+                                    <Button
+                                        className="col mt-2 mr-5"
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => {
+                                            animateCSS('messages', 'fadeIn');
+                                            this.getUserMessages((messages) => {
+                                                this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                            });
+                                        }}>
+                                        <MdHdrWeak /><br /> Retornar
+                                    </Button>
+                                    <Button
+                                        className="col mt-2 mr-3"
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => {
+                                            animateCSS('messages', 'fadeIn');
+                                            this.getUserMessages((messages) => {
+                                                const
+                                                    subject = `Resposta de ${this.getUsername()} sobre '${selected['subject']}'`,
+                                                    message = `---Anterior por ${selected['author']}\n\r${selected['message']}\n\r---Resposta por ${this.getUsername()}\n\r`;
+                                                this.setState({
+                                                    'message': { 'active': true }, 'usermessages': {
+                                                        menu: 'send', answer: {
+                                                            emitter: selected['emitter'],
+                                                            copied: selected['copied'],
+                                                            subject: subject,
+                                                            message: message
+                                                        }, data: messages, selected: 0
+                                                    }
+                                                })
+                                            });
+                                        }}>
+                                        <MdHdrWeak /><br /> Responder
+                                    </Button>
+                                    <Button
+                                        className="col mt-2 mr-3"
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /><br /> Encaminhar
+                                    </Button>
+                                    <Button
+                                        className="col mt-2 mr-3"
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => {
+                                            axios.delete(`http://localhost:5000/users/messages/remove/${selected['id']}`, {
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'api_key': this.api.key,
+                                                    'authorization': this.getUserToken()
+                                                },
+                                                data: {
+                                                    email: this.getUserEmail()
+                                                }
+                                            })
+                                                .then((res) => {
+                                                    animateCSS('messages', 'fadeIn');
+                                                    this.getUserMessages((messages) => {
+                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                    });
+                                                })
+                                                .catch((err) => {
+                                                    animateCSS('messages', 'fadeIn');
+                                                    this.getUserMessages((messages) => {
+                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                    });
+                                                    if (err) return console.error('Error get for http://localhost:5000/users/messages/remove url!', err);
+                                                })
+                                        }}>
+                                        <MdHdrWeak /><br /> Remover
+                                    </Button>
+                                </ButtonToolbar>
+                            </div>
+                        </div>
+                    </div >
+                )
+            } else if (this.state.usermessages.menu === 'send') {
+                const context = this;
+                return (
+                    <div className='messages'>
+                        <div className="Messages-view_1">
+                            <div className="row ml-2" style={{ 'width': '82vw' }}>
+                                <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
+                                        Prezado(a) {this.getUsername()}, {this.state.usermessages.data.length <= 0 ? `você não tem mensagens.` : `você tem novas mensagens.`}
+                                    </p>
+                                </div>
+                                <div className="col-12 mt-2 message-form-all" style={{ 'height': '82vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                    <div className="form-group mt-2">
+                                        <label htmlFor="message_email-1">Destinatário:</label>
+                                        <input type="text" className="form-control" id="message_email-1" placeholder="Endereço de email" onChange={context.handleEmailExist.bind(context, '1')} style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
+                                    </div>
+                                    <div className="form-group mt-2">
+                                        <label htmlFor="message_email-2">Cc:</label>
+                                        <input type="text" className="form-control" id="message_email-2" placeholder="Endereço de email" onChange={context.handleEmailExist.bind(context, '2')} style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
+                                    </div>
+                                    <div className="form-group mt-2">
+                                        <label htmlFor="message_subject">Assunto:</label>
+                                        <input type="text" className="form-control" id="message_subject" placeholder="Defina o assunto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
+                                    </div>
+                                    <div className="form-group mt-2">
+                                        <label htmlFor="message_textarea">Mensagem:</label>
+                                        <textarea className="form-control" id="message_textarea" style={{ 'height': '45vh', 'resize': 'none', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
+                                    </div>
+                                </div>
+                                <ButtonToolbar>
+                                    <Button
+                                        className="col mt-2 mr-5"
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="sm"
+                                        block
+                                        onClick={() => {
+                                            animateCSS('messages', 'fadeIn');
+                                            this.getUserMessages((messages) => {
+                                                this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                            });
+                                        }}>
+                                        <MdHdrWeak /><br /> Descartar
+                                    </Button>
+                                    <Button
+                                        className="col mt-2 mr-3"
+                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
+                                        variant="outline-info"
+                                        size="sm"
+                                        block
+                                        onClick={() => {
+
+                                            const
+                                                receiver = document.getElementById('message_email-1').value,
+                                                copied = document.getElementById('message_email-2').value,
+                                                subject = document.getElementById('message_subject').value,
+                                                message = document.getElementById('message_textarea').value,
+                                                username = this.getUsername();
+
+                                            if (
+                                                String(receiver).length <= 0 ||
+                                                String(subject).length <= 0 ||
+                                                String(message).length <= 0 ||
+                                                (
+                                                    !document.getElementById('message_email-1').classList.contains('is-valid') ||
+                                                    (String(copied).length > 0 && !document.getElementById('message_email-2').classList.contains('is-valid'))
+                                                )
+                                            ) return animateCSS('message-form-all', 'shake');
+
+
+                                            const send = function (api_key, user_token, context, emitter, receiver, copied, subject, message) {
+
+                                                return new Promise((resolve, reject) => {
+                                                    axios.post('http://localhost:5000/users/messages/send', {
+                                                        "author": String(username),
+                                                        "emitter": String(emitter),
+                                                        "receiver": String(receiver),
+                                                        "copied": String(copied),
+                                                        "subject": String(subject),
+                                                        "message": String(message)
+                                                    }, {
+                                                        headers: {
+                                                            'Content-Type': 'application/json',
+                                                            'api_key': String(api_key),
+                                                            'authorization': String(user_token)
+                                                        }
+                                                    })
+                                                        .then((res) => {
+                                                            animateCSS('messages', 'fadeIn');
+                                                            resolve();
+                                                            context.getUserMessages((messages) => {
+                                                                context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                            });
+                                                        })
+                                                        .catch((err) => {
+                                                            document.getElementById('message_email-1').value = '';
+                                                            document.getElementById('message_email-2').value = '';
+                                                            document.getElementById('message_subject').value = '';
+                                                            document.getElementById('message_textarea').value = '';
+                                                            reject();
+                                                            animateCSS('messages', 'fadeIn');
+                                                            context.getUserMessages((messages) => {
+                                                                context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                            });
+                                                            if (err) return console.error('Error get for http://localhost:5000/users/messages/send url!', err);
+                                                        })
+                                                })
+                                            }
+
+                                            if (String(copied).length > 0) {
+                                                send(this.api.key, this.getUserToken(), this, this.getUserEmail(), receiver, copied, subject, message)
+                                                    .then(() => {
+                                                        send(this.api.key, this.getUserToken(), this, this.getUserEmail(), copied, '', subject, message)
+                                                    })
+                                            } else {
+                                                send(this.api.key, this.getUserToken(), this, this.getUserEmail(), receiver, '', subject, message)
+                                            }
+                                        }}>
+                                        <MdHdrWeak /><br /> Enviar
+                                    </Button>
+                                </ButtonToolbar>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        }
+        /**
+         * Comercial
+         */
         else if (this.state.menu === 'comercial') {
             return (
                 <div className='comercial'>
                     <div className="Comercial-view_1">
-                        <div className="bg-light border border-dark ml-3 mt-2 mr-2 pl-3 text-secondary">
-                            <div className="mb-4">
-                                <h1 className="mt-2">Menus - Comercial<MdWork /></h1>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3 className="ml-2 mt-3 text-secondary"><MdAssignment /> Cadastros</h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Empresa</p>
-                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Cliente</p>
-                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Tipo de Serviço</p>
-                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Função</p>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><p className="ml-2 mt-3" ><MdWork /> Contratos</p></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3 className="ml-2 mt-3 text-secondary"><MdLocalPrintshop /> Relatórios</h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Relatório de cadastro de clientes</p>
-                                <p className="ml-3" style={{ 'fontSize': 20, 'color': '#0080ff' }}><MdHdrWeak /> Relatório de Contratos</p>
-                                <hr style={{ 'marginRight': 20 }} />
+                        <div className="row ml-2" style={{ 'width': '82vw' }}>
+                            <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
+                                    Prezado(a) {this.getUsername()}, você está utilizando o módulo comercial no momento.
+                                </p>
+                            </div>
+                            <div className="col-12 mt-2 mb-2" style={{ 'height': '100vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <h1 className="mt-3 ml-3">
+                                    <MdAssignment /> Cadastros
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <ButtonToolbar>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Empresa
+                                    </Button>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Cliente
+                                    </Button>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Tipo de Serviço
+                                    </Button>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Função
+                                    </Button>
+                                </ButtonToolbar>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <h1 className="mt-3 ml-3">
+                                    <MdWork /> Contratos
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <ButtonToolbar>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Registrar
+                                    </Button>
+                                </ButtonToolbar>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <h1 className="mt-3 ml-3">
+                                    <MdLocalPrintshop /> Relatórios
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <ButtonToolbar>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório de cadastro de clientes
+                                    </Button>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório de Contratos
+                                    </Button>
+                                </ButtonToolbar>
                             </div>
                         </div>
                     </div>
-                </div >
+                </div>
             )
         }
         // DP/RH
@@ -600,25 +1096,91 @@ export default class Index extends React.Component {
             return (
                 <div className='dp_rh'>
                     <div className="Dp_rh-view_1">
-                        <div className="bg-light border border-dark ml-3 mt-2 mr-2 pl-3 text-secondary">
-                            <div className="mb-4">
-                                <h1 className="mt-2">Menus - DP/RH<MdFolderShared /></h1>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdPersonAdd /> Cadastro de Funcionários</a></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdLocalAtm /> Valores e Regras</a></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdTimer /> Escala</a></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3 className="ml-2 mt-3 text-secondary"><MdLocalPrintshop /> Relatórios</h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de cadastro de funcionários</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Contratos</a><br />
-                                <hr style={{ 'marginRight': 20 }} />
+                        <div className="row ml-2" style={{ 'width': '82vw' }}>
+                            <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
+                                    Prezado(a) {this.getUsername()}, você está utilizando o módulo DP/RH no momento.
+                                </p>
+                            </div>
+                            <div className="col-12 mt-2 mb-2" style={{ 'height': '100vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
+                                <h1 className="mt-3 ml-3">
+                                    <MdPersonAdd /> Cadastro de Funcionários
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <ButtonToolbar>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Cadastrar
+                                    </Button>
+                                </ButtonToolbar>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <h1 className="mt-3 ml-3">
+                                    <MdLocalAtm /> Valores e Regras
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <ButtonToolbar>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Definir valores
+                                    </Button>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Definir regras
+                                    </Button>
+                                </ButtonToolbar>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <h1 className="mt-3 ml-3">
+                                    <MdTimer /> Escala
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <ButtonToolbar>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Nova escala
+                                    </Button>
+                                </ButtonToolbar>
+                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
+                                <h1 className="mt-3 ml-3">
+                                    <MdLocalPrintshop /> Relatórios
+                                </h1>
+                                <ButtonToolbar>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório de cadastro de funcionários
+                                    </Button>
+                                    <Button
+                                        style={{ 'color': '#00d9ff' }}
+                                        variant="outline-info"
+                                        size="lg"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório de Contratos
+                                    </Button>
+                                </ButtonToolbar>
                             </div>
                         </div>
                     </div>
-                </div >
+                </div>
             )
         }
         // Operacional
@@ -630,22 +1192,22 @@ export default class Index extends React.Component {
                             <div className="mb-4">
                                 <h1 className="mt-2">Menus - Operacional<MdSecurity /></h1>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdPersonPin /> Alocação de Funcionários</a></h3>
+                                <h3><button className="ml-2 mt-3" ><MdPersonPin /> Alocação de Funcionários</button></h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdConfirmationNumber /> Confirmação de Presença</a></h3>
+                                <h3><button className="ml-2 mt-3" ><MdConfirmationNumber /> Confirmação de Presença</button></h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdBuild /> Manutenção de Apontamentos</a></h3>
+                                <h3><button className="ml-2 mt-3" ><MdBuild /> Manutenção de Apontamentos</button></h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdAvTimer /> Calculo de Pagamentos</a></h3>
+                                <h3><button className="ml-2 mt-3" ><MdAvTimer /> Calculo de Pagamentos</button></h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdYoutubeSearchedFor /> Conferência de Pagamentos</a></h3>
+                                <h3><button className="ml-2 mt-3" ><MdYoutubeSearchedFor /> Conferência de Pagamentos</button></h3>
                                 <hr style={{ 'marginRight': 20 }} />
                                 <h3 className="ml-2 mt-3 text-secondary"><MdLocalPrintshop /> Relatórios</h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Alocações</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Confirmação de Presenças</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Apontamentos</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Conferências</a><br />
+                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Alocações</button><br />
+                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Confirmação de Presenças</button><br />
+                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Apontamentos</button><br />
+                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Conferências</button><br />
                                 <hr style={{ 'marginRight': 20 }} />
                             </div>
                         </div>
@@ -662,12 +1224,12 @@ export default class Index extends React.Component {
                             <div className="mb-4">
                                 <h1 className="mt-2">Menus - Financeiro<MdLocalAtm /></h1>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <h3><a href="" className="ml-2 mt-3" ><MdPersonAdd /> Pagamentos</a></h3>
+                                <h3><button className="ml-2 mt-3" ><MdPersonAdd /> Pagamentos</button></h3>
                                 <hr style={{ 'marginRight': 20 }} />
                                 <h3 className="ml-2 mt-3 text-secondary"><MdLocalPrintshop /> Relatórios</h3>
                                 <hr style={{ 'marginRight': 20 }} />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Pagamentos</a><br />
-                                <a href="" className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Recibos</a><br />
+                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Pagamentos</button><br />
+                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Recibos</button><br />
                                 <hr style={{ 'marginRight': 20 }} />
                             </div>
                         </div>
@@ -714,6 +1276,70 @@ export default class Index extends React.Component {
                 </div>
             )
         }
+    }
+
+    handleEmailExist(id) {
+        const
+            email = document.getElementById(`message_email-${id}`).value,
+            validation = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i;
+
+        if (String(email).length <= 0) {
+            if (
+                document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
+                document.getElementById(`message_email-${id}`).classList.contains('is-valid')
+            ) {
+                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+            }
+            return;
+        }
+        else if (!validation.test(String(email))) {
+            if (
+                document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
+                document.getElementById(`message_email-${id}`).classList.contains('is-valid')
+            ) {
+                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+            }
+            return;
+        };
+
+        axios.get('http://localhost:5000/users', {
+            headers: {
+                'Content-Type': 'application/json',
+                'api_key': this.api.key
+            },
+            params: {
+                email: String(email)
+            }
+        })
+            .then((response) => {
+                const users = response.data.query.results;
+
+                if (users.length > 0) {
+                    if (
+                        document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
+                        !document.getElementById(`message_email-${id}`).classList.contains('is-valid')
+                    ) {
+                        document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                        document.getElementById(`message_email-${id}`).classList.add('is-valid');
+                    }
+                } else {
+                    if (
+                        document.getElementById(`message_email-${id}`).classList.contains('is-valid') ||
+                        !document.getElementById(`message_email-${id}`).classList.contains('is-invalid')
+                    ) {
+                        document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+                        document.getElementById(`message_email-${id}`).classList.add('is-invalid');
+                    }
+                }
+            })
+            .catch((error) => {
+                animateCSS('alertUser', 'fadeOutDown', () => {
+                    document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                    document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+                });
+            })
     }
 }
 
