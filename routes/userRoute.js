@@ -7,7 +7,6 @@ const authMiddleware = require('../middlewares/auth');
 const crypto = require('../api/crypto');
 const lzstring = require('lz-string');
 const generateToken = require('../modules/generateToken');
-const axios = require('axios');
 
 /**
  * Features Routers
@@ -38,7 +37,10 @@ router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async 
                         }
                     }
 
-                    return JSON.parse(lzstring.decompressFromBase64(result['Messages']));
+                    if (typeof result['Messages'] === 'string')
+                        return JSON.parse(lzstring.decompressFromBase64(result['Messages']));
+                    else return [];
+
                 });
                 return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
             })
@@ -67,7 +69,7 @@ router.post(`/messages/send`, apiMiddleware, authMiddleware, async (req, res) =>
 
                 query.results = query.results.map(result => {
 
-                    let messages = typeof result['Messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['Messages'])) : '';
+                    let messages = typeof result['Messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['Messages'])) : [];
 
                     if (messages instanceof Array === false) messages = [];
 

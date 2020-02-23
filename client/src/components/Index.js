@@ -29,6 +29,18 @@ import {
 } from 'react-bootstrap';
 
 /**
+ * Import MDBREACT
+ */
+import {
+    MDBContainer,
+    MDBRow,
+    MDBCol,
+    MDBTypography,
+    MDBBtn,
+    MDBBox
+} from 'mdbreact';
+
+/**
  * Import Resources from Page
  */
 import logo from '../logo.svg';
@@ -173,15 +185,15 @@ export default class Index extends React.Component {
         this.componentCallLoading('stop');
         this.renderChartCanvas();
 
-        ReactDOM.render(
-            this.chartDonwload('Postos Cobertos'),
-            document.getElementById('chartDonwload-Postos Cobertos')
-        )
+        // ReactDOM.render(
+        //     this.chartDonwload('Postos Cobertos'),
+        //     document.getElementById('chartDonwload-Postos Cobertos')
+        // )
 
-        ReactDOM.render(
-            this.chartDonwload('Postos Descobertos'),
-            document.getElementById('chartDonwload-Postos Descobertos')
-        )
+        // ReactDOM.render(
+        //     this.chartDonwload('Postos Descobertos'),
+        //     document.getElementById('chartDonwload-Postos Descobertos')
+        // )
 
     }
 
@@ -195,7 +207,7 @@ export default class Index extends React.Component {
             animateCSS(this.state.menu, 'fadeInLeft');
             if (this.state.menu === 'dashboard') this.renderChartCanvas();
         }
-        if (this.state.usermessages.menu != state.usermessages.menu) {
+        if (this.state.usermessages.menu !== state.usermessages.menu) {
             this.useremailanswer();
         }
     }
@@ -270,8 +282,8 @@ export default class Index extends React.Component {
     }
 
     renderChartCanvas() {
-        this.chartCanvas('Postos Cobertos');
-        this.chartCanvas('Postos Descobertos');
+        //this.chartCanvas('Postos Cobertos');
+        //this.chartCanvas('Postos Descobertos');
     }
 
     chartCanvas(graphic) {
@@ -441,6 +453,48 @@ export default class Index extends React.Component {
     }
 
     render() {
+
+        return (
+            <MDBContainer fluid>
+                <MDBRow>
+                    <MDBCol size="12" sm="12" lg="2" style={{ 'backgroundColor': '#282c34' }}>
+                        <MDBCol size="12" sm="12" lg="12">
+                            <Image className="col-12" src={logo} style={{ 'height': '10vh' }} />
+                        </MDBCol>
+                        <MDBCol size="12" sm="12" lg="12">
+                            <MDBTypography tag="h1" colorText="cyan" className="text-center">Grupo Mave</MDBTypography>
+                            <hr style={{ 'border': '1px solid #00d9ff' }} />
+                        </MDBCol>
+                        <MDBRow>
+                            <MDBCol size="12" sm="12" lg="12">
+                                <MDBBox display="flex" justifyContent="center" tag="div" className="flex-column">
+                                    <MDBBtn
+                                        id="_dashboard"
+                                        className={`m-2 ${this.state.menu === 'dashboard' ? 'active' : ''}`}
+                                        outline
+                                        color="info"
+                                        onClick={() => this.setState({ menu: 'dashboard' })}>
+                                        <MdDashboard /> Dashboard
+                                    </MDBBtn>
+                                    <MDBBtn
+                                        outline
+                                        color="info">
+                                        <MdMessage /> Mensagens(<span style={{ 'color': '#00d9ff' }}>{this.state.usermessages.data.length}</span>)
+                                    </MDBBtn>
+                                    <MDBBtn
+                                        outline
+                                        color="info">
+                                        <MdDashboard /> Dashboard
+                                    </MDBBtn>
+                                </MDBBox>
+                            </MDBCol>
+                        </MDBRow>
+                    </MDBCol>
+                </MDBRow>
+            </MDBContainer>
+        )
+
+
         return (
             <div className="container-all">
                 <div className="row d-none d-sm-flex">

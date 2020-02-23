@@ -38,7 +38,7 @@ export default class Index extends React.Component {
         }
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         document.body.style.backgroundImage = `url('./wallpaper_01.jpg')`;
         document.body.style.backgroundRepeat = `no-repeat`;
         document.body.style.backgroundSize = `cover`;
