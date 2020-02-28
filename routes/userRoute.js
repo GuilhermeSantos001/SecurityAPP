@@ -9,6 +9,18 @@ const lzstring = require('lz-string');
 const generateToken = require('../modules/generateToken');
 
 /**
+ * Cors configuration
+ */
+const cors = require('cors');
+const corsOptions = {
+    origin: 'http://localhost:3000',
+    allowedHeaders: ['Content-Type', 'Authorization', 'api_key'],
+    optionsSuccessStatus: 200
+}
+
+router.options('*', cors(corsOptions));
+
+/**
  * Features Routers
  */
 
@@ -16,17 +28,21 @@ const generateToken = require('../modules/generateToken');
  * Messages
  */
 
-router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async (req, res) => {
+router.get([`/messages`, `/messages/:id`], cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
     let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    try {
+    if (!userId)
+        return res.status(401).send({ error: 'User not found!' })
 
-        if (!userId)
-            return res.status(401).send({ error: 'User not found!' })
+    try {
 
         mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [userId])
             .then(({ sql, query }) => {
+
+                if (query.results.length <= 0)
+                    return res.status(401).send({ error: 'User not found!' });
+
                 query.results = query.results.map(result => {
 
                     if (id) {
@@ -53,19 +69,25 @@ router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async 
     }
 });
 
-router.post(`/messages/send`, apiMiddleware, authMiddleware, async (req, res) => {
+router.post(`/messages/send`, cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
     let { userId } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
     const { author, emitter, receiver, copied, subject, message } = req.body;
 
-    try {
+    if (!userId)
+        return res.status(401).send({ error: 'User not found!' });
 
-        if (!userId)
-            return res.status(401).send({ error: 'User not found!' })
+    if (!author || !emitter || !receiver || !subject || !message)
+        return res.status(401).send({ error: 'Body content is not valid!' });
+
+    try {
 
         mysql.getInTable('SecurityAPP', 'users', 'Email= ?', [receiver])
             .then(({ sql, query }) => {
+
+                if (query.results.length <= 0)
+                    return res.status(401).send({ error: 'Receiver not found!' });
 
                 query.results = query.results.map(result => {
 
@@ -73,10 +95,13 @@ router.post(`/messages/send`, apiMiddleware, authMiddleware, async (req, res) =>
 
                     if (messages instanceof Array === false) messages = [];
 
-                    let id = messages.length;
-
                     messages.push({
-                        id: id++,
+                        id: ((l, i = 0, value = 1) => {
+                            for (; i < l; i++) {
+                                if (messages[i]['id'] === value) value++;
+                            }
+                            return value;
+                        })(messages.length),
                         author: author,
                         emitter: emitter,
                         receiver: receiver,
@@ -113,19 +138,94 @@ router.post(`/messages/send`, apiMiddleware, authMiddleware, async (req, res) =>
     }
 })
 
-router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authMiddleware, async (req, res) => {
+router.put([`/messages/update`, `/messages/update/:id`], cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
     let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    let { email } = req.body;
+    let { author, emitter, receiver, copied, subject, message } = req.body;
+
+    if (!userId)
+        return res.status(401).send({ error: 'User not found!' })
+
+    if (!author || !emitter || !receiver || !subject || !message)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        if (!email || !userId)
-            return res.status(401).send({ error: 'User not found!' })
-
-        mysql.getInTable('SecurityAPP', 'users', 'Email= ?', [email])
+        mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [userId])
             .then(({ sql, query }) => {
+
+                if (query.results.length <= 0)
+                    return res.status(401).send({ error: 'User not found!' });
+
+                query.results = query.results.map(result => {
+
+                    let messages = typeof result['Messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['Messages'])) : '';
+
+                    if (messages instanceof Array === true) {
+                        if (id) {
+                            let selected = messages.filter(message => { return String(message['id']) === String(id) })[0];
+                            if (selected) {
+                                messages[messages.indexOf(selected)]['author'] = author;
+                                messages[messages.indexOf(selected)]['emitter'] = emitter;
+                                messages[messages.indexOf(selected)]['receiver'] = receiver;
+                                messages[messages.indexOf(selected)]['copied'] = copied;
+                                messages[messages.indexOf(selected)]['subject'] = subject;
+                                messages[messages.indexOf(selected)]['message'] = message;
+                            }
+                        } else {
+                            messages = messages.map(msg => {
+                                msg['author'] = author;
+                                msg['emitter'] = emitter;
+                                msg['receiver'] = receiver;
+                                msg['copied'] = copied;
+                                msg['subject'] = subject;
+                                msg['message'] = message;
+                                return msg;
+                            })
+                        }
+                    }
+
+                    return { messages: messages, id: result['ID'] };
+
+                });
+
+                if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
+
+                mysql.updateInTable('SecurityAPP', 'users',
+                    `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
+                    query.results[0].id)
+                    .then(({ sql, query }) => {
+                        return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: { results: query.results[0] } });
+                    })
+                    .catch(({ err, details }) => {
+                        if (err) return res.status(400).send({ error: err, details });
+                    })
+
+            })
+            .catch(({ err, details }) => {
+                if (err) return res.status(400).send({ error: err, details });
+            })
+
+    } catch (err) {
+        return res.status(400).send({ error: 'Remove user failed', details: err });
+    }
+})
+
+router.delete([`/messages/remove`, `/messages/remove/:id`], cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
+    let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
+    if (!userId)
+        return res.status(401).send({ error: 'User not found!' })
+
+    try {
+
+        mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [userId])
+            .then(({ sql, query }) => {
+
+                if (query.results.length <= 0)
+                    return res.status(401).send({ error: 'User not found!' });
 
                 query.results = query.results.map(result => {
 
@@ -165,78 +265,11 @@ router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authM
     }
 })
 
-router.put([`/messages/update`, `/messages/update/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    let { email, author, emitter, receiver, copied, subject, message } = req.body;
-
-    try {
-
-        if (!email || !userId)
-            return res.status(401).send({ error: 'User not found!' })
-
-        mysql.getInTable('SecurityAPP', 'users', 'Email= ?', [email])
-            .then(({ sql, query }) => {
-
-                query.results = query.results.map(result => {
-
-                    let messages = typeof result['Messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['Messages'])) : '';
-
-                    if (messages instanceof Array === true) {
-                        if (id) {
-                            let selected = messages.filter(message => { return String(message['id']) === String(id) })[0];
-                            if (selected) {
-                                messages[messages.indexOf(selected)]['author'] = author;
-                                messages[messages.indexOf(selected)]['emitter'] = emitter;
-                                messages[messages.indexOf(selected)]['receiver'] = receiver;
-                                messages[messages.indexOf(selected)]['copied'] = copied;
-                                messages[messages.indexOf(selected)]['subject'] = subject;
-                                messages[messages.indexOf(selected)]['message'] = message;
-                            }
-                        }
-                        else messages = messages.map(msg => {
-                            msg['author'] = author;
-                            msg['emitter'] = emitter;
-                            msg['receiver'] = receiver;
-                            msg['copied'] = copied;
-                            msg['subject'] = subject;
-                            msg['message'] = message;
-                        })
-                    }
-
-                    return { messages: messages, id: result['ID'] };
-
-                });
-
-                if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
-
-                mysql.updateInTable('SecurityAPP', 'users',
-                    `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
-                    query.results[0].id)
-                    .then(({ sql, query }) => {
-                        return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: { results: query.results[0] } });
-                    })
-                    .catch(({ err, details }) => {
-                        if (err) return res.status(400).send({ error: err, details });
-                    })
-
-            })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
-            })
-
-    } catch (err) {
-        return res.status(400).send({ error: 'Remove user failed', details: err });
-    }
-})
-
 /**
  * Pattern Routers
  */
 
-router.get([`/`, `/:id`], apiMiddleware, async (req, res) => {
-
+router.get([`/`, `/:id`], cors(corsOptions), apiMiddleware, async (req, res) => {
     let { id, email } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
@@ -253,10 +286,16 @@ router.get([`/`, `/:id`], apiMiddleware, async (req, res) => {
 
         mysql.getInTable('SecurityAPP', 'users', filter, [id])
             .then(({ sql, query }) => {
-                query.results = query.results.map(result => {
-                    result['Password'] = undefined;
-                    return result;
+
+                query.results = query.results.map(user => {
+                    /** Removing keys from response requested */
+                    delete user['Password'];
+                    delete user['Password_Reset'];
+                    delete user['Messages'];
+
+                    return user;
                 });
+
                 return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
             })
             .catch(({ err, details }) => {
@@ -268,9 +307,11 @@ router.get([`/`, `/:id`], apiMiddleware, async (req, res) => {
     }
 });
 
-router.post(`/register`, apiMiddleware, async (req, res) => {
-
+router.post(`/register`, cors(corsOptions), apiMiddleware, async (req, res) => {
     const { name, email, password } = req.body;
+
+    if (!name || !email || !password)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
@@ -300,9 +341,11 @@ router.post(`/register`, apiMiddleware, async (req, res) => {
                             if (decoded_pass !== password)
                                 return res.status(400).send({ error: 'Invalid password' });
 
-                            user['Password'] = undefined;
-                            user['Password_Reset'] = undefined;
-                            user['DateAt'] = undefined;
+                            /** Removing keys from response requested */
+                            delete user['Password'];
+                            delete user['Password_Reset'];
+                            delete user['Messages'];
+                            delete user['DateAt'];
 
                             return res.status(200).send({
                                 success: 'Get user in table from Email and Password values is success', sql: sql, query: {
@@ -328,9 +371,14 @@ router.post(`/register`, apiMiddleware, async (req, res) => {
     }
 })
 
-router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
-    const { id } = req.params;
+router.put([`/update`, `/update/:id`], cors(corsOptions), apiMiddleware, async (req, res) => {
+    let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
     const { name, email, password } = req.body;
+
+    if (!name || !email || !password)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
@@ -355,8 +403,9 @@ router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
     }
 });
 
-router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
-    const { id } = req.params;
+router.delete([`/remove`, `/remove/:id`], cors(corsOptions), apiMiddleware, async (req, res) => {
+    let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
     try {
 
@@ -378,7 +427,7 @@ module.exports = (app) => {
      * Set Router
      */
 
-    app.use('/users', router);
+    app.use('/api/users', router);
 
     /**
      * Create DATABASE and TABLE

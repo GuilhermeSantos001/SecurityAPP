@@ -2,13 +2,26 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
 const generateToken = require('../modules/generateToken');
+const apiMiddleware = require('../middlewares/api');
 const authMiddleware = require('../middlewares/auth');
 const crypto = require('../api/crypto');
 const cryptoNodeJs = require('crypto');
 const mailer = require('../modules/mailer');
 const lzstring = require('lz-string');
 
-router.post(`/sign`, async (req, res) => {
+/**
+ * Cors configuration
+ */
+const cors = require('cors');
+const corsOptions = {
+    origin: 'http://localhost:3000',
+    allowedHeaders: ['Content-Type', 'Authorization', 'api_key'],
+    optionsSuccessStatus: 200
+}
+
+router.options('*', cors(corsOptions));
+
+router.post(`/sign`, cors(corsOptions), apiMiddleware, async (req, res) => {
     const { email, password } = req.body;
 
     try {
@@ -27,7 +40,10 @@ router.post(`/sign`, async (req, res) => {
                     if (decoded_pass !== password)
                         return res.status(400).send({ error: 'Invalid password' });
 
-                    user['Password'] = undefined;
+                    /** Removing keys from response requested */
+                    delete user['Password'];
+                    delete user['Password_Reset'];
+                    delete user['Messages'];
 
                     return res.status(200).send({
                         success: 'Get user in table from Email and Password values is success', sql: sql, query: {
@@ -48,7 +64,7 @@ router.post(`/sign`, async (req, res) => {
     }
 })
 
-router.post('/reset_password', async (req, res) => {
+router.post('/reset_password', cors(corsOptions), apiMiddleware, async (req, res) => {
     const { email, token, password } = req.body;
 
     try {
@@ -82,6 +98,11 @@ router.post('/reset_password', async (req, res) => {
                         user['ID'])
                         .then(({ sql, query }) => {
 
+                            /** Removing keys from response requested */
+                            delete user['Password'];
+                            delete user['Password_Reset'];
+                            delete user['Messages'];
+
                             return res.status(200).send({
                                 success: 'Reset password user is success', sql: sql, query: {
                                     results: {
@@ -108,7 +129,7 @@ router.post('/reset_password', async (req, res) => {
     }
 })
 
-router.post(`/forgot_password`, async (req, res) => {
+router.post(`/forgot_password`, cors(corsOptions), apiMiddleware, async (req, res) => {
     const { email } = req.body;
 
     try {
@@ -175,6 +196,11 @@ router.post(`/forgot_password`, async (req, res) => {
                                     return res.status(400).send({ error: 'Cannot send forgot password for address email' });
                             })
 
+                            /** Removing keys from response requested */
+                            delete user['Password'];
+                            delete user['Password_Reset'];
+                            delete user['Messages'];
+
                             return res.status(200).send({
                                 success: 'Get user in table from Email with token autorization is success', sql: sql, query: {
                                     results: {
@@ -206,4 +232,4 @@ router.post(`/forgot_password`, async (req, res) => {
  */
 router.use(authMiddleware);
 
-module.exports = (app) => app.use('/auth', router);
+module.exports = (app) => app.use('/api/auth', router);

@@ -18,13 +18,15 @@ import axios from 'axios';
  */
 import '../css/Auth.css';
 
+import {
+    Image
+} from 'react-bootstrap';
+
+import logo from '../logo.svg';
+
 export default class Index extends React.Component {
     constructor(props) {
         super(props);
-
-        this.api = {
-            key: '5i@41Yb#!##@P4!NsrvJ-D3DK$Q89-3*Y-#59#$*CW2#!P@U45#q*#$42H4q!63gsQ-64b991IK$R#8r_-$*_46#*1@5s!@A3@_56e36!*@65n517W76_@9P#!$54s@-dQ45#7rtp7-5!2!34@#4Fj44g1-_7-@8-#Smf37Bkg@1D$6-_eT#3@@3PHpPa55q_7@-4-aj2788K_@K1g!913_S72h3$@5#71-g!5vN34*uH834o-7t@t#$@9QH4sp1'
-        }
 
         this.state = {
             new_account: false,
@@ -38,11 +40,14 @@ export default class Index extends React.Component {
         }
     }
 
+    getApiKey() {
+        return "5i@41Yb#!##@P4!NsrvJ-D3DK$Q89-3*Y-#59#$*CW2#!P@U45#q*#$42H4q!63gsQ-64b991IK$R#8r_-$*_46#*1@5s!@A3@_56e36!*@65n517W76_@9P#!$54s@-dQ45#7rtp7-5!2!34@#4Fj44g1-_7-@8-#Smf37Bkg@1D$6-_eT#3@@3PHpPa55q_7@-4-aj2788K_@K1g!913_S72h3$@5#71-g!5vN34*uH834o-7t@t#$@9QH4sp1";
+    }
+
     UNSAFE_componentWillMount() {
-        document.body.style.backgroundImage = `url('./wallpaper_01.jpg')`;
-        document.body.style.backgroundRepeat = `no-repeat`;
-        document.body.style.backgroundSize = `cover`;
-        document.body.style.animationDuration = `1s`;
+        document.body.style.backgroundColor = '#282c34';
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.animationDuration = '1s';
 
         this.componentCallLoading('stop');
         this.userSessionLogin();
@@ -197,11 +202,12 @@ export default class Index extends React.Component {
             String(email).length <= 0
         ) return animateCSS('email', 'shake');
 
-        axios.post('http://localhost:5000/auth/forgot_password', {
+        axios.post('http://localhost:5000/api/auth/forgot_password', {
             email: String(email)
         }, {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'api_key': this.getApiKey()
             }
         })
             .then((response) => {
@@ -250,13 +256,14 @@ export default class Index extends React.Component {
         }
 
         if (this.state.new_account_password) {
-            axios.post('http://localhost:5000/auth/reset_password', {
+            axios.post('http://localhost:5000/api/auth/reset_password', {
                 email: String(email),
                 token: String(token),
                 password: String(password)
             }, {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'api_key': this.getApiKey()
                 }
             })
                 .then((response) => {
@@ -392,12 +399,13 @@ export default class Index extends React.Component {
             return;
         }
 
-        axios.post('http://localhost:5000/auth/sign', {
+        axios.post('http://localhost:5000/api/auth/sign', {
             email: String(email),
             password: String(password)
         }, {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'api_key': this.getApiKey()
             }
         })
             .then((response) => {
@@ -418,6 +426,7 @@ export default class Index extends React.Component {
 
             })
             .catch((error) => {
+
                 document.getElementById('password').value = '';
 
                 if (
@@ -469,10 +478,10 @@ export default class Index extends React.Component {
             return;
         };
 
-        axios.get('http://localhost:5000/users', {
+        axios.get('http://localhost:5000/api/users', {
             headers: {
                 'Content-Type': 'application/json',
-                'api_key': this.api.key
+                'api_key': this.getApiKey()
             },
             params: {
                 email: String(email)
@@ -509,19 +518,28 @@ export default class Index extends React.Component {
             })
             .catch((error) => {
                 animateCSS('alertUser', 'fadeOutDown', () => {
-                    document.getElementById('alertUser').classList.add('invisible');
+                    if (document.getElementById('alertUser'))
+                        document.getElementById('alertUser').classList.add('invisible');
 
-                    document.getElementById('name').classList.remove('is-invalid');
-                    document.getElementById('name').classList.remove('is-valid');
+                    if (document.getElementById('name')) {
+                        document.getElementById('name').classList.remove('is-invalid');
+                        document.getElementById('name').classList.remove('is-valid');
+                    }
 
-                    document.getElementById('email').classList.remove('is-invalid');
-                    document.getElementById('email').classList.remove('is-valid');
+                    if (document.getElementById('email')) {
+                        document.getElementById('email').classList.remove('is-invalid');
+                        document.getElementById('email').classList.remove('is-valid');
+                    }
 
-                    document.getElementById('password').classList.remove('is-invalid');
-                    document.getElementById('password').classList.remove('is-valid');
+                    if (document.getElementById('password')) {
+                        document.getElementById('password').classList.remove('is-invalid');
+                        document.getElementById('password').classList.remove('is-valid');
+                    }
 
-                    document.getElementById('password_confirm').classList.remove('is-invalid');
-                    document.getElementById('password_confirm').classList.remove('is-valid');
+                    if (document.getElementById('password_confirm')) {
+                        document.getElementById('password_confirm').classList.remove('is-invalid');
+                        document.getElementById('password_confirm').classList.remove('is-valid');
+                    }
                 });
             })
     }
@@ -549,14 +567,14 @@ export default class Index extends React.Component {
 
         if (this.state.new_account_name && this.state.new_account_email && this.state.new_account_password) {
 
-            axios.post('http://localhost:5000/users/register', {
+            axios.post('http://localhost:5000/api/users/register', {
                 name: String(name),
                 email: String(email),
                 password: String(password)
             }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'api_key': this.api.key
+                    'api_key': this.getApiKey()
                 }
             })
                 .then((response) => {
@@ -564,7 +582,6 @@ export default class Index extends React.Component {
                     const
                         user = response.data.query.results.user,
                         token = response.data.query.results.token;
-
 
                     if (user) {
                         this.setSessionUser({
@@ -665,43 +682,43 @@ export default class Index extends React.Component {
         ) {
             return (
                 <div className="col-sm-4 col-md-4 align-self-center m-auto" id="form-container">
-                    <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
+                    <div className="col-10 mt-3 ml-auto mr-auto alert alert-danger font-weight-bold invisible fixed-top" id="alertUser" role="alert">
                         {context.state.message_error}
                     </div>
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="token_resetPassword"
                         type="text"
                         placeholder="Codigo de verificação" />
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="email"
                         type="email"
                         placeholder="Endereço de email"
                         defaultValue={forgot_password.email}
                         disabled />
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="password"
                         type="password"
                         onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Nova senha" />
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="password_confirm"
                         type="password"
                         onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Confirme a senha" />
                     <button
                         type="button"
-                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        className="mb-2 btn btn-primary btn-lg btn-block"
                         ref={btn => context.buttonResetPassword = btn}
                         onClick={context.handleClickResetPassword.bind(context)}>
                         Confirmar nova senha
                     </button>
                     <button
                         type="button"
-                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        className="mb-2 btn btn-primary btn-lg btn-block"
                         onClick={() => {
                             animateCSS('form-container', 'fadeOutDown', () => {
                                 context.setState({ 'forgot_password': false, 'record_email': document.getElementById('email').value });
@@ -710,7 +727,7 @@ export default class Index extends React.Component {
                         }}>
                         Login
                     </button>
-                    <div className="mt-2 alert alert-light text-justify" id="alertUser" role="alert">
+                    <div className="col-10 ml-auto mr-auto alert alert-light font-weight-bold text-dark text-justify fixed-bottom" id="alertUser" role="alert">
                         Essa janela só será exibida na sessão atual, a mesma tem 1 hora de duração.
                         Após o periodo de duração ao reiniciar a pagina a janela não será exibida.
                         Caso a aba do navegador seja fechada e você precise abrir o site novamente
@@ -745,36 +762,36 @@ export default class Index extends React.Component {
         if (!new_account) {
             return (
                 <div className="col-sm-4 col-md-4 align-self-center m-auto" id="form-container">
-                    <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
+                    <div className="col-10 mt-3 ml-auto mr-auto alert alert-danger font-weight-bold invisible fixed-top" id="alertUser" role="alert">
                         {context.state.message_error}
                     </div>
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="email"
                         type="email"
                         placeholder="Endereço de email"
                         onFocus={context.handleFocusRemoveAlert.bind(context)} />
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="password"
                         type="password"
                         placeholder="Senha"
                         onFocus={context.handleFocusRemoveAlert.bind(context)} />
                     <button
                         type="button"
-                        className="mb-2 btn btn-secondary btn-sm btn-block"
+                        className="mb-2 btn btn-info btn-lg btn-block"
                         onClick={context.handleClickForgotPassword.bind(context)}>
                         Esqueceu sua senha?
                     </button>
                     <button
                         type="button"
-                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        className="mb-2 btn btn-primary btn-lg btn-block"
                         onClick={context.handleClickLogin.bind(context)}>
                         Acessar
                     </button>
                     <button
                         type="button"
-                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        className="mb-2 btn btn-primary btn-lg btn-block"
                         ref={btn => context.buttonCreateNewAccount = btn}
                         onClick={() => {
                             animateCSS('form-container', 'bounceIn');
@@ -787,42 +804,42 @@ export default class Index extends React.Component {
         } else {
             return (
                 <div className="col-sm-4 col-md-4 align-self-center m-auto" id="form-container">
-                    <div className="mb-2 alert alert-danger invisible" id="alertUser" role="alert">
+                    <div className="col-10 mt-3 ml-auto mr-auto alert alert-danger font-weight-bold invisible fixed-top" id="alertUser" role="alert">
                         {context.state.message_error}
                     </div>
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="name"
                         type="text"
                         placeholder="Nome completo"
                         onChange={context.handleNameConfirm.bind(context)} />
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="email"
                         type="email"
                         placeholder="Endereço de email"
                         onChange={context.handleEmailExist.bind(context)} />
                     <input
-                        className="mb-2 mr-2 form-control form-control-sm"
+                        className="mb-2 mr-2 form-control form-control-lg"
                         id="password"
                         type="password"
                         onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Senha" />
                     <input
-                        className="mb-2 form-control form-control-sm"
+                        className="mb-2 form-control form-control-lg"
                         id="password_confirm"
                         type="password"
                         onChange={context.handleConfirmPassword.bind(context)}
                         placeholder="Confirme a senha" />
                     <button
                         type="button"
-                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        className="mb-2 btn btn-primary btn-lg btn-block"
                         onClick={context.handleClickNewAccount.bind(context)}>
                         Criar a conta
                     </button>
                     <button
                         type="button"
-                        className="mb-2 btn btn-primary btn-sm btn-block"
+                        className="mb-2 btn btn-primary btn-lg btn-block"
                         onClick={() => {
                             animateCSS('form-container', 'bounceIn');
                             context.setState({ 'new_account': false, 'record_email': document.getElementById('email').value });
@@ -838,7 +855,15 @@ export default class Index extends React.Component {
         return (
             <div className="container-fluid">
                 <div className="row auth-container">
-                    <this.Auth context={this} newAccount={this.state.new_account} forgotPassword={this.state.forgot_password} />
+                    <div className="col-12 m-auto">
+                        <div className="col-12">
+                            <Image className="col-12" src={logo} style={{ 'height': '10vh' }} />
+                            <h1 className="text-center text-uppercase" style={{ 'color': 'cyan' }}>Grupo Mave</h1>
+                        </div>
+                        <div className="col-12 overflow-auto" style={{ 'height': '70vh' }}>
+                            <this.Auth context={this} newAccount={this.state.new_account} forgotPassword={this.state.forgot_password} />
+                        </div>
+                    </div>
                 </div>
             </div >
         )
