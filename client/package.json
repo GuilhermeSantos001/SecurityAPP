@@ -2,7 +2,6 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:5000/",
   "dependencies": {
     "@react-pdf/renderer": "^1.6.8",
     "@testing-library/jest-dom": "^4.2.4",
@@ -19,13 +18,14 @@
     "react-dom": "^16.13.0",
     "react-icons": "^3.9.0",
     "react-router-dom": "^5.1.2",
-    "react-scripts": "2.0.3"
+    "react-scripts": "^2.1.8"
   },
   "scripts": {
-    "installer": "npm install && yarn install && npm run update",
+    "installer": "yarn global add serve && npm install && yarn install && npm run update",
     "update": "npm update -i && yarn upgrade",
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "server": "serve -s build -l 3000",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

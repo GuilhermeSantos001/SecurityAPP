@@ -11,6 +11,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
  */
 require('./routes/index')(app);
 
+/**
+ * Starting MySQL
+ */
+require('./mysql/initialize');
+
+
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static('client/build'));
 

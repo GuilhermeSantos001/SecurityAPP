@@ -55,7 +55,7 @@ import {
     MdWork,
     MdAnnouncement,
     MdRssFeed,
-    MdDateRange,
+    MdSupervisorAccount,
     MdMood,
     MdExitToApp,
     MdVerifiedUser,
@@ -78,8 +78,7 @@ import {
     MdYoutubeSearchedFor,
     MdMessage,
     MdMailOutline,
-    MdPayment,
-    MdLockOpen
+    MdPayment
 } from 'react-icons/md';
 
 /**
@@ -104,6 +103,8 @@ export default class Index extends React.Component {
             menu: 'dashboard',
             clock: this.getClock(),
             username: this.getUsername(),
+            userlevelaccess: '',
+            definitionlevelaccess: {},
             message: {
                 active: false
             },
@@ -112,6 +113,7 @@ export default class Index extends React.Component {
                 data: [],
                 selected: 0
             },
+            send_email: false,
             collapse1: false,
             collapseID: '',
             data: {
@@ -123,7 +125,7 @@ export default class Index extends React.Component {
                     "Postos Cobertos": {
                         "chart": null,
                         "2020": {
-                            color: '#33ccff',
+                            color: '#282c34',
                             data: [
                                 Math.floor(1 + Math.random() * 100),
                                 Math.floor(1 + Math.random() * 100),
@@ -135,7 +137,7 @@ export default class Index extends React.Component {
                             ]
                         },
                         "2021": {
-                            color: '#33ccff',
+                            color: '#282c34',
                             data: [
                                 Math.floor(1 + Math.random() * 100),
                                 Math.floor(1 + Math.random() * 100),
@@ -149,7 +151,7 @@ export default class Index extends React.Component {
                     },
                     "Postos Descobertos": {
                         "2020": {
-                            color: '#0099ff',
+                            color: '#282c34',
                             data: [
                                 Math.floor(1 + Math.random() * 100),
                                 Math.floor(1 + Math.random() * 100),
@@ -161,7 +163,7 @@ export default class Index extends React.Component {
                             ]
                         },
                         "2021": {
-                            color: '#33ccff',
+                            color: '#282c34',
                             data: [
                                 Math.floor(1 + Math.random() * 100),
                                 Math.floor(1 + Math.random() * 100),
@@ -184,7 +186,10 @@ export default class Index extends React.Component {
             this.update();
         }, 1000);
 
-        this.componentCallLoading('stop');
+        window.setTimeout(() => {
+            this.componentCallLoading('stop');
+        }, 1500);
+
         this.renderChartCanvas();
 
         ReactDOM.render(
@@ -202,11 +207,13 @@ export default class Index extends React.Component {
     update() {
         this.setClock();
         this.updateUserMessages();
+        this.updateUserLevelAccess();
+        this.updateDefinitionsLevelAccess();
     }
 
     componentDidUpdate(prop, state) {
         if (this.state.menu !== state.menu) {
-            animateCSS(this.state.menu, 'fadeInLeft');
+            animateCSS(this.state.menu, 'fadeIn');
             if (this.state.menu === 'dashboard') this.renderChartCanvas();
         }
         if (this.state.usermessages.menu !== state.usermessages.menu) {
@@ -252,6 +259,18 @@ export default class Index extends React.Component {
             })
     }
 
+    updateUserLevelAccess() {
+        this.getUserlevelaccess((level_access) => {
+            this.setState({ 'userlevelaccess': String(level_access).length > 0 ? String(level_access) : String('Default') });
+        })
+    }
+
+    updateDefinitionsLevelAccess() {
+        this.getDefinitionslevelaccess((definitions) => {
+            this.setState({ 'definitionlevelaccess': definitions });
+        })
+    }
+
     getUsername() {
         const data = JSON.parse(LZString.decompressFromBase64(localStorage.getItem('auth'))) || null;
         if (!data) return '???';
@@ -271,20 +290,152 @@ export default class Index extends React.Component {
     }
 
     getUserMessages(callback) {
-        axios.get('http://localhost:5000/api/users/messages', {
-            headers: {
-                'Content-Type': 'application/json',
-                'api_key': this.getApiKey(),
-                'authorization': this.getUserToken()
+        const
+            http = require("http"),
+            options = {
+                "method": "GET",
+                "hostname": "reactappstudy.ddns.net",
+                "port": "5000",
+                "path": "/api/users/messages",
+                "headers": {
+                    "content-type": "application/json",
+                    "api_key": this.getApiKey(),
+                    "authorization": this.getUserToken()
+                }
             },
-            params: {}
-        })
-            .then((res) => {
-                callback(res.data.query.results[0]);
-            })
-            .catch((err) => {
-                if (err) return console.error('Error get for http://localhost:5000/api/users/messages url!', err);
-            })
+            req = http.request(options, function (res) {
+                let chunks = [];
+
+                const
+                    onSuccess = (data) => {
+                        if (data instanceof Array)
+                            callback(data[0]);
+                    },
+                    onError = () => {
+                    }
+
+                res.on("data", chunk => chunks.push(chunk));
+
+                res.on("end", () => {
+                    const body = Buffer.concat(chunks);
+
+                    try {
+                        const data = JSON.parse(body.toString());
+
+                        if (data['error']) {
+                            return onError();
+                        } else {
+                            return onSuccess(data['query']['results']);
+                        }
+
+                    } catch (err) {
+                        return new Error(err);
+                    }
+
+                });
+            });
+
+        req.write(JSON.stringify({}));
+        req.end();
+    }
+
+    getUserlevelaccess(callback) {
+        const
+            http = require("http"),
+            options = {
+                "method": "GET",
+                "hostname": "reactappstudy.ddns.net",
+                "port": "5000",
+                "path": "/api/users/levelaccess",
+                "headers": {
+                    "content-type": "application/json",
+                    "api_key": this.getApiKey(),
+                    "authorization": this.getUserToken()
+                }
+            },
+            req = http.request(options, function (res) {
+                let chunks = [];
+
+                const
+                    onSuccess = (data) => {
+                        if (data instanceof Array)
+                            callback(data[0]);
+                    },
+                    onError = () => {
+                    }
+
+                res.on("data", chunk => chunks.push(chunk));
+
+                res.on("end", () => {
+                    const body = Buffer.concat(chunks);
+
+                    try {
+                        const data = JSON.parse(body.toString());
+
+                        if (data['error']) {
+                            return onError();
+                        } else {
+                            return onSuccess(data['query']['results']);
+                        }
+
+                    } catch (err) {
+                        return new Error(err);
+                    }
+
+                });
+            });
+
+        req.write(JSON.stringify({}));
+        req.end();
+    }
+
+    getDefinitionslevelaccess(callback) {
+        const
+            http = require("http"),
+            options = {
+                "method": "GET",
+                "hostname": "reactappstudy.ddns.net",
+                "port": "5000",
+                "path": `/api/users/levelsaccess/${this.state.userlevelaccess}`,
+                "headers": {
+                    "content-type": "application/json",
+                    "api_key": this.getApiKey()
+                }
+            },
+            req = http.request(options, function (res) {
+                let chunks = [];
+
+                const
+                    onSuccess = (data) => {
+                        if (data instanceof Object)
+                            callback(data);
+                    },
+                    onError = () => {
+                    }
+
+                res.on("data", chunk => chunks.push(chunk));
+
+                res.on("end", () => {
+                    const body = Buffer.concat(chunks);
+
+                    try {
+                        const data = JSON.parse(body.toString());
+
+                        if (data['error']) {
+                            return onError();
+                        } else {
+                            return onSuccess(data['query']['results']);
+                        }
+
+                    } catch (err) {
+                        return new Error(err);
+                    }
+
+                });
+            });
+
+        req.write(JSON.stringify({}));
+        req.end();
     }
 
     renderChartCanvas() {
@@ -295,7 +446,7 @@ export default class Index extends React.Component {
     chartCanvas(graphic) {
         const options = {
             title: {
-                fontColor: "#00d9ff",
+                fontColor: "#282c34",
                 text: graphic,
                 fontSize: 42,
                 padding: {
@@ -303,23 +454,23 @@ export default class Index extends React.Component {
                 }
             },
             legend: {
-                fontColor: "#00d9ff"
+                fontColor: "#282c34"
             },
             axisX: {
                 margin: 10,
-                labelFontColor: "#00d9ff",
-                lineColor: "#33ccff",
-                tickColor: "#33ccff",
-                gridColor: "#33ccff"
+                labelFontColor: "#282c34",
+                lineColor: "#282c34",
+                tickColor: "#282c34",
+                gridColor: "#282c34"
             },
             axisY: {
                 margin: 10,
-                labelFontColor: "#00d9ff",
-                lineColor: "#33ccff",
-                tickColor: "#33ccff",
-                gridColor: "#33ccff"
+                labelFontColor: "#282c34",
+                lineColor: "#282c34",
+                tickColor: "#282c34",
+                gridColor: "#282c34"
             },
-            backgroundColor: "#2c313a",
+            backgroundColor: "#f2f2f2",
             animationEnabled: true,
             toolTip: {
                 content: "{y} posto(s) coberto(s) em {name}"
@@ -453,8 +604,15 @@ export default class Index extends React.Component {
             document.getElementById('message_email-1').setAttribute('disabled', true);
 
             document.getElementById('message_email-2').value = this.state.usermessages.answer.copied;
+
             document.getElementById('message_subject').value = this.state.usermessages.answer.subject;
+            if (this.state.usermessages.answer.forward)
+                document.getElementById('message_subject').setAttribute('disabled', true);
+
             document.getElementById('message_textarea').value = this.state.usermessages.answer.message;
+            if (this.state.usermessages.answer.forward)
+                document.getElementById('message_textarea').setAttribute('disabled', true);
+
         }
     }
 
@@ -474,20 +632,18 @@ export default class Index extends React.Component {
     }
 
     render() {
-
         return (
-            <MDBContainer fluid>
-                <MDBRow style={{ 'backgroundColor': '#282c34', 'border': '1px solid #17a2b8' }}>
-                    <MDBCol size="12" sm="12" lg="12">
-                        <Image className="col-12" src={logo} style={{ 'height': '10vh' }} />
-                    </MDBCol>
-                    <MDBCol size="12" sm="12" lg="12">
-                        <h1 className="text-center text-uppercase" style={{ 'color': '#00d9ff', 'fontSize': 32 }}>Grupo Mave</h1>
-                        <hr style={{ 'border': '1px solid #00d9ff', 'width': '30vw' }} />
-                    </MDBCol>
-                </MDBRow>
+            <MDBContainer className="container-all" fluid>
                 <MDBRow>
-                    <MDBCol size="12" sm="12" lg="2" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #17a2b8', 'borderTop': '0px' }}>
+                    <MDBCol size="12" sm="12" lg="2" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #17a2b8', 'borderLeft': '0px', 'borderTop': '0px' }}>
+                        <MDBCol size="12" sm="12" lg="12">
+                            <Image className="col-12" src={logo} style={{ 'height': '10vh' }} />
+                        </MDBCol>
+                        <MDBCol size="12" sm="12" lg="12">
+                            <h1 className="text-center text-uppercase" style={{ 'color': '#f2f2f2', 'fontSize': 20 }}>Grupo Mave</h1>
+                            <h1 className="text-center text-uppercase" style={{ 'color': '#f2f2f2', 'fontSize': 14 }}>Seu Patrimonio em boas mãos</h1>
+                            <h1 className="text-center text-capitalize" style={{ 'color': '#f2f2f2', 'fontSize': 14 }}>Olá Sr(a). {this.getUsername()}.</h1>
+                        </MDBCol>
                         {
                             /* 
                                 Menu for Big and XL Monitors
@@ -500,472 +656,145 @@ export default class Index extends React.Component {
                                         id="_dashboard"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'dashboard' ? false : true}
-                                        color="info"
+                                        color="white"
+                                        disabled={this.state.definitionlevelaccess['dashboard'] ? false : true}
                                         onClick={() => this.setState({ menu: 'dashboard' })}>
                                         <MdDashboard /> Dashboard
-                            </MDBBtn>
+                                    </MDBBtn>
                                     <MDBBtn
                                         id="_messages"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'messages' ? false : true}
-                                        color="info"
+                                        color="white"
+                                        disabled={this.state.definitionlevelaccess['messages'] ? false : true}
                                         onClick={() => this.setState({ menu: 'messages' })}>
-                                        <MdMessage /> Mensagens(<span style={{ 'color': '#00d9ff' }}>{this.state.usermessages.data.length}</span>)
-                            </MDBBtn>
+                                        <MdMessage /> Mensagens(<span>{this.state.usermessages.data.length}</span>)
+                                    </MDBBtn>
                                     <MDBBtn
                                         id="_comercial"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'comercial' ? false : true}
-                                        color="info"
+                                        color="white"
+                                        disabled={this.state.definitionlevelaccess['comercial'] ? false : true}
                                         onClick={() => this.setState({ menu: 'comercial' })}>
                                         <MdWork /> Comercial
-                            </MDBBtn>
+                                        </MDBBtn>
                                     <MDBBtn
                                         id="_dp_rh"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'dp_rh' ? false : true}
-                                        color="info"
+                                        color="white"
+                                        disabled={this.state.definitionlevelaccess['dp_rh'] ? false : true}
                                         onClick={() => this.setState({ menu: 'dp_rh' })}>
                                         <MdFolderShared /> DP/RH
-                            </MDBBtn>
+                                        </MDBBtn>
                                     <MDBBtn
                                         id="_operacional"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'operacional' ? false : true}
-                                        color="info"
+                                        color="white"
+                                        disabled={this.state.definitionlevelaccess['operacional'] ? false : true}
                                         onClick={() => this.setState({ menu: 'operacional' })}>
                                         <MdSecurity /> Operacional
-                            </MDBBtn>
+                                        </MDBBtn>
                                     <MDBBtn
                                         id="_financeiro"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'financeiro' ? false : true}
-                                        color="info"
+                                        color="white"
+                                        disabled={this.state.definitionlevelaccess['financeiro'] ? false : true}
                                         onClick={() => this.setState({ menu: 'financeiro' })}>
                                         <MdLocalAtm /> Financeiro
-                            </MDBBtn>
+                                    </MDBBtn>
                                     <MDBBtn
                                         id="_suport"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'suport' ? false : true}
-                                        color="info"
+                                        color="white"
                                         onClick={() => this.setState({ menu: 'suport' })}>
                                         <MdAnnouncement /> Suporte
-                            </MDBBtn>
+                                    </MDBBtn>
                                     <MDBBtn
                                         id="_exit"
                                         className="col-10 ml-auto mr-auto"
                                         outline={this.state.menu === 'exit' ? false : true}
-                                        color="info"
+                                        color="white"
                                         onClick={() => {
                                             this.setState({ menu: 'exit' });
                                             animateCSS('container-all', 'flash');
                                             sessionStorage.setItem('authRemove', true);
-                                            this.state.componentCallChangePage('/', {});
+                                            this.componentCallChangePage('/', {});
                                         }}>
                                         <MdExitToApp /> Sair
-                            </MDBBtn>
+                                    </MDBBtn>
                                 </MDBRow>
                             </MDBCol>
                         </MDBRow>
-                        {
-                            /* 
-                                Menu for Smartphones, Tablets and Others Devices
-                            */
-                        }
-                        <MDBRow className="d-block d-none d-md-block d-sm-block d-lg-none" style={{ 'backgroundColor': '#282c34' }}>
-                            <MDBHamburgerToggler className="ml-3 mt-3 mb-2" color="cyan" id="hamburger1" onClick={() => this.toggleSingleCollapse('collapse1')} />
-                            <MDBCollapse isOpen={this.state.collapse1} className="overflow-auto" style={{ 'maxHeight': '50vh', 'width': '100vw' }}>
-                                <MDBCol className="m-auto">
-                                    <MDBCol>
-                                        <MDBRow>
-                                            {
-                                                /* 
-                                                    Menu for Mobile
-                                                */
-                                            }
-                                            <MDBCol size="12" sm="12" lg="12" className="d-block d-sm-none" style={{ 'marginBottom': '15%' }}>
-                                                <MDBRow className="d-flex flex-column">
-                                                    <MDBBtn
-                                                        id="_dashboard"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'dashboard' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'dashboard' })}>
-                                                        <MdDashboard /> Dashboard
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_messages"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'messages' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'messages' })}>
-                                                        <MdMessage /> Mensagens(<span style={{ 'color': '#00d9ff' }}>{this.state.usermessages.data.length}</span>)
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_comercial"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'comercial' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'comercial' })}>
-                                                        <MdWork /> Comercial
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_dp_rh"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'dp_rh' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'dp_rh' })}>
-                                                        <MdFolderShared /> DP/RH
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_operacional"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'operacional' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'operacional' })}>
-                                                        <MdSecurity /> Operacional
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_financeiro"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'financeiro' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'financeiro' })}>
-                                                        <MdLocalAtm /> Financeiro
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_suport"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'suport' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'suport' })}>
-                                                        <MdAnnouncement /> Suporte
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_exit"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline
-                                                        color="info"
-                                                        onClick={() => {
-                                                            animateCSS('container-all', 'flash');
-                                                            sessionStorage.setItem('authRemove', true);
-                                                            this.state.componentCallChangePage('/', {});
-                                                        }}>
-                                                        <MdExitToApp /> Sair
-                                                    </MDBBtn>
-                                                </MDBRow>
-                                            </MDBCol>
-                                            {
-                                                /* 
-                                                    Menu for Small and Medium Monitors
-                                                */
-                                            }
-                                            <MDBCol size="12" sm="12" lg="12" className="d-none d-md-block d-sm-block d-lg-none m-auto" style={{ 'marginBottom': '15%' }}>
-                                                <MDBRow>
-                                                    <MDBBtn
-                                                        id="_dashboard"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'dashboard' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'dashboard' })}>
-                                                        <MdDashboard /> Dashboard
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_messages"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'messages' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'messages' })}>
-                                                        <MdMessage /> Mensagens(<span style={{ 'color': '#00d9ff' }}>{this.state.usermessages.data.length}</span>)
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_comercial"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'comercial' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'comercial' })}>
-                                                        <MdWork /> Comercial
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_dp_rh"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'dp_rh' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'dp_rh' })}>
-                                                        <MdFolderShared /> DP/RH
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_operacional"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'operacional' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'operacional' })}>
-                                                        <MdSecurity /> Operacional
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_financeiro"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'financeiro' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'financeiro' })}>
-                                                        <MdLocalAtm /> Financeiro
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_suport"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline={this.state.menu === 'suport' ? false : true}
-                                                        color="info"
-                                                        onClick={() => this.setState({ menu: 'suport' })}>
-                                                        <MdAnnouncement /> Suporte
-                                                    </MDBBtn>
-                                                    <MDBBtn
-                                                        id="_exit"
-                                                        className="col-8 ml-auto mr-auto"
-                                                        outline
-                                                        color="info"
-                                                        onClick={() => {
-                                                            animateCSS('container-all', 'flash');
-                                                            sessionStorage.setItem('authRemove', true);
-                                                            this.state.componentCallChangePage('/', {});
-                                                        }}>
-                                                        <MdExitToApp /> Sair
-                                                    </MDBBtn>
-                                                </MDBRow>
-                                            </MDBCol>
-                                        </MDBRow>
-                                    </MDBCol>
-                                </MDBCol>
-                            </MDBCollapse>
-                        </MDBRow>
                     </MDBCol>
-                    <MDBCol style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
-                        <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
-                            <MDBCol size="12">
-                                <h1 className="text-justify font-weight-bold p-2 m-2" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 18 }}>
-                                    Prezado(a) {this.getUsername()}, esse é o seu resumo referente a todos os seus módulos utilizados no sistema.
-                                </h1>
-                            </MDBCol>
-                            {
-                                /* 
-                                    Menu for Big and XL Monitors
-                                */
-                            }
-                            {
-                                /* 
-                                    Information 1
-                                */
-                            }
-                            <MDBCol size="12" className="d-none d-lg-block d-xl-block" style={{ 'backgroundColor': '#2c313a' }}>
-                                <h1 className="text-justify font-weight-bold m-auto p-auto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 18 }}>
-                                    <MdRssFeed /> Postos Cobertos<br />
-                                    {this.state.data.dashboard[0]}
-                                </h1>
-                                <div className="text-justify font-weight-bold m-2 p-auto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 14 }}>
-                                    <MdVerifiedUser /> Clientes Importantes Cobertos
-                                        <MDBListGroup className="m-2 overflow-auto" style={{ 'height': '10vh', 'backgroundColor': '#2c313a' }}>
-                                        <MDBListGroupItem key="Forest_Park" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                        <MDBListGroupItem key="Forest_Park_2" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 2<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                    </MDBListGroup>
-                                </div>
-                            </MDBCol>
-                            {
-                                /* 
-                                    Information 2
-                                */
-                            }
-                            <MDBCol size="12" className="d-none d-lg-block d-xl-block" style={{ 'backgroundColor': '#2c313a' }}>
-                                <h1 className="text-justify font-weight-bold m-auto p-auto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 18 }}>
-                                    <MdRssFeed /> Postos Descobertos<br />
-                                    {this.state.data.dashboard[1]}
-                                </h1>
-                                <div className="text-justify font-weight-bold m-auto p-auto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 14 }}>
-                                    <MdVerifiedUser /> Clientes Importantes Descobertos
-                                        <MDBListGroup className="m-2 overflow-auto" style={{ 'height': '10vh', 'backgroundColor': '#2c313a' }}>
-                                        <MDBListGroupItem key="Forest_Park_3" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 3<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                        <MDBListGroupItem key="Forest_Park_4" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 4<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                    </MDBListGroup>
-                                </div>
-                            </MDBCol>
-                            {
-                                /*
-                                    Information 3
-                                */
-                            }
-                            <MDBCol size="6" className="d-none d-lg-block d-xl-block mt-2">
-                                <div id={'chartContainer-Postos Cobertos'} className="bg-transparent" style={{ 'height': '50vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
-                                </div>
-                                <p id={'chartDonwload-Postos Cobertos'} className="mt-2" style={{ 'marginLeft': 4 }} onClick={() => { console.log('teste') }} />
-                            </MDBCol>
-                            <MDBCol size="6" className="d-none d-lg-block d-xl-block mt-2">
-                                <div id={'chartContainer-Postos Descobertos'} className="bg-transparent" style={{ 'height': '50vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
-                                </div>
-                                <p id={'chartDonwload-Postos Descobertos'} className="mt-2" style={{ 'marginLeft': 4 }} onClick={() => { console.log('teste') }} />
-                            </MDBCol>
-                            {
-                                /* 
-                                    Menu for Mobile
-                                */
-                            }
-                            {
-                                /* 
-                                    Information 1
-                                */
-                            }
-                            <MDBCol size="12" className="d-block d-sm-none" style={{ 'backgroundColor': '#2c313a' }}>
-                                <h1 className="text-justify font-weight-bold m-auto pt-2" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 18 }}>
-                                    <MdRssFeed /> Postos Cobertos<br />
-                                    {this.state.data.dashboard[0]}
-                                </h1>
-                            </MDBCol>
-                            {
-                                /* 
-                                    Information 2
-                                */
-                            }
-                            <MDBCol size="12" className="d-block d-sm-none mb-1" style={{ 'backgroundColor': '#2c313a' }}>
-                                <div className="text-justify font-weight-bold m-auto pt-2" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff' }}>
-                                    <MdVerifiedUser /> Clientes Importantes Cobertos
-                                        <MDBListGroup className="m-2 overflow-auto" style={{ 'height': '10vh', 'backgroundColor': '#2c313a' }}>
-                                        <MDBListGroupItem key="Forest_Park" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                        <MDBListGroupItem key="Forest_Park_2" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 2<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                    </MDBListGroup>
-                                </div>
-                            </MDBCol>
-                            {
-                                /* 
-                                    Information 3
-                                */
-                            }
-                            <MDBCol size="12" className="d-block d-sm-none" style={{ 'backgroundColor': '#2c313a' }}>
-                                <h1 className="text-justify font-weight-bold m-auto pt-2" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 18 }}>
-                                    <MdRssFeed /> Postos Descobertos<br />
-                                    {this.state.data.dashboard[1]}
-                                </h1>
-                            </MDBCol>
-                            {
-                                /* 
-                                    Information 4
-                                */
-                            }
-                            <MDBCol size="12" className="d-block d-sm-none mb-1" style={{ 'backgroundColor': '#2c313a' }}>
-                                <div className="text-justify font-weight-bold m-auto pt-2" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff' }}>
-                                    <MdLockOpen /> Clientes Importantes Descobertos
-                                        <MDBListGroup className="m-2 overflow-auto" style={{ 'height': '10vh', 'backgroundColor': '#2c313a' }}>
-                                        <MDBListGroupItem key="Forest_Park_3" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 3<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                        <MDBListGroupItem key="Forest_Park_4" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 4<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                    </MDBListGroup>
-                                </div>
-                            </MDBCol>
-                            {
-                                /* 
-                                    Information 1
-                                */
-                            }
-                            <MDBCol size="12" className="d-none d-md-block d-sm-block d-lg-none" style={{ 'backgroundColor': '#2c313a' }}>
-                                <h1 className="text-justify font-weight-bold m-auto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 18 }}>
-                                    <MdRssFeed /> Postos Cobertos<br />
-                                    {this.state.data.dashboard[0]}
-                                </h1>
-                            </MDBCol>
-                            <MDBCol size="12" className="d-none d-md-block d-sm-block d-lg-none mb-1" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 14 }}>
-                                <div className="text-justify font-weight-bold m-auto pt-2" style={{ 'backgroundColor': '#2c313a' }}>
-                                    <MdVerifiedUser /> Clientes Importantes Cobertos
-                                        <MDBListGroup className="m-2 overflow-auto" style={{ 'height': '10vh', 'backgroundColor': '#2c313a' }}>
-                                        <MDBListGroupItem key="Forest_Park" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                        <MDBListGroupItem key="Forest_Park_2" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 2<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                    </MDBListGroup>
-                                </div>
-                            </MDBCol>
-                            {
-                                /* 
-                                    Information 2
-                                */
-                            }
-                            <MDBCol size="12" className="d-none d-md-block d-sm-block d-lg-none" style={{ 'backgroundColor': '#2c313a' }}>
-                                <h1 className="text-justify font-weight-bold m-auto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 18 }}>
-                                    <MdRssFeed /> Postos Descobertos<br />
-                                    {this.state.data.dashboard[1]}
-                                </h1>
-                            </MDBCol>
-                            <MDBCol size="12" className="d-none d-md-block d-sm-block d-lg-none mb-1" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'fontSize': 14 }}>
-                                <div className="text-justify font-weight-bold m-auto pt-2" style={{ 'backgroundColor': '#2c313a' }}>
-                                    <MdVerifiedUser /> Clientes Importantes Cobertos
-                                        <MDBListGroup className="m-2 overflow-auto" style={{ 'height': '10vh', 'backgroundColor': '#2c313a' }}>
-                                        <MDBListGroupItem key="Forest_Park_3" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                        <MDBListGroupItem key="Forest_Park_4" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #2c313a' }}>
-                                            <MdMood /> Forest Park 2<br />
-                                            <MdPayment /> R$ 1.350.000.00
-                                            </MDBListGroupItem>
-                                    </MDBListGroup>
-                                </div>
-                            </MDBCol>
-                        </MDBRow>
-                    </MDBCol>
+                    {this.content()}
                 </MDBRow>
-            </MDBContainer >
+            </MDBContainer>
         )
     }
 
-    content(props) {
+    content() {
         /**
          * Dashboard
          */
-        if (props.state.menu === 'dashboard') {
+        if (this.state.menu === 'dashboard') {
             return (
-                <div className='dashboard'>
-                    <div className="Dashboard-view_2">
-                        <div className="row" style={{ 'width': '82vw', 'marginLeft': -5 }}>
-                            <div className="col-12 mt-2">
-                                <div id={'chartContainer-Postos Cobertos'} className="bg-transparent" style={{ 'height': 500, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
-                                </div>
-                                <p id={'chartDonwload-Postos Cobertos'} className="mt-2" style={{ 'marginLeft': 4 }} onClick={() => { console.log('teste') }} />
+                <MDBCol className='dashboard' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
+                    <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                        <MDBCol size="6" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
+                            <h1 className="text-justify font-weight-bold m-auto p-auto" style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'fontSize': 18 }}>
+                                {this.state.data.dashboard[0]} Postos Cobertos <MdRssFeed /><br />
+                            </h1>
+                            <div className="text-justify font-weight-bold m-2 p-auto" style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'fontSize': 14 }}>
+                                <MdVerifiedUser /> Clientes Importantes Cobertos
+                                <MDBListGroup className="m-2 overflow-auto" style={{ 'maxHeight': '20vh', 'backgroundColor': '#f2f2f2' }}>
+                                    <MDBListGroupItem className="mb-1" key="Forest_Park" style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #2c313a' }}>
+                                        <MdMood /> Forest Park<br />
+                                        <MdPayment /> R$ 1.350.000.00
+                                    </MDBListGroupItem>
+                                    <MDBListGroupItem className="mb-1" key="Forest_Park_2" style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #2c313a' }}>
+                                        <MdMood /> Forest Park 2<br />
+                                        <MdPayment /> R$ 1.350.000.00
+                                    </MDBListGroupItem>
+                                </MDBListGroup>
                             </div>
-                            <div className="col-12 mt-2">
-                                <div id={'chartContainer-Postos Descobertos'} className="bg-transparent" style={{ 'height': 500, 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
-                                </div>
-                                <p id={'chartDonwload-Postos Descobertos'} className="mt-2" style={{ 'marginLeft': 4 }} />
+                        </MDBCol>
+                        <MDBCol size="6" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
+                            <h1 className="text-justify font-weight-bold m-auto p-auto" style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'fontSize': 18 }}>
+                                {this.state.data.dashboard[1]} Postos Descobertos <MdRssFeed /><br />
+                            </h1>
+                            <div className="text-justify font-weight-bold m-2 p-auto" style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'fontSize': 14 }}>
+                                <MdVerifiedUser /> Clientes Importantes Descobertos
+                                <MDBListGroup className="m-2 overflow-auto" style={{ 'maxHeight': '20vh', 'backgroundColor': '#f2f2f2' }}>
+                                    <MDBListGroupItem className="mb-1" key="Forest_Park_3" style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #2c313a' }}>
+                                        <MdMood /> Forest Park<br />
+                                        <MdPayment /> R$ 1.350.000.00
+                                    </MDBListGroupItem>
+                                    <MDBListGroupItem className="mb-1" key="Forest_Park_4" style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #2c313a' }}>
+                                        <MdMood /> Forest Park 2<br />
+                                        <MdPayment /> R$ 1.350.000.00
+                                    </MDBListGroupItem>
+                                </MDBListGroup>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        </MDBCol>
+                        <MDBCol size="6">
+                            <div id={'chartContainer-Postos Cobertos'} className="bg-transparent" style={{ 'height': '60vh', 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34' }}>
+                                <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
+                            </div>
+                            <p id={'chartDonwload-Postos Cobertos'} className="mt-2" style={{ 'marginLeft': 4 }} onClick={() => { console.log('teste') }} />
+                        </MDBCol>
+                        <MDBCol size="6">
+                            <div id={'chartContainer-Postos Descobertos'} className="bg-transparent" style={{ 'height': '60vh', 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34' }}>
+                                <p className="text-secondary" style={{ 'marginLeft': 4 }}>Grafico Indisponivel!</p>
+                            </div>
+                            <p id={'chartDonwload-Postos Descobertos'} className="mt-2" style={{ 'marginLeft': 4 }} onClick={() => { console.log('teste') }} />
+                        </MDBCol>
+                    </MDBRow>
+                </MDBCol>
             )
         }
         /**
@@ -974,336 +803,459 @@ export default class Index extends React.Component {
         else if (this.state.menu === 'messages') {
             if (this.state.usermessages.menu === 'list') {
                 let messages = this.state.usermessages.data.map(message => {
-                    return <li className="list-group-item border-0 bg-transparent font-weight-bold" style={{ 'fontSize': 18, 'marginTop': -20 }}>
-                        <Button
-                            className={`col mt-2 mr-3 text-left font-weight-bold ${message['new'] ? '' : 'disabled'}`}
-                            style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                            variant="outline-info"
-                            size="lg"
-                            block
-                            onClick={() => {
-                                animateCSS('messages', 'fadeIn');
-                                this.getUserMessages((messages) => {
-                                    this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'message', data: messages, selected: message['id'] } })
-                                });
-                            }}>
-                            <MdPersonPin /> Por: {message['author']}<br />
-                            <MdMailOutline /> Assunto: {message['subject']}<br />
-                            <MdMessage /> Resumo: {String(message['message']).slice(0, 100)}...
+                    if (message) {
+                        return <MDBListGroupItem className="mb-1" key={message['id']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #f2f2f2' }}>
+                            <Button
+                                className={`col mt-2 mr-3 text-left font-weight-bold ${message['new'] ? '' : 'disabled'}`}
+                                style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                variant="outline-dark"
+                                size="lg"
+                                block
+                                onClick={() => {
+                                    animateCSS('messages', 'fadeIn');
+                                    this.getUserMessages((messages) => {
+                                        this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'message', data: messages, selected: message['id'] } })
+                                    });
+                                }}>
+                                <MdPersonPin /> Por: {message['author']}<br />
+                                <MdMailOutline /> Assunto: {message['subject']}<br />
+                                <MdMessage /> Resumo: {String(message['message']).slice(0, 100)}...
                         </Button>
-                    </li>
+                        </MDBListGroupItem>
+                    }
                 });
                 return (
-                    <div className='messages'>
-                        <div className="Messages-view_1">
-                            <div className="row ml-2" style={{ 'width': '82vw' }}>
-                                <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
-                                        Prezado(a) {this.getUsername()}, {this.state.usermessages.data.length <= 0 ? `você não tem mensagens.` : `você tem novas mensagens.`}
+                    <MDBCol className='messages' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
+                        <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                            <MDBCol size="12">
+                                <p className="text-left font-weight-bold pt-2" style={{ 'fontSize': 20, 'color': '#282c34' }}>
+                                    Caixa de entrada
                                     </p>
-                                </div>
-                                <div className="col-12 mt-2" style={{ 'height': '80vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 20, 'color': '#00d9ff' }}>
-                                        Caixa de entrada
-                                    </p>
-                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    <ul className="list-group overflow-auto" style={{ 'height': '70vh' }}>
-                                        {messages}
-                                    </ul>
-                                </div>
-                                <ButtonToolbar>
-                                    <Button
-                                        className="col mt-2 mr-3"
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="lg"
-                                        block
-                                        onClick={() => {
-                                            animateCSS('messages', 'fadeIn');
-                                            this.getUserMessages((messages) => {
-                                                this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'send', data: messages, selected: 0 } })
-                                            });
-                                        }}>
-                                        <MdHdrWeak /><br /> Novo email
-                                    </Button>
-                                    <Button
-                                        className={"col mt-2 mr-3"}
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="lg"
-                                        block
-                                        disabled={this.state.usermessages.data.length <= 0}
-                                        onClick={() => {
-                                            axios.delete(`http://localhost:5000/api/users/messages/remove`, {
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'api_key': this.getApiKey(),
-                                                    'authorization': this.getUserToken()
-                                                },
-                                                data: {
-                                                    email: this.getUserEmail()
-                                                }
-                                            })
-                                                .then((res) => {
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <MDBListGroup className="overflow-auto" style={{ 'height': '70vh', 'backgroundColor': '#f2f2f2' }}>
+                                    {messages}
+                                </MDBListGroup>
+                                <MDBCol size="12" className="mt-2">
+                                    <ButtonToolbar>
+                                        <MDBCol size="6" className="mt-auto" bottom>
+                                            <Button
+                                                style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                                variant="outline-dark"
+                                                block
+                                                onClick={() => {
                                                     animateCSS('messages', 'fadeIn');
                                                     this.getUserMessages((messages) => {
-                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                        this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'send', data: messages, selected: 0 } })
                                                     });
-                                                })
-                                                .catch((err) => {
-                                                    animateCSS('messages', 'fadeIn');
-                                                    this.getUserMessages((messages) => {
-                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                    });
-                                                    if (err) return console.error('Error get for http://localhost:5000/api/users/messages/remove url!', err);
-                                                })
-                                        }}>
-                                        <MdHdrWeak /><br /> Remover todos os emails
-                                    </Button>
-                                </ButtonToolbar>
-                            </div>
-                        </div>
-                    </div>
+                                                }}>
+                                                <MdHdrWeak /><br /> Novo email
+                                            </Button>
+                                        </MDBCol>
+                                        <MDBCol size="6" className="mt-auto" bottom>
+                                            <Button
+                                                style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                                variant="outline-dark"
+                                                block
+                                                disabled={this.state.usermessages.data.length <= 0}
+                                                onClick={() => {
+                                                    const
+                                                        http = require("http"),
+                                                        options = {
+                                                            "method": "DELETE",
+                                                            "hostname": "reactappstudy.ddns.net",
+                                                            "port": "5000",
+                                                            "path": "/api/users/messages/remove",
+                                                            "headers": {
+                                                                "content-type": "application/json",
+                                                                "api_key": this.getApiKey(),
+                                                                "authorization": this.getUserToken()
+                                                            }
+                                                        },
+                                                        context = this,
+                                                        req = http.request(options, function (res) {
+                                                            let chunks = [];
+
+                                                            const
+                                                                onSuccess = () => {
+                                                                    animateCSS('messages', 'fadeIn');
+                                                                    context.getUserMessages((messages) => {
+                                                                        context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                    });
+                                                                },
+                                                                onError = () => {
+                                                                    animateCSS('messages', 'fadeIn');
+                                                                    context.getUserMessages((messages) => {
+                                                                        context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                    });
+                                                                }
+
+                                                            res.on("data", chunk => chunks.push(chunk));
+
+                                                            res.on("end", () => {
+                                                                const body = Buffer.concat(chunks);
+
+                                                                try {
+                                                                    const data = JSON.parse(body.toString());
+
+                                                                    if (data['error']) {
+                                                                        return onError();
+                                                                    } else {
+                                                                        return onSuccess(data['query']['results']);
+                                                                    }
+
+                                                                } catch (err) {
+                                                                    return new Error(err);
+                                                                }
+
+                                                            });
+                                                        });
+
+                                                    req.write(JSON.stringify({}));
+                                                    req.end();
+                                                }}>
+                                                <MdHdrWeak /><br /> Descartar todos os emails
+                                            </Button>
+                                        </MDBCol>
+                                    </ButtonToolbar>
+                                </MDBCol>
+                            </MDBCol>
+                        </MDBRow>
+                    </MDBCol>
                 )
             } else if (this.state.usermessages.menu === 'message') {
-                let selected = this.state.usermessages.data.filter(message => { return message['id'] === this.state.usermessages.selected })[0];
+                let selected = this.state.usermessages.data.filter(message => {
+                    if (message) {
+                        if (message['id'] === this.state.usermessages.selected)
+                            return message;
+                    }
+                });
+                if (selected instanceof Array && selected.length > 0) selected = selected[0];
                 return (
-                    <div className='messages'>
-                        <div className="Messages-view_1">
-                            <div className="row ml-2" style={{ 'width': '82vw' }}>
-                                <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
-                                        Prezado(a) {this.getUsername()}, {this.state.usermessages.data.length <= 0 ? `você não tem mensagens.` : `você tem novas mensagens.`}
-                                    </p>
-                                </div>
-                                <div className="col-12 mt-2" style={{ 'height': '80vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-left font-weight-bold pl-2 pt-2 col-12" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
-                                        De: {selected['emitter']}<br />
-                                        Para: {selected['receiver']}<br />
-                                        Cc: {selected['copied']}<br />
-                                        Enviado em: {selected['dateAt']}
-                                    </p>
-                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    <h1>{selected['subject']}</h1>
-                                    <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                    <p>
-                                        {selected['message'].split('\n').map(i => {
-                                            return <p>{i}</p>
-                                        })}
-                                    </p>
-                                </div>
+                    <MDBCol className='messages' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
+                        <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                            <MDBCol size="12">
+                                <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#282c34' }}>
+                                    De: {selected['emitter']}<br />
+                                    Para: {selected['receiver']}<br />
+                                    Cc: {selected['copied']}<br />
+                                    Enviado em: {selected['dateAt']}
+                                </p>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <h1 className="text-center font-weight-bold">{selected['subject']}</h1>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <MDBCol size="12" className="p-2 overflow-auto" style={{ 'height': '50vh', 'border': '1px solid #282c34', 'color': '#282c34' }}>
+                                    {selected['message'].split('\n').map((i, l) => {
+                                        return <p key={`_message_text_id_${l}`}>{i}</p>
+                                    })}
+                                </MDBCol>
+                            </MDBCol>
+                            <MDBCol size="12" className="mt-2">
                                 <ButtonToolbar>
-                                    <Button
-                                        className="col mt-2 mr-5"
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="lg"
-                                        block
-                                        onClick={() => {
-                                            animateCSS('messages', 'fadeIn');
-                                            this.getUserMessages((messages) => {
-                                                this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                            });
-                                        }}>
-                                        <MdHdrWeak /><br /> Retornar
-                                    </Button>
-                                    <Button
-                                        className="col mt-2 mr-3"
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="lg"
-                                        block
-                                        onClick={() => {
-                                            animateCSS('messages', 'fadeIn');
-                                            this.getUserMessages((messages) => {
-                                                const
-                                                    subject = `Resposta de ${this.getUsername()} sobre '${selected['subject']}'`,
-                                                    message = `---Anterior por ${selected['author']}\n\r${selected['message']}\n\r---Resposta por ${this.getUsername()}\n\r`;
-                                                this.setState({
-                                                    'message': { 'active': true }, 'usermessages': {
-                                                        menu: 'send', answer: {
-                                                            emitter: selected['emitter'],
-                                                            copied: selected['copied'],
-                                                            subject: subject,
-                                                            message: message
-                                                        }, data: messages, selected: 0
-                                                    }
-                                                })
-                                            });
-                                        }}>
-                                        <MdHdrWeak /><br /> Responder
-                                    </Button>
-                                    <Button
-                                        className="col mt-2 mr-3"
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="lg"
-                                        block
-                                        onClick={() => console.log('teste')}>
-                                        <MdHdrWeak /><br /> Encaminhar
-                                    </Button>
-                                    <Button
-                                        className="col mt-2 mr-3"
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="lg"
-                                        block
-                                        onClick={() => {
-                                            axios.delete(`http://localhost:5000/api/users/messages/remove/${selected['id']}`, {
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'api_key': this.getApiKey(),
-                                                    'authorization': this.getUserToken()
-                                                },
-                                                data: {
-                                                    email: this.getUserEmail()
-                                                }
-                                            })
-                                                .then((res) => {
-                                                    animateCSS('messages', 'fadeIn');
-                                                    this.getUserMessages((messages) => {
-                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                    });
-                                                })
-                                                .catch((err) => {
-                                                    animateCSS('messages', 'fadeIn');
-                                                    this.getUserMessages((messages) => {
-                                                        this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                    });
-                                                    if (err) return console.error('Error get for http://localhost:5000/api/users/messages/remove url!', err);
-                                                })
-                                        }}>
-                                        <MdHdrWeak /><br /> Remover
-                                    </Button>
-                                </ButtonToolbar>
-                            </div>
-                        </div>
-                    </div >
-                )
-            } else if (this.state.usermessages.menu === 'send') {
-                const context = this;
-                return (
-                    <div className='messages'>
-                        <div className="Messages-view_1">
-                            <div className="row ml-2" style={{ 'width': '82vw' }}>
-                                <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
-                                        Prezado(a) {this.getUsername()}, {this.state.usermessages.data.length <= 0 ? `você não tem mensagens.` : `você tem novas mensagens.`}
-                                    </p>
-                                </div>
-                                <div className="col-12 mt-2 message-form-all" style={{ 'height': '82vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                    <div className="form-group mt-2">
-                                        <label htmlFor="message_email-1">Destinatário:</label>
-                                        <input type="text" className="form-control" id="message_email-1" placeholder="Endereço de email" onChange={context.handleEmailExist.bind(context, '1')} style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
-                                    </div>
-                                    <div className="form-group mt-2">
-                                        <label htmlFor="message_email-2">Cc:</label>
-                                        <input type="text" className="form-control" id="message_email-2" placeholder="Endereço de email" onChange={context.handleEmailExist.bind(context, '2')} style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
-                                    </div>
-                                    <div className="form-group mt-2">
-                                        <label htmlFor="message_subject">Assunto:</label>
-                                        <input type="text" className="form-control" id="message_subject" placeholder="Defina o assunto" style={{ 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
-                                    </div>
-                                    <div className="form-group mt-2">
-                                        <label htmlFor="message_textarea">Mensagem:</label>
-                                        <textarea className="form-control" id="message_textarea" style={{ 'height': '45vh', 'resize': 'none', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }} />
-                                    </div>
-                                </div>
-                                <ButtonToolbar>
-                                    <Button
-                                        className="col mt-2 mr-5"
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="sm"
-                                        block
-                                        onClick={() => {
-                                            animateCSS('messages', 'fadeIn');
-                                            this.getUserMessages((messages) => {
-                                                this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                            });
-                                        }}>
-                                        <MdHdrWeak /><br /> Descartar
-                                    </Button>
-                                    <Button
-                                        className="col mt-2 mr-3"
-                                        style={{ 'color': '#00d9ff', 'fontSize': 18 }}
-                                        variant="outline-info"
-                                        size="sm"
-                                        block
-                                        onClick={() => {
-
-                                            const
-                                                receiver = document.getElementById('message_email-1').value,
-                                                copied = document.getElementById('message_email-2').value,
-                                                subject = document.getElementById('message_subject').value,
-                                                message = document.getElementById('message_textarea').value,
-                                                username = this.getUsername();
-
-                                            if (
-                                                String(receiver).length <= 0 ||
-                                                String(subject).length <= 0 ||
-                                                String(message).length <= 0 ||
-                                                (
-                                                    !document.getElementById('message_email-1').classList.contains('is-valid') ||
-                                                    (String(copied).length > 0 && !document.getElementById('message_email-2').classList.contains('is-valid'))
-                                                )
-                                            ) return animateCSS('message-form-all', 'shake');
-
-
-                                            const send = function (api_key, user_token, context, emitter, receiver, copied, subject, message) {
-
-                                                return new Promise((resolve, reject) => {
-                                                    axios.post('http://localhost:5000/api/users/messages/send', {
-                                                        "author": String(username),
-                                                        "emitter": String(emitter),
-                                                        "receiver": String(receiver),
-                                                        "copied": String(copied),
-                                                        "subject": String(subject),
-                                                        "message": String(message)
-                                                    }, {
-                                                        headers: {
-                                                            'Content-Type': 'application/json',
-                                                            'api_key': String(api_key),
-                                                            'authorization': String(user_token)
+                                    <MDBCol size="6" className="mb-2" bottom>
+                                        <Button
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('messages', 'fadeIn');
+                                                this.getUserMessages((messages) => {
+                                                    const
+                                                        subject = `${selected['subject']}`,
+                                                        message = `${selected['message']}\n\r---Resposta por ${this.getUserEmail()}\n\r`;
+                                                    this.setState({
+                                                        'message': { 'active': true }, 'usermessages': {
+                                                            menu: 'send', answer: {
+                                                                forward: false,
+                                                                emitter: selected['emitter'],
+                                                                copied: selected['copied'],
+                                                                subject: subject,
+                                                                message: message
+                                                            }, data: messages, selected: 0
                                                         }
                                                     })
-                                                        .then((res) => {
-                                                            animateCSS('messages', 'fadeIn');
-                                                            resolve();
-                                                            context.getUserMessages((messages) => {
-                                                                context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                            });
-                                                        })
-                                                        .catch((err) => {
-                                                            document.getElementById('message_email-1').value = '';
-                                                            document.getElementById('message_email-2').value = '';
-                                                            document.getElementById('message_subject').value = '';
-                                                            document.getElementById('message_textarea').value = '';
-                                                            reject();
-                                                            animateCSS('messages', 'fadeIn');
-                                                            context.getUserMessages((messages) => {
-                                                                context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                            });
-                                                            if (err) return console.error('Error get for http://localhost:5000/api/users/messages/send url!', err);
-                                                        })
-                                                })
-                                            }
-
-                                            if (String(copied).length > 0) {
-                                                send(this.getApiKey(), this.getUserToken(), this, this.getUserEmail(), receiver, copied, subject, message)
-                                                    .then(() => {
-                                                        send(this.getApiKey(), this.getUserToken(), this, this.getUserEmail(), copied, '', subject, message)
+                                                });
+                                            }}>
+                                            <MdHdrWeak /><br /> Responder
+                                        </Button>
+                                    </MDBCol>
+                                    <MDBCol size="6" className="mb-2" bottom>
+                                        <Button
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('messages', 'fadeIn');
+                                                this.getUserMessages((messages) => {
+                                                    const
+                                                        subject = `${selected['subject']}`,
+                                                        message = `---Encaminhada por ${this.getUsername()}(${String(this.getUserEmail())})\n\r${selected['message']}`;
+                                                    this.setState({
+                                                        'message': { 'active': true }, 'usermessages': {
+                                                            menu: 'send', answer: {
+                                                                forward: true,
+                                                                emitter: selected['emitter'],
+                                                                copied: selected['copied'],
+                                                                subject: subject,
+                                                                message: message
+                                                            }, data: messages, selected: 0
+                                                        }
                                                     })
-                                            } else {
-                                                send(this.getApiKey(), this.getUserToken(), this, this.getUserEmail(), receiver, '', subject, message)
-                                            }
-                                        }}>
-                                        <MdHdrWeak /><br /> Enviar
-                                    </Button>
+                                                });
+                                            }}>
+                                            <MdHdrWeak /><br /> Encaminhar
+                                        </Button>
+                                    </MDBCol>
+                                    <MDBCol size="6" className="mb-2" bottom>
+                                        <Button
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('messages', 'fadeIn');
+                                                this.getUserMessages((messages) => {
+                                                    this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                });
+                                            }}>
+                                            <MdHdrWeak /><br /> Retornar
+                                        </Button>
+                                    </MDBCol>
+                                    <MDBCol size="6" className="mb-2" bottom>
+                                        <Button
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                const
+                                                    http = require("http"),
+                                                    options = {
+                                                        "method": "DELETE",
+                                                        "hostname": "reactappstudy.ddns.net",
+                                                        "port": "5000",
+                                                        "path": `/api/users/messages/remove/${selected['id']}`,
+                                                        "headers": {
+                                                            "content-type": "application/json",
+                                                            "api_key": this.getApiKey(),
+                                                            "authorization": this.getUserToken()
+                                                        }
+                                                    },
+                                                    context = this,
+                                                    req = http.request(options, function (res) {
+                                                        let chunks = [];
+
+                                                        const
+                                                            onSuccess = () => {
+                                                                animateCSS('messages', 'fadeIn');
+                                                                context.getUserMessages((messages) => {
+                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                });
+                                                            },
+                                                            onError = () => {
+                                                                animateCSS('messages', 'fadeIn');
+                                                                context.getUserMessages((messages) => {
+                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                });
+                                                            }
+
+                                                        res.on("data", chunk => chunks.push(chunk));
+
+                                                        res.on("end", () => {
+                                                            const body = Buffer.concat(chunks);
+
+                                                            try {
+                                                                const data = JSON.parse(body.toString());
+
+                                                                if (data['error']) {
+                                                                    return onError();
+                                                                } else {
+                                                                    return onSuccess(data['query']['results']);
+                                                                }
+
+                                                            } catch (err) {
+                                                                return new Error(err);
+                                                            }
+
+                                                        });
+                                                    });
+
+                                                req.write(JSON.stringify({}));
+                                                req.end();
+                                            }}>
+                                            <MdHdrWeak /><br /> Descartar
+                                        </Button>
+                                    </MDBCol>
                                 </ButtonToolbar>
-                            </div>
-                        </div>
-                    </div>
+                            </MDBCol>
+                        </MDBRow>
+                    </MDBCol>
+                )
+            } else if (this.state.usermessages.menu === 'send') {
+                const onChangeEmailSend = () => {
+                    if (
+                        document.getElementById('message_email-1').classList.contains('is-invalid') ||
+                        document.getElementById('message_email-2').classList.contains('is-invalid')
+                    ) {
+                        return this.setState({ 'send_email': false });
+                    }
+
+                    if (!this.state.usermessages.answer || !this.state.usermessages.answer.forward) {
+                        const
+                            subject = document.getElementById('message_subject').value,
+                            message = document.getElementById('message_textarea').value;
+                        if (
+                            document.getElementById('message_email-1').classList.contains('is-valid') &&
+                            String(subject).length > 0 &&
+                            String(message).length > 0
+                        ) {
+                            this.setState({ 'send_email': true });
+                        } else {
+                            this.setState({ 'send_email': false });
+                        }
+                    } else {
+                        if (
+                            document.getElementById('message_email-2').classList.contains('is-valid')
+                        ) {
+                            this.setState({ 'send_email': true });
+                        } else {
+                            this.setState({ 'send_email': false });
+                        }
+                    }
+                }
+                return (
+                    <MDBCol className='messages' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
+                        <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                            <MDBCol size="12" className="mt-2">
+                                <MDBCol size="12" className="message-form-all">
+                                    <label htmlFor="message_email-1" className="font-weight-bold">Destinatário:</label>
+                                    <input type="text" className="form-control mb-2" id="message_email-1" placeholder="Endereço de email" onChange={this.handleEmailExist.bind(this, '1')} onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
+                                    <label htmlFor="message_email-2" className="font-weight-bold">Cc:</label>
+                                    <input type="text" className="form-control mb-2" id="message_email-2" placeholder="Endereço de email" onChange={this.handleEmailExist.bind(this, '2')} onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
+                                    <label htmlFor="message_subject" className="font-weight-bold">Assunto:</label>
+                                    <input type="text" className="form-control mb-2" id="message_subject" placeholder="Defina o assunto" onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
+                                    <label htmlFor="message_textarea" className="font-weight-bold">Mensagem:</label>
+                                    <textarea className="form-control mb-2" id="message_textarea" onKeyUp={onChangeEmailSend.bind(this)} style={{ 'height': '50vh', 'resize': 'none', 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
+                                </MDBCol>
+                                <ButtonToolbar>
+                                    <MDBCol size="6" className="mt-auto" bottom>
+                                        <Button
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('messages', 'fadeIn');
+                                                this.getUserMessages((messages) => {
+                                                    this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                });
+                                            }}>
+                                            <MdHdrWeak /><br /> Descartar
+                                        </Button>
+                                    </MDBCol>
+                                    <MDBCol size="6" className="mt-auto" bottom>
+                                        <Button
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            disabled={this.state.send_email ? false : true}
+                                            onClick={() => {
+                                                const
+                                                    receiver = document.getElementById('message_email-1').value,
+                                                    copied = document.getElementById('message_email-2').value,
+                                                    subject = document.getElementById('message_subject').value,
+                                                    message = document.getElementById('message_textarea').value,
+                                                    username = this.getUsername();
+
+                                                const send = function (api_key, user_token, emitter, receiver, copied, subject, message) {
+                                                    const context = this;
+                                                    return new Promise((resolve, reject) => {
+                                                        const
+                                                            http = require("http"),
+                                                            options = {
+                                                                "method": "POST",
+                                                                "hostname": "reactappstudy.ddns.net",
+                                                                "port": "5000",
+                                                                "path": `/api/users/messages/send`,
+                                                                "headers": {
+                                                                    "content-type": "application/json",
+                                                                    "api_key": api_key,
+                                                                    "authorization": user_token
+                                                                }
+                                                            },
+                                                            req = http.request(options, function (res) {
+                                                                let chunks = [];
+
+                                                                const
+                                                                    onSuccess = () => {
+                                                                        animateCSS('messages', 'fadeIn');
+                                                                        resolve();
+                                                                        context.getUserMessages((messages) => {
+                                                                            context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                        });
+                                                                    },
+                                                                    onError = () => {
+                                                                        document.getElementById('message_email-1').value = '';
+                                                                        document.getElementById('message_email-2').value = '';
+                                                                        document.getElementById('message_subject').value = '';
+                                                                        document.getElementById('message_textarea').value = '';
+                                                                        reject();
+                                                                        animateCSS('messages', 'fadeIn');
+                                                                        context.getUserMessages((messages) => {
+                                                                            context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                        });
+                                                                    }
+
+                                                                res.on("data", chunk => chunks.push(chunk));
+
+                                                                res.on("end", () => {
+                                                                    const body = Buffer.concat(chunks);
+
+                                                                    try {
+                                                                        const data = JSON.parse(body.toString());
+
+                                                                        if (data['error']) {
+                                                                            return onError();
+                                                                        } else {
+                                                                            return onSuccess(data['query']['results']);
+                                                                        }
+
+                                                                    } catch (err) {
+                                                                        return new Error(err);
+                                                                    }
+
+                                                                });
+                                                            });
+
+                                                        req.write(JSON.stringify({
+                                                            "author": String(username),
+                                                            "emitter": String(emitter),
+                                                            "receiver": String(receiver),
+                                                            "copied": String(copied),
+                                                            "subject": String(subject),
+                                                            "message": String(message)
+                                                        }));
+                                                        req.end();
+                                                    })
+                                                }
+
+                                                if (!this.state.usermessages.answer || !this.state.usermessages.answer.forward) {
+                                                    if (String(copied).length > 0) {
+                                                        send.call(this, this.getApiKey(), this.getUserToken(), this.getUserEmail(), receiver, copied, subject, message)
+                                                            .then(() => {
+                                                                send(this.getApiKey(), this.getUserToken(), this.getUserEmail(), copied, '', subject, message)
+                                                            })
+                                                    } else {
+                                                        send.call(this, this.getApiKey(), this.getUserToken(), this.getUserEmail(), receiver, '', subject, message)
+                                                    }
+                                                } else {
+                                                    send.call(this, this.getApiKey(), this.getUserToken(), this.getUserEmail(), copied, '', subject, message)
+                                                }
+
+                                            }}>
+                                            <MdHdrWeak /><br /> Enviar
+                                        </Button>
+                                    </MDBCol>
+                                </ButtonToolbar>
+                            </MDBCol>
+                        </MDBRow>
+                    </MDBCol>
                 )
             }
         }
@@ -1312,280 +1264,458 @@ export default class Index extends React.Component {
          */
         else if (this.state.menu === 'comercial') {
             return (
-                <div className='comercial'>
-                    <div className="Comercial-view_1">
-                        <div className="row ml-2" style={{ 'width': '82vw' }}>
-                            <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
-                                    Prezado(a) {this.getUsername()}, você está utilizando o módulo comercial no momento.
-                                </p>
-                            </div>
-                            <div className="col-12 mt-2 mb-2" style={{ 'height': '100vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <h1 className="mt-3 ml-3">
-                                    <MdAssignment /> Cadastros
-                                </h1>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ButtonToolbar>
+                <MDBCol className='comercial' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                    <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                        {/* 
+                            Cadastros
+                        */}
+                        <MDBCol size="12" className="mt-2">
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdAssignment /> Cadastros
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
                                         <MdHdrWeak /> Empresa
                                     </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
                                         <MdHdrWeak /> Cliente
                                     </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
                                         <MdHdrWeak /> Tipo de Serviço
                                     </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
                                         <MdHdrWeak /> Função
                                     </Button>
-                                </ButtonToolbar>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <h1 className="mt-3 ml-3">
-                                    <MdWork /> Contratos
-                                </h1>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ButtonToolbar>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Contratos
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdWork /> Contratos
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
-                                        <MdHdrWeak /> Registrar
+                                        <MdHdrWeak /> Novo contrato
                                     </Button>
-                                </ButtonToolbar>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <h1 className="mt-3 ml-3">
-                                    <MdLocalPrintshop /> Relatórios
-                                </h1>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ButtonToolbar>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Relatórios
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdLocalPrintshop /> Relatórios
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
                                         <MdHdrWeak /> Relatório de cadastro de clientes
                                     </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
-                                        <MdHdrWeak /> Relatório de Contratos
+                                        <MdHdrWeak /> Relatório de contratos
                                     </Button>
-                                </ButtonToolbar>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                                </MDBCol>
+                            </ButtonToolbar>
+                        </MDBCol>
+                    </MDBRow>
+                </MDBCol>
             )
         }
         // DP/RH
         else if (this.state.menu === 'dp_rh') {
             return (
-                <div className='dp_rh'>
-                    <div className="Dp_rh-view_1">
-                        <div className="row ml-2" style={{ 'width': '82vw' }}>
-                            <div className="col-12 mt-2" style={{ 'height': '5vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <p className="text-left font-weight-bold pl-2 pt-2" style={{ 'fontSize': 18, 'color': '#00d9ff' }}>
-                                    Prezado(a) {this.getUsername()}, você está utilizando o módulo DP/RH no momento.
-                                </p>
-                            </div>
-                            <div className="col-12 mt-2 mb-2" style={{ 'height': '100vh', 'backgroundColor': '#2c313a', 'color': '#00d9ff', 'border': '1px solid #17a2b8', 'borderRadius': 5 }}>
-                                <h1 className="mt-3 ml-3">
-                                    <MdPersonAdd /> Cadastro de Funcionários
-                                </h1>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ButtonToolbar>
+                <MDBCol className='dp_rh' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                    <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                        {/* 
+                            Cadastro de funcionários
+                        */}
+                        <MDBCol size="12" className="mt-2">
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdPersonAdd /> Cadastro de funcionários
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
-                                        <MdHdrWeak /> Cadastrar
+                                        <MdHdrWeak /> Cadastrar novo funcionário
                                     </Button>
-                                </ButtonToolbar>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <h1 className="mt-3 ml-3">
-                                    <MdLocalAtm /> Valores e Regras
-                                </h1>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ButtonToolbar>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Valores e Regras
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdLocalAtm /> Valores e Regras
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
-                                        <MdHdrWeak /> Definir valores
+                                        <MdHdrWeak /> Novo valor
                                     </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
-                                        <MdHdrWeak /> Definir regras
+                                        <MdHdrWeak /> Nova regra
                                     </Button>
-                                </ButtonToolbar>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <h1 className="mt-3 ml-3">
-                                    <MdTimer /> Escala
-                                </h1>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <ButtonToolbar>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Escala
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdTimer /> Escala
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
                                         <MdHdrWeak /> Nova escala
                                     </Button>
-                                </ButtonToolbar>
-                                <hr style={{ 'backgroundColor': '#00d9ff' }} />
-                                <h1 className="mt-3 ml-3">
-                                    <MdLocalPrintshop /> Relatórios
-                                </h1>
-                                <ButtonToolbar>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Relatórios
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdLocalPrintshop /> Relatórios
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
                                         <MdHdrWeak /> Relatório de cadastro de funcionários
                                     </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
                                     <Button
-                                        style={{ 'color': '#00d9ff' }}
-                                        variant="outline-info"
-                                        size="lg"
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
                                         block
                                         onClick={() => console.log('teste')}>
-                                        <MdHdrWeak /> Relatório de Contratos
+                                        <MdHdrWeak /> Relatório de Valores e Regras
                                     </Button>
-                                </ButtonToolbar>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                                </MDBCol>
+                            </ButtonToolbar>
+                        </MDBCol>
+                    </MDBRow>
+                </MDBCol>
             )
         }
         // Operacional
         else if (this.state.menu === 'operacional') {
             return (
-                <div className='operacional'>
-                    <div className="Operacional-view_1">
-                        <div className="bg-light border border-dark ml-3 mt-2 mr-2 pl-3 text-secondary">
-                            <div className="mb-4">
-                                <h1 className="mt-2">Menus - Operacional<MdSecurity /></h1>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><button className="ml-2 mt-3" ><MdPersonPin /> Alocação de Funcionários</button></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><button className="ml-2 mt-3" ><MdConfirmationNumber /> Confirmação de Presença</button></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><button className="ml-2 mt-3" ><MdBuild /> Manutenção de Apontamentos</button></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><button className="ml-2 mt-3" ><MdAvTimer /> Calculo de Pagamentos</button></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><button className="ml-2 mt-3" ><MdYoutubeSearchedFor /> Conferência de Pagamentos</button></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3 className="ml-2 mt-3 text-secondary"><MdLocalPrintshop /> Relatórios</h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Alocações</button><br />
-                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Confirmação de Presenças</button><br />
-                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Apontamentos</button><br />
-                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Conferências</button><br />
-                                <hr style={{ 'marginRight': 20 }} />
-                            </div>
-                        </div>
-                    </div>
-                </div >
+                <MDBCol className='operacional' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                    <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                        {/* 
+                            Alocação de Funcionários
+                        */}
+                        <MDBCol size="12" className="mt-2">
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdPersonPin /> Alocação de Funcionários
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Alocar funcionário
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Confirmação de Presença
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdConfirmationNumber /> Confirmação de Presença
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Confirmar presença
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Manutenção de  Apontamentos
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdBuild /> Manutenção de Apontamentos
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Corrigir apontamento
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Calculo de Pagamentos
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdAvTimer /> Calculo de Pagamentos
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Calcular pagamento
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Conferência de Pagamento
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdYoutubeSearchedFor /> Conferência de Pagamento
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relação de pagamentos
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Relatórios
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdLocalPrintshop /> Relatórios
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="6" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório de Alocações
+                                    </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório Confirmação de Presença
+                                    </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório Apontamentos
+                                    </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório de Conferência
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                        </MDBCol>
+                    </MDBRow>
+                </MDBCol>
             )
         }
         // Financeiro
         else if (this.state.menu === 'financeiro') {
             return (
-                <div className='financeiro'>
-                    <div className="Financeiro-view_1">
-                        <div className="bg-light border border-dark ml-3 mt-2 mr-2 pl-3 text-secondary">
-                            <div className="mb-4">
-                                <h1 className="mt-2">Menus - Financeiro<MdLocalAtm /></h1>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3><button className="ml-2 mt-3" ><MdPersonAdd /> Pagamentos</button></h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <h3 className="ml-2 mt-3 text-secondary"><MdLocalPrintshop /> Relatórios</h3>
-                                <hr style={{ 'marginRight': 20 }} />
-                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Relatório de Pagamentos</button><br />
-                                <button className="ml-3" style={{ 'fontSize': 20 }}><MdHdrWeak /> Recibos</button><br />
-                                <hr style={{ 'marginRight': 20 }} />
-                            </div>
-                        </div>
-                    </div>
-                </div >
+                <MDBCol className='financeiro' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                    <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                        {/* 
+                            Pagamentos
+                        */}
+                        <MDBCol size="12" className="mt-2">
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdPersonAdd /> Pagamentos
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="12" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Novo pagamento
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                            {/* 
+                                Relatórios
+                            */}
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdLocalPrintshop /> Relatórios
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <ButtonToolbar>
+                                <MDBCol size="6" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Relatório de Pagamentos
+                                    </Button>
+                                </MDBCol>
+                                <MDBCol size="6" className="mb-2">
+                                    <Button
+                                        style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                        variant="outline-dark"
+                                        block
+                                        onClick={() => console.log('teste')}>
+                                        <MdHdrWeak /> Recibos
+                                    </Button>
+                                </MDBCol>
+                            </ButtonToolbar>
+                        </MDBCol>
+                    </MDBRow>
+                </MDBCol>
             )
         }
         // Suport
         else if (this.state.menu === 'suport') {
             return (
-                <div className='suport'>
-                    <div className="Suport-view_1">
-                        <div className="row">
-                            <div className="bg-secondary border border-dark ml-4 mt-3 text-white" style={{ 'width': 1165 }}>
-                                <h1 className="p-2"><MdLiveHelp /> Precisa de ajuda?</h1>
-                                <div className="bg-light border-top border border-dark pt-2" style={{ 'fontSize': 14, 'marginTop': 8 }}>
-                                    <p className="text-dark text-left font-weight-bold pl-2" style={{ 'fontSize': 32 }}>
-                                        <MdHeadsetMic /> Suporte
-                                    </p>
-                                    <hr style={{ 'width': 1120 }} />
-                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'fontSize': 20, 'marginTop': -8 }}>
-                                        <MdFace /> Luiz
-                                    </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
-                                        <MdHdrStrong /> Telefone: (11) 98497-9536
-                                    </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
-                                        <MdHdrStrong /> Email: suporte@grupomave.com.br
-                                    </p>
-                                    <hr style={{ 'width': 1120 }} />
-                                    <p className="text-dark text-left font-weight-bold ml-2" style={{ 'fontSize': 20, 'marginTop': -12 }}>
-                                        <MdFace /> Jefferson
-                                    </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
-                                        <MdHdrStrong /> Telefone: (11) 98276-6134
-                                    </p>
-                                    <p className="text-dark text-left font-weight-bold ml-4" style={{ 'fontSize': 20, 'marginTop': -12 }}>
-                                        <MdHdrStrong /> Email: ti@grupomave.com.br
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <MDBCol className='suport' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                    <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                        {/* 
+                            Suporte
+                        */}
+                        <MDBCol size="12" className="mt-2">
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdLiveHelp /> Precisa de ajuda?
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdHeadsetMic /> Suporte Técnico
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <p className="text-left font-weight-bold" style={{ 'color': '#282c34', 'fontSize': 20 }}>
+                                <MdFace /> Luiz<br />
+                                <MdHdrStrong /> Telefone: (11) 98497-9536<br />
+                                <MdHdrStrong /> Email: suporte@grupomave.com.br
+                            </p>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                <MdSupervisorAccount /> Ouvidoria
+                            </h1>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                            <p className="text-left font-weight-bold" style={{ 'color': '#282c34', 'fontSize': 20 }}>
+                                <MdFace /> Jefferson<br />
+                                <MdHdrStrong /> Telefone: (11) 98276-6134<br />
+                                <MdHdrStrong /> Email: ti@grupomave.com.br
+                            </p>
+                            <hr style={{ 'backgroundColor': '#282c34' }} />
+                        </MDBCol>
+                    </MDBRow>
+                </MDBCol>
             )
         }
     }
@@ -1616,42 +1746,71 @@ export default class Index extends React.Component {
             return;
         };
 
-        axios.get('http://localhost:5000/api/users', {
-            headers: {
-                'Content-Type': 'application/json',
-                'api_key': this.getApiKey()
-            },
-            params: {
-                email: String(email)
-            }
-        })
-            .then((response) => {
-                const users = response.data.query.results;
-
-                if (users.length > 0) {
-                    if (
-                        document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
-                        !document.getElementById(`message_email-${id}`).classList.contains('is-valid')
-                    ) {
-                        document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
-                        document.getElementById(`message_email-${id}`).classList.add('is-valid');
-                    }
-                } else {
-                    if (
-                        document.getElementById(`message_email-${id}`).classList.contains('is-valid') ||
-                        !document.getElementById(`message_email-${id}`).classList.contains('is-invalid')
-                    ) {
-                        document.getElementById(`message_email-${id}`).classList.remove('is-valid');
-                        document.getElementById(`message_email-${id}`).classList.add('is-invalid');
-                    }
+        const
+            http = require("http"),
+            options = {
+                "method": "GET",
+                "hostname": "reactappstudy.ddns.net",
+                "port": "5000",
+                "path": `/api/users`,
+                "headers": {
+                    "content-type": "application/json",
+                    "api_key": this.getApiKey()
                 }
-            })
-            .catch((error) => {
-                animateCSS('alertUser', 'fadeOutDown', () => {
-                    document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
-                    document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+            },
+            req = http.request(options, function (res) {
+                let chunks = [];
+
+                const
+                    onSuccess = (data) => {
+                        if (data.length > 0 && data.filter(user => user['Email'] === String(email)).length > 0) {
+                            if (
+                                document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
+                                !document.getElementById(`message_email-${id}`).classList.contains('is-valid')
+                            ) {
+                                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                                document.getElementById(`message_email-${id}`).classList.add('is-valid');
+                            }
+                        } else {
+                            if (
+                                document.getElementById(`message_email-${id}`).classList.contains('is-valid') ||
+                                !document.getElementById(`message_email-${id}`).classList.contains('is-invalid')
+                            ) {
+                                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+                                document.getElementById(`message_email-${id}`).classList.add('is-invalid');
+                            }
+                        }
+                    },
+                    onError = () => {
+                        animateCSS('alertUser', 'fadeOutDown', () => {
+                            document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                            document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+                        });
+                    }
+
+                res.on("data", chunk => chunks.push(chunk));
+
+                res.on("end", () => {
+                    const body = Buffer.concat(chunks);
+
+                    try {
+                        const data = JSON.parse(body.toString());
+
+                        if (data['error']) {
+                            return onError();
+                        } else {
+                            return onSuccess(data['query']['results']);
+                        }
+
+                    } catch (err) {
+                        return new Error(err);
+                    }
+
                 });
-            })
+            });
+
+        req.write(JSON.stringify({ "email": String(email) }));
+        req.end();
     }
 }
 

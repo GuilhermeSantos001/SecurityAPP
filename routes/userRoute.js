@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
+const databases = require('../config/databases');
 const table_user = require('../config/tables').users;
 const apiMiddleware = require('../middlewares/api');
 const authMiddleware = require('../middlewares/auth');
@@ -13,12 +14,24 @@ const generateToken = require('../modules/generateToken');
  */
 const cors = require('cors');
 const corsOptions = {
-    origin: 'http://localhost:3000',
-    allowedHeaders: ['Content-Type', 'Authorization', 'api_key'],
-    optionsSuccessStatus: 200
+    "origin": function (origin, callback) {
+        if (['http://reactappstudy.ddns.net:3000', 'http://localhost:3000', undefined].indexOf(origin) !== -1) {
+            callback(null, true)
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
+    },
+    "methods": "GET, POST, PUT, DELETE, OPTIONS"
 }
 
-router.options('*', cors(corsOptions));
+router.options('*', function (req, res) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, Content-type, authorization, api_key");
+    return res.sendStatus(200);
+});
+
+router.use(cors(corsOptions));
 
 /**
  * Features Routers
@@ -28,16 +41,23 @@ router.options('*', cors(corsOptions));
  * Messages
  */
 
-router.get([`/messages`, `/messages/:id`], cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
+router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async (req, res) => {
     let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
+    const { filial } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
+    if (!filial)
+        return res.status(401).send({ error: 'Body content is not valid!' });
+
     try {
 
-        mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [userId])
+        const database = filial;
+
+        mysql.getInTable(database, 'users', 'ID= ?', [userId])
             .then(({ sql, query }) => {
 
                 if (query.results.length <= 0)
@@ -69,21 +89,23 @@ router.get([`/messages`, `/messages/:id`], cors(corsOptions), apiMiddleware, aut
     }
 });
 
-router.post(`/messages/send`, cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
+router.post(`/messages/send`, apiMiddleware, authMiddleware, async (req, res) => {
     let { userId } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    const { author, emitter, receiver, copied, subject, message } = req.body;
+    const { filial, author, emitter, receiver, copied, subject, message } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' });
 
-    if (!author || !emitter || !receiver || !subject || !message)
+    if (!filial || !author || !emitter || !receiver || !subject || !message)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        mysql.getInTable('SecurityAPP', 'users', 'Email= ?', [receiver])
+        const database = filial;
+
+        mysql.getInTable(database, 'users', 'Email= ?', [receiver])
             .then(({ sql, query }) => {
 
                 if (query.results.length <= 0)
@@ -118,7 +140,7 @@ router.post(`/messages/send`, cors(corsOptions), apiMiddleware, authMiddleware, 
 
                 if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
 
-                mysql.updateInTable('SecurityAPP', 'users',
+                mysql.updateInTable(database, 'users',
                     `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
                     query.results[0].id)
                     .then(({ sql, query }) => {
@@ -138,21 +160,23 @@ router.post(`/messages/send`, cors(corsOptions), apiMiddleware, authMiddleware, 
     }
 })
 
-router.put([`/messages/update`, `/messages/update/:id`], cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
+router.put([`/messages/update`, `/messages/update/:id`], apiMiddleware, authMiddleware, async (req, res) => {
     let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    let { author, emitter, receiver, copied, subject, message } = req.body;
+    let { filial, author, emitter, receiver, copied, subject, message } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
-    if (!author || !emitter || !receiver || !subject || !message)
+    if (!filial || !author || !emitter || !receiver || !subject || !message)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [userId])
+        const database = filial;
+
+        mysql.getInTable(database, 'users', 'ID= ?', [userId])
             .then(({ sql, query }) => {
 
                 if (query.results.length <= 0)
@@ -192,11 +216,11 @@ router.put([`/messages/update`, `/messages/update/:id`], cors(corsOptions), apiM
 
                 if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
 
-                mysql.updateInTable('SecurityAPP', 'users',
+                mysql.updateInTable(database, 'users',
                     `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
                     query.results[0].id)
                     .then(({ sql, query }) => {
-                        return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: { results: query.results[0] } });
+                        return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
                     })
                     .catch(({ err, details }) => {
                         if (err) return res.status(400).send({ error: err, details });
@@ -208,20 +232,27 @@ router.put([`/messages/update`, `/messages/update/:id`], cors(corsOptions), apiM
             })
 
     } catch (err) {
-        return res.status(400).send({ error: 'Remove user failed', details: err });
+        return res.status(400).send({ error: 'Update user failed', details: err });
     }
 })
 
-router.delete([`/messages/remove`, `/messages/remove/:id`], cors(corsOptions), apiMiddleware, authMiddleware, async (req, res) => {
+router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authMiddleware, async (req, res) => {
     let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
+    const { filial } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
+    if (!filial)
+        return res.status(401).send({ error: 'Body content is not valid!' });
+
     try {
 
-        mysql.getInTable('SecurityAPP', 'users', 'ID= ?', [userId])
+        const database = filial;
+
+        mysql.getInTable(database, 'users', 'ID= ?', [userId])
             .then(({ sql, query }) => {
 
                 if (query.results.length <= 0)
@@ -245,7 +276,7 @@ router.delete([`/messages/remove`, `/messages/remove/:id`], cors(corsOptions), a
 
                 if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
 
-                mysql.updateInTable('SecurityAPP', 'users',
+                mysql.updateInTable(database, 'users',
                     `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
                     query.results[0].id)
                     .then(({ sql, query }) => {
@@ -266,12 +297,211 @@ router.delete([`/messages/remove`, `/messages/remove/:id`], cors(corsOptions), a
 })
 
 /**
+ * Level Access
+ */
+
+router.get([`/levelaccess`], apiMiddleware, authMiddleware, async (req, res) => {
+    let { userId } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
+    const { filial } = req.body;
+
+    if (!userId)
+        return res.status(401).send({ error: 'User not found!' })
+
+    if (!filial)
+        return res.status(401).send({ error: 'Body content is not valid!' });
+
+    try {
+
+        const database = filial;
+
+        mysql.getInTable(database, 'users', 'ID= ?', [userId])
+            .then(({ sql, query }) => {
+
+                if (query.results.length <= 0)
+                    return res.status(401).send({ error: 'User not found!' });
+
+                query.results = query.results.map(result => {
+                    return result['Level_Access'];
+                });
+
+                return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
+            })
+            .catch(({ err, details }) => {
+                if (err) return res.status(400).send({ error: err, details });
+            })
+
+    } catch (err) {
+        return res.status(400).send({ error: 'Get users failed', details: err });
+    }
+});
+
+router.put([`/levelaccess/update`, `/levelaccess/update/:id`], apiMiddleware, authMiddleware, async (req, res) => {
+    let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
+    const { filial } = req.body;
+
+    let { level } = String(id) !== 'undefined' ? { level: String(id) } : req.body;
+
+    if (!userId)
+        return res.status(401).send({ error: 'User not found!' })
+
+    if (!filial || !level)
+        return res.status(401).send({ error: 'Body content is not valid!' });
+
+    try {
+
+        const database = filial;
+
+        mysql.getInTable(database, 'users', 'ID= ?', [userId])
+            .then(({ sql, query }) => {
+
+                if (query.results.length <= 0)
+                    return res.status(401).send({ error: 'User not found!' });
+
+                query.results = query.results.map(result => {
+                    return { id: result['ID'] };
+                });
+
+                if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
+
+                mysql.updateInTable(database, 'users',
+                    `Level_Access='${level.substring(0, table_user.varchar.limits.level_access)}'`,
+                    query.results[0].id)
+                    .then(({ sql, query }) => {
+                        return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
+                    })
+                    .catch(({ err, details }) => {
+                        if (err) return res.status(400).send({ error: err, details });
+                    })
+
+            })
+            .catch(({ err, details }) => {
+                if (err) return res.status(400).send({ error: err, details });
+            })
+
+    } catch (err) {
+        return res.status(400).send({ error: 'Update level of user for access is failed', details: err });
+    }
+})
+
+
+/**
  * Pattern Routers
  */
 
-router.get([`/`, `/:id`], cors(corsOptions), apiMiddleware, async (req, res) => {
+/**
+ * Level Access
+ */
+
+router.get([`/levelsaccess`, `/levelsaccess/:level`], apiMiddleware, async (req, res) => {
+    let { level } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
+    try {
+        switch (String(level).toLocaleLowerCase()) {
+            case 'administrator':
+                return res.status(200).send({
+                    success: 'Get level of user for access is success', query: {
+                        results: {
+                            'dashboard': true,
+                            'messages': true,
+                            'comercial': true,
+                            'dp_rh': true,
+                            'operacional': true,
+                            'financeiro': true
+                        }
+                    }
+                });
+            case 'comercial':
+                return res.status(200).send({
+                    success: 'Get level of user for access is success', query: {
+                        results: {
+                            'dashboard': true,
+                            'messages': true,
+                            'comercial': true,
+                            'dp_rh': false,
+                            'operacional': false,
+                            'financeiro': false
+                        }
+                    }
+                });
+            case 'dp/rh':
+            case 'dp_rh':
+            case 'dp':
+            case 'rh':
+                return res.status(200).send({
+                    success: 'Get level of user for access is success', query: {
+                        results: {
+                            'dashboard': true,
+                            'messages': true,
+                            'comercial': false,
+                            'dp_rh': true,
+                            'operacional': false,
+                            'financeiro': false
+                        }
+                    }
+                });
+            case 'operacional':
+                return res.status(200).send({
+                    success: 'Get level of user for access is success', query: {
+                        results: {
+                            'dashboard': true,
+                            'messages': true,
+                            'comercial': false,
+                            'dp_rh': false,
+                            'operacional': true,
+                            'financeiro': false
+                        }
+                    }
+                });
+            case 'financeiro':
+                return res.status(200).send({
+                    success: 'Get level of user for access is success', query: {
+                        results: {
+                            'dashboard': true,
+                            'messages': true,
+                            'comercial': false,
+                            'dp_rh': false,
+                            'operacional': false,
+                            'financeiro': true
+                        }
+                    }
+                });
+            default:
+                return res.status(200).send({
+                    success: 'Get level of user for access is success', query: {
+                        results: {
+                            'dashboard': true,
+                            'messages': true,
+                            'comercial': false,
+                            'dp_rh': false,
+                            'operacional': false,
+                            'financeiro': false
+                        }
+                    }
+                });
+        }
+
+    } catch (err) {
+        return res.status(400).send({ error: 'Get level of user for access is failed', details: err });
+    }
+});
+
+/**
+ * User
+ */
+
+router.get([`/`, `/:id`], apiMiddleware, async (req, res) => {
     let { id, email } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+
+    const { filial } = req.body;
+
+    if (!filial)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
@@ -284,7 +514,9 @@ router.get([`/`, `/:id`], cors(corsOptions), apiMiddleware, async (req, res) => 
             id = email;
         }
 
-        mysql.getInTable('SecurityAPP', 'users', filter, [id])
+        const database = filial;
+
+        mysql.getInTable(database, 'users', filter, [id])
             .then(({ sql, query }) => {
 
                 query.results = query.results.map(user => {
@@ -307,86 +539,115 @@ router.get([`/`, `/:id`], cors(corsOptions), apiMiddleware, async (req, res) => 
     }
 });
 
-router.post(`/register`, cors(corsOptions), apiMiddleware, async (req, res) => {
-    const { name, email, password } = req.body;
+router.post(`/register`, apiMiddleware, async (req, res) => {
+    const { filial, name, email, password } = req.body;
 
-    if (!name || !email || !password)
+    if (!filial || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
+
+        const database = filial;
 
         let encoded_password = crypto.encrypt(password);
 
         encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
 
-        mysql.insertInTable('SecurityAPP', 'users', '(Nome, Email, Password)', [
-            [
-                name.substring(0, table_user.varchar.limits.nome),
-                email.substring(0, table_user.varchar.limits.email),
-                encoded_password,
-            ]
-        ])
-            .then(({ sql, query }) => {
-                mysql.getInTable('SecurityAPP', 'users', 'Email= ?', [email])
+        if (databases instanceof Array && databases.length > 0) {
+            let __users__ = 0;
+            databases.map((__database__, i) => {
+                if (String(__database__).length <= 0) return;
+
+                mysql.getInTable(__database__, 'users', 'Email= ?', [email])
                     .then(async ({ sql, query }) => {
                         if (query.results.length > 0) {
-                            let user = query.results[0];
-
-                            let decoded_pass = JSON.parse(lzstring.decompressFromBase64(user['Password']));
-
-                            decoded_pass.tag = Buffer.from(decoded_pass.tag);
-
-                            decoded_pass = await crypto.decrypt(decoded_pass, password);
-
-                            if (decoded_pass !== password)
-                                return res.status(400).send({ error: 'Invalid password' });
-
-                            /** Removing keys from response requested */
-                            delete user['Password'];
-                            delete user['Password_Reset'];
-                            delete user['Messages'];
-                            delete user['DateAt'];
-
-                            return res.status(200).send({
-                                success: 'Get user in table from Email and Password values is success', sql: sql, query: {
-                                    results: {
-                                        user,
-                                        token: generateToken({ id: user['ID'] })
-                                    }
-                                }
-                            });
+                            __users__++;
+                            return res.status(400).send({ error: 'Email already exist in other client' })
+                        } else {
+                            if (i >= databases.length && __users__.length <= 0)
+                                return onSuccess();
                         }
-                        return res.status(400).send({ error: 'User not exist' });
                     })
                     .catch(({ err, details }) => {
                         if (err) return res.status(400).send({ error: err, details });
                     })
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
-            })
+        } else {
+            return onSuccess();
+        }
 
+        function onSuccess() {
+            mysql.insertInTable(database, 'users', '(Filial, Nome, Email, Password)', [
+                [
+                    String(filial),
+                    String(name.substring(0, table_user.varchar.limits.nome)),
+                    String(email.substring(0, table_user.varchar.limits.email)),
+                    String(encoded_password),
+                ]
+            ])
+                .then(({ sql, query }) => {
+                    mysql.getInTable(database, 'users', 'Email= ?', [email])
+                        .then(async ({ sql, query }) => {
+                            if (query.results.length > 0) {
+                                let user = query.results[0];
+
+                                let decoded_pass = JSON.parse(lzstring.decompressFromBase64(user['Password']));
+
+                                decoded_pass.tag = Buffer.from(decoded_pass.tag);
+
+                                decoded_pass = await crypto.decrypt(decoded_pass, password);
+
+                                if (decoded_pass !== password)
+                                    return res.status(400).send({ error: 'Invalid password' });
+
+                                /** Removing keys from response requested */
+                                delete user['Password'];
+                                delete user['Password_Reset'];
+                                delete user['Messages'];
+                                delete user['DateAt'];
+
+                                return res.status(200).send({
+                                    success: 'Get user in table from Email and Password values is success', sql: sql, query: {
+                                        results: {
+                                            user,
+                                            token: generateToken({ id: user['ID'], filial: user['Filial'] })
+                                        }
+                                    }
+                                });
+                            }
+                            return res.status(400).send({ error: 'User not exist' });
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+                })
+                .catch(({ err, details }) => {
+                    if (err) return res.status(400).send({ error: err, details });
+                })
+        }
     } catch (err) {
         return res.status(400).send({ error: 'Registration Failed', details: err });
     }
 })
 
-router.put([`/update`, `/update/:id`], cors(corsOptions), apiMiddleware, async (req, res) => {
+router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
     let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    const { name, email, password } = req.body;
+    const { filial, name, email, password } = req.body;
 
-    if (!name || !email || !password)
+    if (!filial || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
+
+        const database = filial;
 
         let encoded_password = crypto.encrypt(password);
 
         encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
 
-        mysql.updateInTable('SecurityAPP', 'users',
+        mysql.updateInTable(database, 'users',
             `Nome='${name.substring(0, table_user.varchar.limits.nome)}',` +
             `Email='${email.substring(0, table_user.varchar.limits.email)}',` +
             `Password='${encoded_password}'`,
@@ -403,13 +664,17 @@ router.put([`/update`, `/update/:id`], cors(corsOptions), apiMiddleware, async (
     }
 });
 
-router.delete([`/remove`, `/remove/:id`], cors(corsOptions), apiMiddleware, async (req, res) => {
+router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
     let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
+    const { filial } = req.body;
+
     try {
 
-        mysql.dropInTable('SecurityAPP', 'users', id)
+        const database = filial;
+
+        mysql.dropInTable(database, 'users', id)
             .then(({ sql, query }) => {
                 return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: query });
             })
@@ -422,102 +687,4 @@ router.delete([`/remove`, `/remove/:id`], cors(corsOptions), apiMiddleware, asyn
     }
 })
 
-module.exports = (app) => {
-    /**
-     * Set Router
-     */
-
-    app.use('/api/users', router);
-
-    /**
-     * Create DATABASE and TABLE
-     */
-
-    mysql.createDatabase('SecurityAPP', 'utf8mb4')
-        .then(({ sql, query }) => {
-
-            const database = "SecurityAPP", table = "users";
-
-            mysql.createTable(database, table)
-                .then(({ sql, query }) => {
-
-                    mysql.modifyTable(database, table, [
-                        [
-                            'Nome',
-                            `COLUMN %COLUMN_NAME varchar(${table_user.varchar.limits.nome})`,
-                            ['NOT NULL']
-                        ],
-                        [
-                            'Email',
-                            `COLUMN %COLUMN_NAME varchar(${table_user.varchar.limits.email})`,
-                            ['NOT NULL', 'UNIQUE']
-                        ],
-                        [
-                            'Password',
-                            `COLUMN %COLUMN_NAME LONGTEXT`,
-                            ['NOT NULL']
-                        ],
-                        [
-                            'Password_Reset',
-                            'COLUMN %COLUMN_NAME LONGTEXT',
-                            []
-                        ],
-                        [
-                            'DateAt',
-                            `COLUMN %COLUMN_NAME TIMESTAMP`,
-                            ['DEFAULT', 'CURRENT_TIMESTAMP()']
-                        ],
-                        [
-                            'Messages',
-                            `COLUMN %COLUMN_NAME LONGTEXT`,
-                            []
-                        ]
-                    ]
-                    )
-                        .then(({ sql, query }) => {
-
-                            mysql.setPositionColumnsInTable(database, table, [
-                                [
-                                    'Nome',
-                                    `varchar(${table_user.varchar.limits.nome}) NOT NULL FIRST`
-                                ],
-                                [
-                                    'Email',
-                                    `varchar(${table_user.varchar.limits.email}) NOT NULL UNIQUE AFTER Nome`
-                                ],
-                                [
-                                    'Password',
-                                    `LONGTEXT NOT NULL AFTER Email`
-                                ],
-                                [
-                                    'Password_Reset AFTER Password',
-                                    `LONGTEXT`
-                                ],
-                                [
-                                    'DateAt',
-                                    `TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER Password_Reset`
-                                ],
-                                [
-                                    'Messages',
-                                    `LONGTEXT AFTER DateAt`
-                                ]
-                            ])
-                                .catch(({ err, details }) => {
-                                    if (err) return console.error({ error: err, details });
-                                })
-
-                        })
-                        .catch(({ err, details }) => {
-                            if (err) return console.error({ error: err, details });
-                        })
-
-                })
-                .catch(({ err, details }) => {
-                    if (err) return console.error({ error: err, details });
-                })
-
-        }).catch(({ err, details }) => {
-            if (err) return console.error({ error: err, details });
-        })
-
-}
+module.exports = (app) => app.use('/api/users', router);

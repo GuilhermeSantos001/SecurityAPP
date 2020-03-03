@@ -160,7 +160,7 @@ class MyDocument extends React.Component {
 
 export default function GraphicsPDF(configs) {
     return (
-        <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf" style={{ 'color': '#00d9ff', 'textDecoration': 'none' }}>
+        <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf" style={{ 'color': '#282c34', 'textDecoration': 'none' }}>
             {({ blob, url, loading, error }) => (loading ? 'Carregando Documento...' : 'Exportar para PDF')}
         </PDFDownloadLink>
     )

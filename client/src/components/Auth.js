@@ -9,11 +9,6 @@ import React from "react";
 import * as LZString from 'lz-string';
 
 /**
- * Import Axios
- */
-import axios from 'axios';
-
-/**
  * Import Resources from Page
  */
 import '../css/Auth.css';
@@ -202,39 +197,73 @@ export default class Index extends React.Component {
             String(email).length <= 0
         ) return animateCSS('email', 'shake');
 
-        axios.post('http://localhost:5000/api/auth/forgot_password', {
-            email: String(email)
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'api_key': this.getApiKey()
-            }
-        })
-            .then((response) => {
-                if (response.data.query.results.user) {
-
-                    let now = new Date();
-
-                    now.setHours(now.getHours() + 1);
-
-                    sessionStorage.setItem('reset_password', LZString.compressToBase64(JSON.stringify({
-                        'email': String(email),
-                        'expires': now
-                    })))
-
-                    animateCSS('form-container', 'fadeOutDown', () => {
-                        this.setState({ 'forgot_password': { 'email': email } });
-                        animateCSS('alertForgotPassword', 'fadeInUp');
-                    });
+        const
+            http = require("http"),
+            options = {
+                "method": "POST",
+                "hostname": "reactappstudy.ddns.net",
+                "port": "5000",
+                "path": "/api/auth/forgot_password",
+                "headers": {
+                    "content-type": "application/json",
+                    "api_key": this.getApiKey(),
+                    "content-length": "57"
                 }
-            })
-            .catch((error) => {
-                this.setState({ 'message_error': `Não foi possivel enviar a solicitação para a troca de senha no endereço de email (${email})` });
-                if (document.getElementById('alertUser').classList.contains('invisible')) {
-                    document.getElementById('alertUser').classList.remove("invisible");
-                    animateCSS('alertUser', 'fadeInUp');
-                }
-            })
+            },
+            context = this,
+            req = http.request(options, function (res) {
+                let chunks = [];
+
+                const
+                    onSuccess = (data) => {
+                        if (data.user) {
+
+                            let now = new Date();
+
+                            now.setHours(now.getHours() + 1);
+
+                            sessionStorage.setItem('reset_password', LZString.compressToBase64(JSON.stringify({
+                                'email': String(email),
+                                'expires': now
+                            })))
+
+                            animateCSS('form-container', 'fadeOutDown', () => {
+                                context.setState({ 'forgot_password': { 'email': email } });
+                                animateCSS('alertForgotPassword', 'fadeInUp');
+                            });
+                        }
+                    },
+                    onError = () => {
+                        context.setState({ 'message_error': `Não foi possivel enviar a solicitação para a troca de senha no endereço de email (${email})` });
+                        if (document.getElementById('alertUser').classList.contains('invisible')) {
+                            document.getElementById('alertUser').classList.remove("invisible");
+                            animateCSS('alertUser', 'fadeInUp');
+                        }
+                    }
+
+                res.on("data", chunk => chunks.push(chunk));
+
+                res.on("end", () => {
+                    const body = Buffer.concat(chunks);
+
+                    try {
+                        const data = JSON.parse(body.toString());
+
+                        if (data['error']) {
+                            return onError();
+                        } else {
+                            return onSuccess(data['query']['results']);
+                        }
+
+                    } catch (err) {
+                        return new Error(err);
+                    }
+
+                });
+            });
+
+        req.write(JSON.stringify({ email: String(email) }));
+        req.end();
     }
 
     handleClickResetPassword() {
@@ -256,60 +285,91 @@ export default class Index extends React.Component {
         }
 
         if (this.state.new_account_password) {
-            axios.post('http://localhost:5000/api/auth/reset_password', {
-                email: String(email),
-                token: String(token),
-                password: String(password)
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api_key': this.getApiKey()
-                }
-            })
-                .then((response) => {
-                    if (response.data.query.results.user) {
+            const
+                http = require("http"),
+                options = {
+                    "method": "POST",
+                    "hostname": "reactappstudy.ddns.net",
+                    "port": "5000",
+                    "path": "/api/auth/reset_password",
+                    "headers": {
+                        "content-type": "application/json",
+                        "api_key": this.getApiKey(),
+                        "content-length": "57"
+                    }
+                },
+                context = this,
+                req = http.request(options, function (res) {
+                    let chunks = [];
 
-                        sessionStorage.removeItem('reset_password');
-                        document.getElementById('token_resetPassword').disabled = true;
-                        document.getElementById('email').disabled = true;
-                        document.getElementById('password').disabled = true;
-                        document.getElementById('password_confirm').disabled = true;
-                        this.buttonResetPassword.disabled = true;
+                    const
+                        onSuccess = (data) => {
+                            if (data.user) {
 
-                        this.setState({ 'message_error': `Senha alterada com sucesso!` });
-                        if (document.getElementById('alertUser').classList.contains('alert-danger')) {
-                            document.getElementById('alertUser').classList.remove("alert-danger");
-                            document.getElementById('alertUser').classList.add("alert-success");
+                                sessionStorage.removeItem('reset_password');
+                                document.getElementById('token_resetPassword').disabled = true;
+                                document.getElementById('email').disabled = true;
+                                document.getElementById('password').disabled = true;
+                                document.getElementById('password_confirm').disabled = true;
+                                context.buttonResetPassword.disabled = true;
+
+                                context.setState({ 'message_error': `Senha alterada com sucesso!` });
+                                if (document.getElementById('alertUser').classList.contains('alert-danger')) {
+                                    document.getElementById('alertUser').classList.remove("alert-danger");
+                                    document.getElementById('alertUser').classList.add("alert-success");
+                                }
+
+                                if (document.getElementById('alertUser').classList.contains('invisible')) {
+                                    document.getElementById('alertUser').classList.remove("invisible");
+                                    document.getElementById('alertUser').classList.add("alert-success");
+                                    animateCSS('alertUser', 'fadeInUp');
+                                }
+                            }
+                        },
+                        onError = (code) => {
+                            if (code === 1) {
+                                context.setState({ 'message_error': `Não foi possivel encontrar seu token` });
+                                sessionStorage.removeItem('reset_password');
+                            } else if (code === 2) {
+                                context.setState({ 'message_error': `Token invalido` });
+                            } else if (code === 3) {
+                                context.setState({ 'message_error': `Token expirado` });
+                                sessionStorage.removeItem('reset_password');
+                            } else {
+                                context.setState({ 'message_error': `Não foi possivel redefinir sua senha` });
+                                sessionStorage.removeItem('reset_password');
+                            }
+
+                            if (document.getElementById('alertUser').classList.contains('invisible')) {
+                                document.getElementById('alertUser').classList.remove("invisible");
+                                animateCSS('alertUser', 'fadeInUp');
+                            }
                         }
 
-                        if (document.getElementById('alertUser').classList.contains('invisible')) {
-                            document.getElementById('alertUser').classList.remove("invisible");
-                            document.getElementById('alertUser').classList.add("alert-success");
-                            animateCSS('alertUser', 'fadeInUp');
-                        }
-                    }
-                })
-                .catch((error) => {
-                    if (error.response && error.response.data.code === 1) {
-                        this.setState({ 'message_error': `Não foi possivel encontrar seu token` });
-                        sessionStorage.removeItem('reset_password');
-                    } else if (error.response && error.response.data.code === 2) {
-                        this.setState({ 'message_error': `Token invalido` });
-                    } else if (error.response && error.response.data.code === 3) {
-                        this.setState({ 'message_error': `Token expirado` });
-                        sessionStorage.removeItem('reset_password');
-                    } else {
-                        this.setState({ 'message_error': `Não foi possivel redefinir sua senha` });
-                        sessionStorage.removeItem('reset_password');
-                    }
+                    res.on("data", chunk => chunks.push(chunk));
 
-                    if (document.getElementById('alertUser').classList.contains('invisible')) {
-                        document.getElementById('alertUser').classList.remove("invisible");
-                        animateCSS('alertUser', 'fadeInUp');
-                    }
-                })
+                    res.on("end", () => {
+                        const body = Buffer.concat(chunks);
+
+                        try {
+                            const data = JSON.parse(body.toString());
+
+                            if (data['error']) {
+                                return onError(data['code']);
+                            } else {
+                                return onSuccess(data['query']['results']);
+                            }
+
+                        } catch (err) {
+                            return new Error(err);
+                        }
+
+                    });
+                });
+
+            req.write(JSON.stringify({ email: String(email), token: String(token), password: String(password) }));
+            req.end();
         }
-
     }
 
     handleConfirmPassword() {
@@ -399,51 +459,92 @@ export default class Index extends React.Component {
             return;
         }
 
-        axios.post('http://localhost:5000/api/auth/sign', {
-            email: String(email),
-            password: String(password)
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'api_key': this.getApiKey()
-            }
-        })
-            .then((response) => {
+        const
+            http = require("http"),
+            options = {
+                "method": "POST",
+                "hostname": "reactappstudy.ddns.net",
+                "port": "5000",
+                "path": "/api/auth/sign",
+                "headers": {
+                    "content-type": "application/json",
+                    "api_key": this.getApiKey(),
+                    "content-length": "57"
+                }
+            },
+            context = this,
+            req = http.request(options, function (res) {
+                let chunks = [];
 
                 const
-                    user = response.data.query.results.user,
-                    token = response.data.query.results.token;
+                    onSuccess = (data) => {
+                        const
+                            user = data.user,
+                            token = data.token;
 
-                if (user) {
-                    this.setSessionUser({
-                        'id': user['ID'],
-                        'name': user['Nome'],
-                        'email': user['Email'],
-                        'token': token
-                    })
-                    this.componentCallChangePage('/app', {});
-                }
+                        if (user) {
+                            context.setSessionUser({
+                                'id': user['ID'],
+                                'name': user['Nome'],
+                                'email': user['Email'],
+                                'token': token
+                            })
+                            context.componentCallChangePage('/app', {});
+                        }
+                    },
+                    onError = (code) => {
 
-            })
-            .catch((error) => {
+                        document.getElementById('password').value = '';
 
-                document.getElementById('password').value = '';
+                        if (
+                            !document.getElementById('email').classList.contains("is-invalid") ||
+                            !document.getElementById('password').classList.contains("is-invalid")
+                        ) {
+                            document.getElementById('email').classList.add("is-invalid");
+                            document.getElementById('password').classList.add("is-invalid");
+                        }
 
-                if (
-                    !document.getElementById('email').classList.contains("is-invalid") ||
-                    !document.getElementById('password').classList.contains("is-invalid")
-                ) {
-                    document.getElementById('email').classList.add("is-invalid");
-                    document.getElementById('password').classList.add("is-invalid");
-                }
+                        switch (code) {
+                            case 1:
+                                context.setState({ 'message_error': `Senha inválida.`, 'message_error_code': 1 });
+                                break;
+                            case 2:
+                                context.setState({ 'message_error': `Endereço de email inválido.`, 'message_error_code': 1 });
+                                break;
+                            default:
+                                context.setState({ 'message_error': `Não foi possível efetuar o login, tente novamente mais tarde...`, 'message_error_code': 1 });
+                                break;
+                        }
 
-                this.setState({ 'message_error': `Endereço de Email/Senha Invalidos`, 'message_error_code': 1 });
-                if (document.getElementById('alertUser').classList.contains("invisible")) {
-                    document.getElementById('alertUser').classList.remove("invisible");
-                    animateCSS('alertUser', 'fadeInUp');
-                }
+                        if (document.getElementById('alertUser').classList.contains("invisible")) {
+                            document.getElementById('alertUser').classList.remove("invisible");
+                            animateCSS('alertUser', 'fadeInUp');
+                        }
+                    }
 
-            })
+                res.on("data", chunk => chunks.push(chunk));
+
+                res.on("end", () => {
+                    const body = Buffer.concat(chunks);
+
+                    try {
+                        const data = JSON.parse(body.toString());
+
+                        if (data['error']) {
+                            return onError(data['code']);
+                        } else {
+                            return onSuccess(data['query']['results']);
+                        }
+
+                    } catch (err) {
+                        return new Error(err);
+                    }
+
+                });
+            });
+
+        req.write(JSON.stringify({ email: String(email), password: String(password) }));
+        req.end();
     }
 
     handleEmailExist = () => {
@@ -478,70 +579,101 @@ export default class Index extends React.Component {
             return;
         };
 
-        axios.get('http://localhost:5000/api/users', {
-            headers: {
-                'Content-Type': 'application/json',
-                'api_key': this.getApiKey()
+        const
+            http = require("http"),
+            options = {
+                "method": "GET",
+                "hostname": "reactappstudy.ddns.net",
+                "port": "5000",
+                "path": "/api/users",
+                "headers": {
+                    "content-type": "application/json",
+                    "api_key": this.getApiKey(),
+                    "content-length": "57"
+                }
             },
-            params: {
-                email: String(email)
-            }
-        })
-            .then((response) => {
-                const users = response.data.query.results;
+            context = this,
+            req = http.request(options, function (res) {
+                let chunks = [];
 
-                if (users.length > 0) {
-                    this.setState({ 'message_error': `Endereço de email (${email}) já está em uso.`, 'new_account_email': false });
+                const
+                    onSuccess = (data) => {
+                        if (data.length > 0 && data.filter(user => user['Email'] === String(email)).length > 0) {
+                            context.setState({ 'message_error': `Endereço de email (${email}) já está em uso.`, 'new_account_email': false });
 
-                    if (document.getElementById('alertUser').classList.contains('invisible')) {
-                        document.getElementById('alertUser').classList.remove('invisible');
-                        document.getElementById('email').classList.add('is-invalid');
-                        animateCSS('alertUser', 'fadeInUp');
-                    }
-                } else {
-                    this.setState({ 'new_account_email': true });
+                            if (document.getElementById('alertUser').classList.contains('invisible')) {
+                                document.getElementById('alertUser').classList.remove('invisible');
+                                document.getElementById('email').classList.add('is-invalid');
+                                animateCSS('alertUser', 'fadeInUp');
+                            }
+                        } else {
+                            context.setState({ 'new_account_email': true });
 
-                    if (!document.getElementById('alertUser').classList.contains('invisible')) {
+                            if (!document.getElementById('alertUser').classList.contains('invisible')) {
+                                animateCSS('alertUser', 'fadeOutDown', () => {
+                                    document.getElementById('alertUser').classList.add('invisible');
+                                });
+                            }
+
+                            if (
+                                document.getElementById('email').classList.contains('is-invalid') ||
+                                !document.getElementById('email').classList.contains('is-valid')
+                            ) {
+                                document.getElementById('email').classList.remove('is-invalid');
+                                document.getElementById('email').classList.add('is-valid');
+                            }
+                        }
+                    },
+                    onError = () => {
                         animateCSS('alertUser', 'fadeOutDown', () => {
-                            document.getElementById('alertUser').classList.add('invisible');
+                            if (document.getElementById('alertUser'))
+                                document.getElementById('alertUser').classList.add('invisible');
+
+                            if (document.getElementById('name')) {
+                                document.getElementById('name').classList.remove('is-invalid');
+                                document.getElementById('name').classList.remove('is-valid');
+                            }
+
+                            if (document.getElementById('email')) {
+                                document.getElementById('email').classList.remove('is-invalid');
+                                document.getElementById('email').classList.remove('is-valid');
+                            }
+
+                            if (document.getElementById('password')) {
+                                document.getElementById('password').classList.remove('is-invalid');
+                                document.getElementById('password').classList.remove('is-valid');
+                            }
+
+                            if (document.getElementById('password_confirm')) {
+                                document.getElementById('password_confirm').classList.remove('is-invalid');
+                                document.getElementById('password_confirm').classList.remove('is-valid');
+                            }
                         });
                     }
 
-                    if (
-                        document.getElementById('email').classList.contains('is-invalid') ||
-                        !document.getElementById('email').classList.contains('is-valid')
-                    ) {
-                        document.getElementById('email').classList.remove('is-invalid');
-                        document.getElementById('email').classList.add('is-valid');
-                    }
-                }
-            })
-            .catch((error) => {
-                animateCSS('alertUser', 'fadeOutDown', () => {
-                    if (document.getElementById('alertUser'))
-                        document.getElementById('alertUser').classList.add('invisible');
+                res.on("data", chunk => chunks.push(chunk));
 
-                    if (document.getElementById('name')) {
-                        document.getElementById('name').classList.remove('is-invalid');
-                        document.getElementById('name').classList.remove('is-valid');
-                    }
+                res.on("end", () => {
+                    const body = Buffer.concat(chunks);
 
-                    if (document.getElementById('email')) {
-                        document.getElementById('email').classList.remove('is-invalid');
-                        document.getElementById('email').classList.remove('is-valid');
+                    try {
+                        const data = JSON.parse(body.toString());
+
+                        if (data['error']) {
+                            return onError();
+                        } else {
+                            return onSuccess(data['query']['results']);
+                        }
+
+                    } catch (err) {
+                        return new Error(err);
                     }
 
-                    if (document.getElementById('password')) {
-                        document.getElementById('password').classList.remove('is-invalid');
-                        document.getElementById('password').classList.remove('is-valid');
-                    }
-
-                    if (document.getElementById('password_confirm')) {
-                        document.getElementById('password_confirm').classList.remove('is-invalid');
-                        document.getElementById('password_confirm').classList.remove('is-valid');
-                    }
                 });
-            })
+            });
+
+        req.write(JSON.stringify({ email: String(email) }));
+        req.end();
     }
 
     handleClickNewAccount = () => {
@@ -566,79 +698,107 @@ export default class Index extends React.Component {
         }
 
         if (this.state.new_account_name && this.state.new_account_email && this.state.new_account_password) {
-
-            axios.post('http://localhost:5000/api/users/register', {
-                name: String(name),
-                email: String(email),
-                password: String(password)
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api_key': this.getApiKey()
-                }
-            })
-                .then((response) => {
+            const
+                http = require("http"),
+                options = {
+                    "method": "POST",
+                    "hostname": "reactappstudy.ddns.net",
+                    "port": "5000",
+                    "path": "/api/users/register",
+                    "headers": {
+                        "content-type": "application/json",
+                        "api_key": this.getApiKey(),
+                        "content-length": "57"
+                    }
+                },
+                context = this,
+                req = http.request(options, function (res) {
+                    let chunks = [];
 
                     const
-                        user = response.data.query.results.user,
-                        token = response.data.query.results.token;
+                        onSuccess = (data) => {
+                            const
+                                user = data.user,
+                                token = data.token;
 
-                    if (user) {
-                        this.setSessionUser({
-                            'id': user['ID'],
-                            'name': user['Nome'],
-                            'email': user['Email'],
-                            'token': token
-                        })
-                        this.componentCallChangePage('/app', {});
-                    }
+                            if (user) {
+                                context.setSessionUser({
+                                    'id': user['ID'],
+                                    'name': user['Nome'],
+                                    'email': user['Email'],
+                                    'token': token
+                                })
+                                context.componentCallChangePage('/app', {});
+                            }
+                        },
+                        onError = () => {
+                            if (
+                                document.getElementById('name').classList.contains('is-valid') ||
+                                document.getElementById('name').classList.contains('is-invalid')
+                            ) {
+                                document.getElementById('name').classList.remove('is-valid');
+                                document.getElementById('name').classList.remove('is-invalid');
+                            }
 
-                })
-                .catch((error) => {
-                    if (
-                        document.getElementById('name').classList.contains('is-valid') ||
-                        document.getElementById('name').classList.contains('is-invalid')
-                    ) {
-                        document.getElementById('name').classList.remove('is-valid');
-                        document.getElementById('name').classList.remove('is-invalid');
-                    }
+                            if (
+                                document.getElementById('email').classList.contains('is-valid') ||
+                                document.getElementById('email').classList.contains('is-invalid')
+                            ) {
+                                document.getElementById('email').classList.remove('is-valid');
+                                document.getElementById('email').classList.remove('is-invalid');
+                            }
 
-                    if (
-                        document.getElementById('email').classList.contains('is-valid') ||
-                        document.getElementById('email').classList.contains('is-invalid')
-                    ) {
-                        document.getElementById('email').classList.remove('is-valid');
-                        document.getElementById('email').classList.remove('is-invalid');
-                    }
+                            if (
+                                document.getElementById('password').classList.contains('is-valid') ||
+                                document.getElementById('password').classList.contains('is-invalid')
+                            ) {
+                                document.getElementById('password').classList.remove('is-valid');
+                                document.getElementById('password').classList.remove('is-invalid');
+                            }
 
-                    if (
-                        document.getElementById('password').classList.contains('is-valid') ||
-                        document.getElementById('password').classList.contains('is-invalid')
-                    ) {
-                        document.getElementById('password').classList.remove('is-valid');
-                        document.getElementById('password').classList.remove('is-invalid');
-                    }
+                            if (
+                                document.getElementById('password_confirm').classList.contains('is-valid') ||
+                                document.getElementById('password_confirm').classList.contains('is-invalid')
+                            ) {
+                                document.getElementById('password_confirm').classList.remove('is-valid');
+                                document.getElementById('password_confirm').classList.remove('is-invalid');
+                            }
 
-                    if (
-                        document.getElementById('password_confirm').classList.contains('is-valid') ||
-                        document.getElementById('password_confirm').classList.contains('is-invalid')
-                    ) {
-                        document.getElementById('password_confirm').classList.remove('is-valid');
-                        document.getElementById('password_confirm').classList.remove('is-invalid');
-                    }
+                            document.getElementById('name').value = '';
+                            document.getElementById('email').value = '';
+                            document.getElementById('password').value = '';
+                            document.getElementById('password_confirm').value = '';
 
-                    document.getElementById('name').value = '';
-                    document.getElementById('email').value = '';
-                    document.getElementById('password').value = '';
-                    document.getElementById('password_confirm').value = '';
+                            context.setState({ 'message_error': `Não foi possivel criar sua conta` });
+                            if (document.getElementById('alertUser').classList.contains('invisible')) {
+                                document.getElementById('alertUser').classList.remove("invisible");
+                                animateCSS('alertUser', 'fadeInUp');
+                            }
+                        }
 
-                    this.setState({ 'message_error': `Não foi possivel criar sua conta` });
-                    if (document.getElementById('alertUser').classList.contains('invisible')) {
-                        document.getElementById('alertUser').classList.remove("invisible");
-                        animateCSS('alertUser', 'fadeInUp');
-                    }
+                    res.on("data", chunk => chunks.push(chunk));
 
-                })
+                    res.on("end", () => {
+                        const body = Buffer.concat(chunks);
+
+                        try {
+                            const data = JSON.parse(body.toString());
+
+                            if (data['error']) {
+                                return onError();
+                            } else {
+                                return onSuccess(data['query']['results']);
+                            }
+
+                        } catch (err) {
+                            return new Error(err);
+                        }
+
+                    });
+                });
+
+            req.write(JSON.stringify({ name: String(name), email: String(email), password: String(password) }));
+            req.end();
         }
     }
 

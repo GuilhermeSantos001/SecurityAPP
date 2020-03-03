@@ -9,7 +9,7 @@
 }
 
 .overflow-auto::-webkit-scrollbar {
-    width: .1vw;
+    width: .3vw;
     background-color: #282c34;
 }
 

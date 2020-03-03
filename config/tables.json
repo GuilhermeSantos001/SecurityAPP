@@ -1,9 +1,236 @@
 {
-    "users": {
+    "usuario": {
         "varchar": {
             "limits": {
                 "nome": 120,
-                "email": 320
+                "email": 120,
+                "level_access": 120
+            }
+        }
+    },
+    "empresa": {
+        "varchar": {
+            "limits": {
+                "razao_social": 100,
+                "fantasia": 30,
+                "telefone": 13,
+                "endereco": 100,
+                "site": 100,
+                "email": 100
+            }
+        }
+    },
+    "cliente": {
+        "varchar": {
+            "limits": {
+                "razao_social": 100,
+                "fantasia": 30,
+                "telefone": 13,
+                "endereco": 100,
+                "site": 100,
+                "email": 100
+            }
+        }
+    },
+    "servico": {
+        "varchar": {
+            "limits": {
+                "nome": 100
+            }
+        },
+        "decimal": {
+            "valor_dia": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_hora": {
+                "digits": 9,
+                "decimals": 3
+            }
+        }
+    },
+    "funcao": {
+        "varchar": {
+            "limits": {
+                "nome": 30
+            }
+        }
+    },
+    "contrato": {
+        "varchar": {
+            "limits": {
+                "nome_empresa": 100,
+                "nome_cliente": 100
+            }
+        }
+    },
+    "itens_contrato": {
+        "varchar": {
+            "limits": {
+                "nome_servico": 100,
+                "nome_funcao": 30
+            }
+        }
+    },
+    "funcionario": {
+        "varchar": {
+            "limits": {
+                "nome": 100,
+                "cpf": 14,
+                "rg": 12,
+                "pis": 100,
+                "endereco": 100,
+                "telefone_1": 100,
+                "telefone_2": 100,
+                "email": 100,
+                "carteira_trabalho": 100,
+                "banco": 100,
+                "agencia": 100,
+                "conta_corrente": 100
+            }
+        }
+    },
+    "escala": {
+        "varchar": {
+            "limits": {
+                "nome": 100
+            }
+        }
+    },
+    "valores_regras": {
+        "varchar": {
+            "limits": {
+                "nome": 100
+            }
+        },
+        "decimal": {
+            "valor": {
+                "digits": 9,
+                "decimals": 3
+            }
+        }
+    },
+    "alocacao_funcionario": {
+        "varchar": {
+            "limits": {
+                "nome_funcionario": 100,
+                "nome_escala": 100,
+                "nome_contrato": 100
+            }
+        }
+    },
+    "confirmacao_presenca": {
+        "varchar": {
+            "limits": {
+                "nome_contrato": 100,
+                "nome_funcionario": 100,
+                "nome_funcao": 100,
+                "status": 20
+            }
+        }
+    },
+    "apontamentos": {
+        "varchar": {
+            "limits": {
+                "nome_contrato": 100,
+                "nome_funcionario": 100,
+                "nome_servico": 100
+            }
+        },
+        "decimal": {
+            "valor_dia": {
+                "digits": 9,
+                "decimals": 3
+            }
+        }
+    },
+    "calculo_pagamento": {
+        "varchar": {
+            "limits": {
+                "nome": 100,
+                "nome_funcionario": 100
+            }
+        },
+        "decimal": {
+            "valor_dia": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_total": {
+                "digits": 9,
+                "decimals": 3
+            }
+        }
+    },
+    "conferencia_pagamento": {
+        "varchar": {
+            "limits": {
+                "nome_funcionario": 100,
+                "nome_funcao": 100,
+                "nome_contrato": 100
+            }
+        },
+        "decimal": {
+            "valor_total": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_desconto": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_gratificacao": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_final": {
+                "digits": 9,
+                "decimals": 3
+            }
+        }
+    },
+    "pagamento": {
+        "varchar": {
+            "limits": {
+                "nome_funcionario": 100,
+                "nome_funcao": 100,
+                "nome_contrato": 100,
+                "banco": 100,
+                "agencia": 100,
+                "conta_corrente": 100
+            }
+        },
+        "decimal": {
+            "valor_total": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_desconto": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_gratificacao": {
+                "digits": 9,
+                "decimals": 3
+            },
+            "valor_final": {
+                "digits": 9,
+                "decimals": 3
+            }
+        }
+    },
+    "recibo": {
+        "varchar": {
+            "limits": {
+                "nome_funcionario": 100,
+                "nome_funcao": 100,
+                "nome_contrato": 100
+            }
+        },
+        "decimal": {
+            "valor_final": {
+                "digits": 9,
+                "decimals": 3
             }
         }
     }
