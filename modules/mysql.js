@@ -94,7 +94,7 @@ module.exports = {
                         sql = `CREATE TABLE IF NOT EXISTS ${table} ${"(\n" +
                             "ID int NOT NULL AUTO_INCREMENT,\n" +
                             "PRIMARY KEY (ID)\n" +
-                            ")"}`;
+                            ") ENGINE=INNODB"}`;
 
                         connection.query(sql, (err, results, fields) => {
                             if (err) {

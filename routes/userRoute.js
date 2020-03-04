@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
-const databases = require('../config/databases');
-const table_user = require('../config/tables').users;
+const databaseWebToken = require('../mysql/databaseWebToken');
+const inviteWebToken = require('../mysql/inviteWebToken');
+const table_user = require('../config/tables').usuario;
 const apiMiddleware = require('../middlewares/api');
 const authMiddleware = require('../middlewares/auth');
 const crypto = require('../api/crypto');
@@ -540,94 +541,114 @@ router.get([`/`, `/:id`], apiMiddleware, async (req, res) => {
 });
 
 router.post(`/register`, apiMiddleware, async (req, res) => {
-    const { filial, name, email, password } = req.body;
+    const { invitewebtoken, webtoken, name, email, password } = req.body;
 
-    if (!filial || !name || !email || !password)
+    if (!invitewebtoken || !webtoken || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
-    try {
+    databaseWebToken.verify(String(webtoken))
+        .then((database) => {
 
-        const database = filial;
+            inviteWebToken.verify(String(invitewebtoken), String(webtoken))
+                .then((invite) => {
 
-        let encoded_password = crypto.encrypt(password);
+                    const
+                        now = new Date(),
+                        expiresIn = new Date(invite['expiresIn']);
 
-        encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
-
-        if (databases instanceof Array && databases.length > 0) {
-            let __users__ = 0;
-            databases.map((__database__, i) => {
-                if (String(__database__).length <= 0) return;
-
-                mysql.getInTable(__database__, 'users', 'Email= ?', [email])
-                    .then(async ({ sql, query }) => {
-                        if (query.results.length > 0) {
-                            __users__++;
-                            return res.status(400).send({ error: 'Email already exist in other client' })
-                        } else {
-                            if (i >= databases.length && __users__.length <= 0)
-                                return onSuccess();
-                        }
-                    })
-                    .catch(({ err, details }) => {
-                        if (err) return res.status(400).send({ error: err, details });
-                    })
-            })
-        } else {
-            return onSuccess();
-        }
-
-        function onSuccess() {
-            mysql.insertInTable(database, 'users', '(Filial, Nome, Email, Password)', [
-                [
-                    String(filial),
-                    String(name.substring(0, table_user.varchar.limits.nome)),
-                    String(email.substring(0, table_user.varchar.limits.email)),
-                    String(encoded_password),
-                ]
-            ])
-                .then(({ sql, query }) => {
-                    mysql.getInTable(database, 'users', 'Email= ?', [email])
-                        .then(async ({ sql, query }) => {
-                            if (query.results.length > 0) {
-                                let user = query.results[0];
-
-                                let decoded_pass = JSON.parse(lzstring.decompressFromBase64(user['Password']));
-
-                                decoded_pass.tag = Buffer.from(decoded_pass.tag);
-
-                                decoded_pass = await crypto.decrypt(decoded_pass, password);
-
-                                if (decoded_pass !== password)
-                                    return res.status(400).send({ error: 'Invalid password' });
-
-                                /** Removing keys from response requested */
-                                delete user['Password'];
-                                delete user['Password_Reset'];
-                                delete user['Messages'];
-                                delete user['DateAt'];
-
-                                return res.status(200).send({
-                                    success: 'Get user in table from Email and Password values is success', sql: sql, query: {
-                                        results: {
-                                            user,
-                                            token: generateToken({ id: user['ID'], filial: user['Filial'] })
-                                        }
-                                    }
+                    if (now > expiresIn) {
+                        inviteWebToken.destroy(String(invitewebtoken))
+                            .then(() => {
+                                return res.status(401).send({
+                                    error: 'Webtoken invite expired, request new other!'
                                 });
-                            }
-                            return res.status(400).send({ error: 'User not exist' });
-                        })
-                        .catch(({ err, details }) => {
-                            if (err) return res.status(400).send({ error: err, details });
-                        })
+                            })
+                            .catch(() => {
+                                return res.status(400).send({
+                                    error: 'Webtoken invite expired, not possible destroy it. Request new other!'
+                                });
+                            })
+                    } else {
+                        try {
+
+                            let encoded_password = crypto.encrypt(password);
+
+                            encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
+
+                            mysql.insertInTable(database, 'usuario', '(nome, email, password)', [
+                                [
+                                    String(name.substring(0, table_user.varchar.limits.nome)),
+                                    String(email.substring(0, table_user.varchar.limits.email)),
+                                    String(encoded_password),
+                                ]
+                            ])
+                                .then(({ sql, query }) => {
+                                    mysql.getInTable(database, 'usuario', 'email= ?', [email])
+                                        .then(async ({ sql, query }) => {
+                                            if (query.results.length > 0) {
+                                                let user = query.results[0];
+
+                                                let decoded_pass = JSON.parse(lzstring.decompressFromBase64(user['password']));
+
+                                                decoded_pass.tag = Buffer.from(decoded_pass.tag);
+
+                                                decoded_pass = await crypto.decrypt(decoded_pass, password);
+
+                                                if (decoded_pass !== password)
+                                                    return res.status(400).send({ error: 'Invalid password' });
+
+                                                /** Removing keys from response requested */
+                                                delete user['password'];
+                                                delete user['password_reset'];
+                                                delete user['messages'];
+                                                delete user['dateat'];
+
+                                                inviteWebToken.destroy(String(invitewebtoken))
+                                                    .then(() => {
+                                                        return res.status(200).send({
+                                                            success: 'Get user in table from Email and Password values is success', sql: sql, query: {
+                                                                results: {
+                                                                    user,
+                                                                    token: generateToken({ id: user['ID'] })
+                                                                }
+                                                            }
+                                                        });
+                                                    })
+                                                    .catch(() => {
+                                                        return res.status(400).send({
+                                                            error: 'Webtoken invite used, but not possible destroy it.'
+                                                        });
+                                                    })
+
+                                            } else {
+                                                return res.status(400).send({ error: 'User not exist' });
+                                            }
+                                        })
+                                        .catch(({ err, details }) => {
+                                            if (err) return res.status(400).send({ error: err, details });
+                                        })
+                                })
+                                .catch(({ err, details }) => {
+                                    if (err) return res.status(400).send({ error: err, details });
+                                })
+                        } catch (err) {
+                            return res.status(400).send({ error: 'Registration Failed', details: err });
+                        }
+                    }
+
                 })
-                .catch(({ err, details }) => {
-                    if (err) return res.status(400).send({ error: err, details });
+                .catch(() => {
+                    return res.status(400).send({
+                        error: 'Webtoken invite is invalid!'
+                    });
                 })
-        }
-    } catch (err) {
-        return res.status(400).send({ error: 'Registration Failed', details: err });
-    }
+
+        })
+        .catch(() => {
+            return res.status(400).send({
+                error: 'Webtoken is invalid!'
+            });
+        })
 })
 
 router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {

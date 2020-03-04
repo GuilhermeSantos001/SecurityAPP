@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
-const databases = require('../config/databases');
+const databaseWebToken = require('../mysql/databaseWebToken');
+const webTokenInvite = require('../mysql/inviteWebToken');
 const generateToken = require('../modules/generateToken');
 const apiMiddleware = require('../middlewares/api');
 const authMiddleware = require('../middlewares/auth');
@@ -35,65 +36,146 @@ router.options('*', function (req, res) {
 router.use(cors(corsOptions));
 
 router.post(`/sign`, apiMiddleware, async (req, res) => {
-    const { email, password } = req.body;
 
-    if (!email || !password)
-        return res.status(401).send({ error: 'Body content is not valid!' });
+    const {
+        webtoken,
+        email,
+        password
+    } = req.body;
+
+    if (!webtoken || !email || !password)
+        return res.status(401).send({
+            error: 'Body content is not valid!'
+        });
 
     try {
-        if (databases instanceof Array && databases.length > 0) {
-            databases.map(database => {
+
+        databaseWebToken.verify(String(webtoken))
+            .then((database) => {
                 try {
                     if (String(database).length <= 0) return;
 
-                    mysql.getInTable(database, 'users', 'Email= ?', [email])
-                        .then(async ({ sql, query }) => {
+                    mysql.getInTable(database, 'usuario', 'email= ?', [email])
+                        .then(async ({
+                            sql,
+                            query
+                        }) => {
                             if (query.results.length > 0) {
                                 let user = query.results[0];
 
-                                let decoded_pass = JSON.parse(lzstring.decompressFromBase64(user['Password']));
+                                if (user['database_token'] != String(webtoken)) {
+                                    return res.status(400).send({
+                                        error: 'User not exist',
+                                        code: 3
+                                    });
+                                }
+
+                                let decoded_pass = JSON.parse(lzstring.decompressFromBase64(user['password']));
 
                                 decoded_pass.tag = Buffer.from(decoded_pass.tag);
 
                                 decoded_pass = await crypto.decrypt(decoded_pass, password);
 
                                 if (decoded_pass !== password)
-                                    return res.status(400).send({ error: 'Invalid password', code: 1 });
+                                    return res.status(400).send({
+                                        error: 'Invalid password',
+                                        code: 2
+                                    });
 
                                 /** Removing keys from response requested */
-                                delete user['Password'];
-                                delete user['Password_Reset'];
-                                delete user['Messages'];
+                                delete user['password'];
+                                delete user['password_reset'];
+                                delete user['messages'];
 
                                 return res.status(200).send({
-                                    success: 'Get user in table from Email and Password values is success', sql: sql, query: {
+                                    success: 'Get user in table from Email and Password values is success',
+                                    sql: sql,
+                                    query: {
                                         results: {
                                             user,
-                                            token: generateToken({ id: user['ID'], filial: user['Filial'] })
+                                            token: generateToken({
+                                                id: user['ID']
+                                            })
                                         }
                                     }
                                 });
                             }
-                            return res.status(400).send({ error: 'User not exist', code: 2 });
+                            return res.status(400).send({
+                                error: 'User not exist',
+                                code: 3
+                            });
                         })
-                        .catch(({ err, details }) => {
-                            if (err) return res.status(400).send({ error: err, details });
+                        .catch(({
+                            err,
+                            details
+                        }) => {
+                            if (err) return res.status(400).send({
+                                error: err,
+                                details
+                            });
                         })
                 } catch (error) {
-                    return console.error({ message: `Não foi possivel se conectar ao banco de dados ${database}`, error: error });
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
                 }
             })
-        }
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
+            })
+
     } catch (err) {
-        return res.status(400).send({ error: 'Auth Failed', details: err });
+        return res.status(400).send({
+            error: 'Auth Failed',
+            details: err
+        });
     }
 })
 
+router.post('/sign/webtokeninvite', apiMiddleware, async (req, res) => {
+    const { webtoken, invite } = req.body;
+
+    if (!webtoken || !invite)
+        return res.status(401).send({
+            error: 'Body content is not valid!'
+        });
+
+    databaseWebToken.verify(String(webtoken))
+        .then(() => {
+            webTokenInvite.sign(invite, webtoken)
+                .then((token) => {
+                    return res.status(200).send({
+                        success: 'Create a webtoken invite is success',
+                        invite: token
+                    })
+                })
+                .catch((error) => {
+                    return res.status(400).send({
+                        error: 'Create a Webtoken invite is failed!',
+                        details: error
+                    });
+                })
+        })
+        .catch(() => {
+            return res.status(400).send({
+                error: 'Webtoken is invalid!'
+            });
+        })
+})
+
 router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
-    const { email } = req.body;
+    const {
+        email
+    } = req.body;
 
     if (!email)
-        return res.status(401).send({ error: 'Body content is not valid!' });
+        return res.status(401).send({
+            error: 'Body content is not valid!'
+        });
 
     try {
         if (databases instanceof Array && databases.length > 0) {
@@ -102,7 +184,10 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                     if (String(database).length <= 0) return;
 
                     mysql.getInTable(database, 'users', 'Email= ?', [email])
-                        .then(async ({ sql, query }) => {
+                        .then(async ({
+                            sql,
+                            query
+                        }) => {
                             if (query.results.length > 0) {
                                 let user = query.results[0];
 
@@ -119,7 +204,10 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                                 const name = user['Nome'];
 
                                 await mysql.updateInTable(database, 'users', `Password_Reset='${Password_Reset}'`, user['ID'])
-                                    .then(({ sql, query }) => {
+                                    .then(({
+                                        sql,
+                                        query
+                                    }) => {
 
                                         mailer.sendMail({
                                             from: 'suporte@grupomave.com.br',
@@ -127,7 +215,9 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                                             subject: "SecurityAPP - Codigo para redefinir a senha",
                                             template: 'auth/forgot_password',
                                             context: {
-                                                name, token, expires: {
+                                                name,
+                                                token,
+                                                expires: {
                                                     fullHours: `${("0" + now.getHours()).slice(-2)}:${("0" + now.getMinutes()).slice(-2)}:${("0" + now.getSeconds()).slice(-2)}`,
                                                     day: [
                                                         'Domingo',
@@ -158,7 +248,9 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                                             }
                                         }, (err) => {
                                             if (err)
-                                                return res.status(400).send({ error: 'Cannot send forgot password for address email' });
+                                                return res.status(400).send({
+                                                    error: 'Cannot send forgot password for address email'
+                                                });
                                         })
 
                                         /** Removing keys from response requested */
@@ -167,7 +259,9 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                                         delete user['Messages'];
 
                                         return res.status(200).send({
-                                            success: 'Get user in table from Email with token autorization is success', sql: sql, query: {
+                                            success: 'Get user in table from Email with token autorization is success',
+                                            sql: sql,
+                                            query: {
                                                 results: {
                                                     user
                                                 }
@@ -175,32 +269,57 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                                         });
 
                                     })
-                                    .catch(({ err, details }) => {
-                                        if (err) return res.status(400).send({ error: err, details });
+                                    .catch(({
+                                        err,
+                                        details
+                                    }) => {
+                                        if (err) return res.status(400).send({
+                                            error: err,
+                                            details
+                                        });
                                     })
 
                             } else {
-                                return res.status(400).send({ error: 'User not exist' });
+                                return res.status(400).send({
+                                    error: 'User not exist'
+                                });
                             }
                         })
-                        .catch(({ err, details }) => {
-                            if (err) return res.status(400).send({ error: err, details });
+                        .catch(({
+                            err,
+                            details
+                        }) => {
+                            if (err) return res.status(400).send({
+                                error: err,
+                                details
+                            });
                         })
                 } catch (error) {
-                    return console.error({ message: `Não foi possivel se conectar ao banco de dados ${database}`, error: error });
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
                 }
             })
         }
     } catch (err) {
-        return res.status(400).send({ error: 'Error on forgot password, try again' });
+        return res.status(400).send({
+            error: 'Error on forgot password, try again'
+        });
     }
 })
 
 router.post('/reset_password', apiMiddleware, async (req, res) => {
-    const { email, token, password } = req.body;
+    const {
+        email,
+        token,
+        password
+    } = req.body;
 
     if (!email || !token || !password)
-        return res.status(401).send({ error: 'Body content is not valid!' });
+        return res.status(401).send({
+            error: 'Body content is not valid!'
+        });
 
     try {
 
@@ -210,21 +329,33 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                     if (String(database).length <= 0) return;
 
                     mysql.getInTable(database, 'users', 'Email= ?', [email])
-                        .then(async ({ sql, query }) => {
+                        .then(async ({
+                            sql,
+                            query
+                        }) => {
                             if (query.results.length > 0) {
                                 let user = query.results[0];
 
                                 if (!user['Password_Reset'])
-                                    return res.status(400).send({ error: 'Token not found', code: 1 });
+                                    return res.status(400).send({
+                                        error: 'Token not found',
+                                        code: 1
+                                    });
 
                                 const Password_Reset = JSON.parse(lzstring.decompressFromBase64(user['Password_Reset'])),
                                     now = new Date();
 
                                 if (token !== Password_Reset['passwordResetToken'])
-                                    return res.status(400).send({ error: 'Token invalid', code: 2 });
+                                    return res.status(400).send({
+                                        error: 'Token invalid',
+                                        code: 2
+                                    });
 
                                 if (now > Password_Reset['passwordResetExpires'])
-                                    return res.status(400).send({ error: 'Token expired, generate a new one', code: 3 });
+                                    return res.status(400).send({
+                                        error: 'Token expired, generate a new one',
+                                        code: 3
+                                    });
 
                                 let encoded_password = await crypto.encrypt(password);
 
@@ -234,7 +365,10 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                                     `Password='${encoded_password}',` +
                                     `Password_Reset=${null}`,
                                     user['ID'])
-                                    .then(({ sql, query }) => {
+                                    .then(({
+                                        sql,
+                                        query
+                                    }) => {
 
                                         /** Removing keys from response requested */
                                         delete user['Password'];
@@ -242,7 +376,9 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                                         delete user['Messages'];
 
                                         return res.status(200).send({
-                                            success: 'Reset password user is success', sql: sql, query: {
+                                            success: 'Reset password user is success',
+                                            sql: sql,
+                                            query: {
                                                 results: {
                                                     user
                                                 }
@@ -250,24 +386,43 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                                         });
 
                                     })
-                                    .catch(({ err, details }) => {
-                                        if (err) return res.status(400).send({ error: err, details });
+                                    .catch(({
+                                        err,
+                                        details
+                                    }) => {
+                                        if (err) return res.status(400).send({
+                                            error: err,
+                                            details
+                                        });
                                     })
 
                             } else {
-                                return res.status(400).send({ error: 'User not exist' });
+                                return res.status(400).send({
+                                    error: 'User not exist'
+                                });
                             }
                         })
-                        .catch(({ err, details }) => {
-                            if (err) return res.status(400).send({ error: err, details });
+                        .catch(({
+                            err,
+                            details
+                        }) => {
+                            if (err) return res.status(400).send({
+                                error: err,
+                                details
+                            });
                         })
                 } catch (error) {
-                    return console.error({ message: `Não foi possivel se conectar ao banco de dados ${database}`, error: error });
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
                 }
             })
         }
     } catch (err) {
-        return res.status(400).send({ error: 'Cannot reset password, try again' });
+        return res.status(400).send({
+            error: 'Cannot reset password, try again'
+        });
     }
 })
 

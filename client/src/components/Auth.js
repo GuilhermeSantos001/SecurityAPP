@@ -29,6 +29,8 @@ export default class Index extends React.Component {
             record_email: '',
             message_error: '',
             message_error_code: 0,
+            new_account_invitetoken: false,
+            new_account_webtoken: false,
             new_account_name: false,
             new_account_email: false,
             new_account_password: false
@@ -447,13 +449,16 @@ export default class Index extends React.Component {
     handleClickLogin = () => {
 
         const
+            webtoken = document.getElementById('webtoken').value,
             email = document.getElementById('email').value,
             password = document.getElementById('password').value;
 
         if (
+            String(webtoken).length <= 0 ||
             String(email).length <= 0 ||
             String(password).length <= 0
         ) {
+            animateCSS('webtoken', 'shake');
             animateCSS('email', 'shake');
             animateCSS('password', 'shake');
             return;
@@ -484,10 +489,10 @@ export default class Index extends React.Component {
 
                         if (user) {
                             context.setSessionUser({
-                                'id': user['ID'],
-                                'name': user['Nome'],
-                                'email': user['Email'],
-                                'token': token
+                                'webtoken': String(user['ID']),
+                                'name': String(user['nome']),
+                                'email': String(user['email']),
+                                'token': String(token)
                             })
                             context.componentCallChangePage('/app', {});
                         }
@@ -497,19 +502,24 @@ export default class Index extends React.Component {
                         document.getElementById('password').value = '';
 
                         if (
+                            !document.getElementById('webtoken').classList.contains("is-invalid") ||
                             !document.getElementById('email').classList.contains("is-invalid") ||
                             !document.getElementById('password').classList.contains("is-invalid")
                         ) {
+                            document.getElementById('webtoken').classList.add("is-invalid");
                             document.getElementById('email').classList.add("is-invalid");
                             document.getElementById('password').classList.add("is-invalid");
                         }
 
                         switch (code) {
                             case 1:
-                                context.setState({ 'message_error': `Senha inválida.`, 'message_error_code': 1 });
+                                context.setState({ 'message_error': `Chave de acesso inválida.`, 'message_error_code': 1 });
                                 break;
                             case 2:
-                                context.setState({ 'message_error': `Endereço de email inválido.`, 'message_error_code': 1 });
+                                context.setState({ 'message_error': `Senha inválida.`, 'message_error_code': 1 });
+                                break;
+                            case 3:
+                                context.setState({ 'message_error': `Endereço de email não existe.`, 'message_error_code': 1 });
                                 break;
                             default:
                                 context.setState({ 'message_error': `Não foi possível efetuar o login, tente novamente mais tarde...`, 'message_error_code': 1 });
@@ -543,7 +553,7 @@ export default class Index extends React.Component {
                 });
             });
 
-        req.write(JSON.stringify({ email: String(email), password: String(password) }));
+        req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email), password: String(password) }));
         req.end();
     }
 
@@ -598,7 +608,7 @@ export default class Index extends React.Component {
 
                 const
                     onSuccess = (data) => {
-                        if (data.length > 0 && data.filter(user => user['Email'] === String(email)).length > 0) {
+                        if (data.length > 0 && data.filter(user => user['email'] === String(email)).length > 0) {
                             context.setState({ 'message_error': `Endereço de email (${email}) já está em uso.`, 'new_account_email': false });
 
                             if (document.getElementById('alertUser').classList.contains('invisible')) {
@@ -679,17 +689,23 @@ export default class Index extends React.Component {
     handleClickNewAccount = () => {
 
         const
+            invitetoken = document.getElementById('invitetoken').value,
+            webtoken = document.getElementById('webtoken').value,
             name = document.getElementById('name').value,
             email = document.getElementById('email').value,
             password = document.getElementById('password').value,
             password_confirm = document.getElementById('password_confirm').value;
 
         if (
+            String(invitetoken).length <= 0 ||
+            String(webtoken).length <= 0 ||
             String(password).length <= 0 ||
             String(email).length <= 0 ||
             String(password).length <= 0 ||
             String(password_confirm).length <= 0
         ) {
+            animateCSS('invitetoken', 'shake');
+            animateCSS('webtoken', 'shake');
             animateCSS('name', 'shake');
             animateCSS('email', 'shake');
             animateCSS('password', 'shake');
@@ -697,7 +713,7 @@ export default class Index extends React.Component {
             return;
         }
 
-        if (this.state.new_account_name && this.state.new_account_email && this.state.new_account_password) {
+        if (this.state.new_account_invitetoken && this.state.new_account_webtoken && this.state.new_account_name && this.state.new_account_email && this.state.new_account_password) {
             const
                 http = require("http"),
                 options = {
@@ -723,15 +739,31 @@ export default class Index extends React.Component {
 
                             if (user) {
                                 context.setSessionUser({
-                                    'id': user['ID'],
-                                    'name': user['Nome'],
-                                    'email': user['Email'],
-                                    'token': token
+                                    'id': String(user['ID']),
+                                    'name': String(user['nome']),
+                                    'email': String(user['email']),
+                                    'token': String(token)
                                 })
                                 context.componentCallChangePage('/app', {});
                             }
                         },
                         onError = () => {
+                            if (
+                                document.getElementById('invitetoken').classList.contains('is-valid') ||
+                                document.getElementById('invitetoken').classList.contains('is-invalid')
+                            ) {
+                                document.getElementById('invitetoken').classList.remove('is-valid');
+                                document.getElementById('invitetoken').classList.remove('is-invalid');
+                            }
+
+                            if (
+                                document.getElementById('webtoken').classList.contains('is-valid') ||
+                                document.getElementById('webtoken').classList.contains('is-invalid')
+                            ) {
+                                document.getElementById('webtoken').classList.remove('is-valid');
+                                document.getElementById('webtoken').classList.remove('is-invalid');
+                            }
+
                             if (
                                 document.getElementById('name').classList.contains('is-valid') ||
                                 document.getElementById('name').classList.contains('is-invalid')
@@ -764,6 +796,8 @@ export default class Index extends React.Component {
                                 document.getElementById('password_confirm').classList.remove('is-invalid');
                             }
 
+                            document.getElementById('invitetoken').value = '';
+                            document.getElementById('webtoken').value = '';
                             document.getElementById('name').value = '';
                             document.getElementById('email').value = '';
                             document.getElementById('password').value = '';
@@ -797,7 +831,7 @@ export default class Index extends React.Component {
                     });
                 });
 
-            req.write(JSON.stringify({ name: String(name), email: String(email), password: String(password) }));
+            req.write(JSON.stringify({ invitetoken: String(invitetoken), webtoken: String(webtoken), name: String(name), email: String(email), password: String(password) }));
             req.end();
         }
     }
@@ -827,6 +861,26 @@ export default class Index extends React.Component {
                     document.getElementById('name').classList.add('is-valid');
                 });
             }
+        }
+    }
+
+    handleInviteToken() {
+        const invitetoken = document.getElementById('invitetoken').value;
+
+        if (invitetoken.length <= 0) {
+            this.setState({ 'new_account_invitetoken': false });
+        } else {
+            this.setState({ 'new_account_invitetoken': true });
+        }
+    }
+
+    handleWebToken() {
+        const webtoken = document.getElementById('webtoken').value;
+
+        if (webtoken.length <= 0) {
+            this.setState({ 'new_account_webtoken': false });
+        } else {
+            this.setState({ 'new_account_webtoken': true });
         }
     }
 
@@ -927,6 +981,12 @@ export default class Index extends React.Component {
                     </div>
                     <input
                         className="mb-2 form-control form-control-lg"
+                        id="webtoken"
+                        type="text"
+                        placeholder="Chave de acesso"
+                        onFocus={context.handleFocusRemoveAlert.bind(context)} />
+                    <input
+                        className="mb-2 form-control form-control-lg"
                         id="email"
                         type="email"
                         placeholder="Endereço de email"
@@ -969,6 +1029,18 @@ export default class Index extends React.Component {
                     </div>
                     <input
                         className="mb-2 form-control form-control-lg"
+                        id="invitetoken"
+                        type="text"
+                        placeholder="Chave de segurança"
+                        onChange={context.handleInviteToken.bind(context)} />
+                    <input
+                        className="mb-2 form-control form-control-lg"
+                        id="webtoken"
+                        type="text"
+                        placeholder="Chave de acesso"
+                        onChange={context.handleWebToken.bind(context)} />
+                    <input
+                        className="mb-2 form-control form-control-lg"
                         id="name"
                         type="text"
                         placeholder="Nome completo"
@@ -1004,7 +1076,7 @@ export default class Index extends React.Component {
                             animateCSS('form-container', 'bounceIn');
                             context.setState({ 'new_account': false, 'record_email': document.getElementById('email').value });
                         }}>
-                        Acessar
+                        Voltar
                     </button>
                 </div>
             )
