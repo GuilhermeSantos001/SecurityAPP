@@ -2,10 +2,8 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('../modules/mysql');
 const databaseWebToken = require('../mysql/databaseWebToken');
-const webTokenInvite = require('../mysql/inviteWebToken');
 const generateToken = require('../modules/generateToken');
 const apiMiddleware = require('../middlewares/api');
-const authMiddleware = require('../middlewares/auth');
 const crypto = require('../api/crypto');
 const cryptoNodeJs = require('crypto');
 const mailer = require('../modules/mailer');
@@ -53,7 +51,7 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
         databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
-                    if (String(database).length <= 0) return;
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
                     mysql.getInTable(database, 'usuario', 'email= ?', [email])
                         .then(async ({
@@ -83,6 +81,8 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
                                     });
 
                                 /** Removing keys from response requested */
+                                delete user['database_token'];
+                                delete user['nivel_acesso_id'];
                                 delete user['password'];
                                 delete user['password_reset'];
                                 delete user['messages'];
@@ -136,54 +136,25 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
     }
 })
 
-router.post('/sign/webtokeninvite', apiMiddleware, async (req, res) => {
-    const { webtoken, invite } = req.body;
-
-    if (!webtoken || !invite)
-        return res.status(401).send({
-            error: 'Body content is not valid!'
-        });
-
-    databaseWebToken.verify(String(webtoken))
-        .then(() => {
-            webTokenInvite.sign(invite, webtoken)
-                .then((token) => {
-                    return res.status(200).send({
-                        success: 'Create a webtoken invite is success',
-                        invite: token
-                    })
-                })
-                .catch((error) => {
-                    return res.status(400).send({
-                        error: 'Create a Webtoken invite is failed!',
-                        details: error
-                    });
-                })
-        })
-        .catch(() => {
-            return res.status(400).send({
-                error: 'Webtoken is invalid!'
-            });
-        })
-})
-
 router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
     const {
+        webtoken,
         email
     } = req.body;
 
-    if (!email)
+    if (!email || !webtoken)
         return res.status(401).send({
             error: 'Body content is not valid!'
         });
 
     try {
-        if (databases instanceof Array && databases.length > 0) {
-            databases.map(database => {
-                try {
-                    if (String(database).length <= 0) return;
 
-                    mysql.getInTable(database, 'users', 'Email= ?', [email])
+        databaseWebToken.verify(String(webtoken))
+            .then((database) => {
+                try {
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
+
+                    mysql.getInTable(database, 'usuario', 'email= ?', [email])
                         .then(async ({
                             sql,
                             query
@@ -203,7 +174,7 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
 
                                 const name = user['Nome'];
 
-                                await mysql.updateInTable(database, 'users', `Password_Reset='${Password_Reset}'`, user['ID'])
+                                await mysql.updateInTable(database, 'usuario', `password_reset='${Password_Reset}'`, user['ID'])
                                     .then(({
                                         sql,
                                         query
@@ -254,9 +225,11 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                                         })
 
                                         /** Removing keys from response requested */
-                                        delete user['Password'];
-                                        delete user['Password_Reset'];
-                                        delete user['Messages'];
+                                        delete user['database_token'];
+                                        delete user['nivel_acesso_id'];
+                                        delete user['password'];
+                                        delete user['password_reset'];
+                                        delete user['messages'];
 
                                         return res.status(200).send({
                                             success: 'Get user in table from Email with token autorization is success',
@@ -294,6 +267,7 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                                 details
                             });
                         })
+
                 } catch (error) {
                     return console.error({
                         message: `Não foi possivel se conectar ao banco de dados ${database}`,
@@ -301,34 +275,42 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                     });
                 }
             })
-        }
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
+            })
+
     } catch (err) {
         return res.status(400).send({
-            error: 'Error on forgot password, try again'
+            error: 'Error on forgot password, try again',
+            details: err
         });
     }
 })
 
 router.post('/reset_password', apiMiddleware, async (req, res) => {
     const {
+        webtoken,
         email,
         token,
         password
     } = req.body;
 
-    if (!email || !token || !password)
+    if (!webtoken || !email || !token || !password)
         return res.status(401).send({
             error: 'Body content is not valid!'
         });
 
     try {
 
-        if (databases instanceof Array && databases.length > 0) {
-            databases.map(database => {
+        databaseWebToken.verify(String(webtoken))
+            .then((database) => {
                 try {
-                    if (String(database).length <= 0) return;
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-                    mysql.getInTable(database, 'users', 'Email= ?', [email])
+                    mysql.getInTable(database, 'usuario', 'email= ?', [email])
                         .then(async ({
                             sql,
                             query
@@ -336,13 +318,13 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                             if (query.results.length > 0) {
                                 let user = query.results[0];
 
-                                if (!user['Password_Reset'])
+                                if (!user['password_reset'])
                                     return res.status(400).send({
                                         error: 'Token not found',
                                         code: 1
                                     });
 
-                                const Password_Reset = JSON.parse(lzstring.decompressFromBase64(user['Password_Reset'])),
+                                const Password_Reset = JSON.parse(lzstring.decompressFromBase64(user['password_reset'])),
                                     now = new Date();
 
                                 if (token !== Password_Reset['passwordResetToken'])
@@ -361,9 +343,9 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
 
                                 encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
 
-                                await mysql.updateInTable(database, table,
-                                    `Password='${encoded_password}',` +
-                                    `Password_Reset=${null}`,
+                                await mysql.updateInTable(database, 'usuario',
+                                    `password='${encoded_password}',` +
+                                    `password_reset=${null}`,
                                     user['ID'])
                                     .then(({
                                         sql,
@@ -371,9 +353,11 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                                     }) => {
 
                                         /** Removing keys from response requested */
-                                        delete user['Password'];
-                                        delete user['Password_Reset'];
-                                        delete user['Messages'];
+                                        delete user['database_token'];
+                                        delete user['nivel_acesso_id'];
+                                        delete user['password'];
+                                        delete user['password_reset'];
+                                        delete user['messages'];
 
                                         return res.status(200).send({
                                             success: 'Reset password user is success',
@@ -411,6 +395,7 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                                 details
                             });
                         })
+
                 } catch (error) {
                     return console.error({
                         message: `Não foi possivel se conectar ao banco de dados ${database}`,
@@ -418,17 +403,19 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                     });
                 }
             })
-        }
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
+            })
+
     } catch (err) {
         return res.status(400).send({
-            error: 'Cannot reset password, try again'
+            error: 'Cannot reset password, try again',
+            details: err
         });
     }
 })
-
-/**
- * Routes with Authorization of user
- */
-router.use(authMiddleware);
 
 module.exports = (app) => app.use('/api/auth', router);

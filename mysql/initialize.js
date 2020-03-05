@@ -5,7 +5,7 @@ const databaseWebToken = require('./databaseWebToken');
 
 if (databases instanceof Array && databases.length > 0) {
     databases.map(database => {
-        if (String(database).length <= 0) return;
+       if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
         const token = {
             value: '',
@@ -2173,6 +2173,89 @@ if (databases instanceof Array && databases.length > 0) {
                     })
 
                 /**
+                 * Cria tabela 'nivel_acesso'
+                 */
+                mysql.createTable(database, 'nivel_acesso')
+                    .then(({
+                        sql,
+                        query
+                    }) => {
+                        mysql.modifyTable(database, 'nivel_acesso', [
+                            [
+                                'codigo',
+                                `%COLUMN_NAME INT(10) ZEROFILL`,
+                                ['NOT NULL', 'UNIQUE']
+                            ],
+                            [
+                                'nome',
+                                `COLUMN %COLUMN_NAME varchar(${tables.nivel_acesso.varchar.limits.nome})`,
+                                ['NOT NULL']
+                            ],
+                            [
+                                'menu',
+                                `COLUMN %COLUMN_NAME LONGTEXT`,
+                                ['NOT NULL']
+                            ],
+                            [
+                                'data_de_criacao',
+                                `COLUMN %COLUMN_NAME TIMESTAMP`,
+                                ['DEFAULT', 'CURRENT_TIMESTAMP()']
+                            ]
+                        ])
+                            .then(({
+                                sql,
+                                query
+                            }) => {
+
+                                mysql.setPositionColumnsInTable(database, 'nivel_acesso', [
+                                    [
+                                        'codigo',
+                                        `INT(10) ZEROFILL NOT NULL UNIQUE FIRST`
+                                    ],
+                                    [
+                                        'nome',
+                                        `varchar(${tables.nivel_acesso.varchar.limits.nome}) NOT NULL AFTER codigo`
+                                    ],
+                                    [
+                                        'menu',
+                                        `LONGTEXT NOT NULL AFTER nome`
+                                    ],
+                                    [
+                                        'data_de_criacao',
+                                        `TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER menu`
+                                    ],
+                                ])
+                                    .catch(({
+                                        err,
+                                        details
+                                    }) => {
+                                        if (err) return console.error({
+                                            error: err,
+                                            details
+                                        });
+                                    })
+                            })
+                            .catch(({
+                                err,
+                                details
+                            }) => {
+                                if (err) return console.error({
+                                    error: err,
+                                    details
+                                });
+                            })
+                    })
+                    .catch(({
+                        err,
+                        details
+                    }) => {
+                        if (err) return console.error({
+                            error: err,
+                            details
+                        });
+                    })
+
+                /**
                  * Cria tabela 'usuario'
                  */
                 mysql.createTable(database, 'usuario')
@@ -2208,9 +2291,9 @@ if (databases instanceof Array && databases.length > 0) {
                                 []
                             ],
                             [
-                                'level_access',
-                                `COLUMN %COLUMN_NAME varchar(${tables.usuario.varchar.limits.level_access})`,
-                                ['DEFAULT', `'EMPLOYEE'`]
+                                'nivel_acesso_id',
+                                `%COLUMN_NAME INT(10) ZEROFILL`,
+                                ['NOT NULL']
                             ],
                             [
                                 'data_de_criacao',
@@ -2250,12 +2333,12 @@ if (databases instanceof Array && databases.length > 0) {
                                         `LONGTEXT AFTER password`
                                     ],
                                     [
-                                        'level_access',
-                                        `varchar(${tables.usuario.varchar.limits.level_access}) DEFAULT 'EMPLOYEE' AFTER password_reset`
+                                        'nivel_acesso_id',
+                                        `INT(10) ZEROFILL NOT NULL AFTER password_reset`
                                     ],
                                     [
                                         'data_de_criacao',
-                                        `TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER level_access`
+                                        `TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER nivel_acesso_id`
                                     ],
                                     [
                                         'messages',
@@ -2292,6 +2375,21 @@ if (databases instanceof Array && databases.length > 0) {
                         });
                     })
 
+                /**
+                 * ADICIONA REFERENCIA ENTRE TABELAS
+                 */
+                mysql.insertReferenceInTable(database, ['usuario', 'nivel_acesso_id'], ['nivel_acesso', 'codigo'], 'fk_nivel_acesso')
+                    .catch(({
+                        err,
+                        details
+                    }) => {
+                        if (err)
+                            if (details['errno'] != 1826 && details['errno'] != 1213) return console.error({
+                                error: err,
+                                details
+                            });
+                    })
+
                 /** PONTO FINAL PARA NOVOS BANCO DE DADOS */
             }).catch(({
                 err,
@@ -2315,8 +2413,8 @@ if (databases instanceof Array && databases.length > 0) {
 //     `%COLUMN_NAME INT(10) ZEROFILL`,
 //     ['NOT NULL']
 // ],
-// [
-//     'fk_empresa_id',
-//     `CONSTRAINT fk_empresa_id FOREIGN KEY (empresa_id) REFERENCES empresa(codigo)`,
-//     []
-// ]
+//     [
+//         'fk_empresa_id',
+//         `CONSTRAINT fk_empresa_id FOREIGN KEY (empresa_id) REFERENCES empresa(codigo)`,
+//         []
+//     ]

@@ -5,7 +5,7 @@ const
     jwt = require('jsonwebtoken');
 
 module.exports = {
-    sign: (token, webtoken) => {
+    sign: (token, levelaccess, webtoken) => {
         return new Promise(async (resolve, reject) => {
             const
                 folder = path.resolve('./mysql/webtoken/'),
@@ -39,6 +39,7 @@ module.exports = {
                     data[String(_token)] = {
                         webtoken: webtoken,
                         token: token,
+                        levelaccess: levelaccess,
                         expiresIn: now
                     };
                     fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');

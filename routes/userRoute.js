@@ -43,257 +43,332 @@ router.use(cors(corsOptions));
  */
 
 router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+    let { userId, database, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    const { filial } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
-    if (!filial)
-        return res.status(401).send({ error: 'Body content is not valid!' });
+    if (!database)
+        return res.status(401).send({ error: 'Database not found!' })
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(database))
+            .then((database) => {
+                try {
 
-        mysql.getInTable(database, 'users', 'ID= ?', [userId])
-            .then(({ sql, query }) => {
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-                if (query.results.length <= 0)
-                    return res.status(401).send({ error: 'User not found!' });
+                    mysql.getInTable(database, 'usuario', 'ID= ?', [userId])
+                        .then(({ sql, query }) => {
 
-                query.results = query.results.map(result => {
+                            if (query.results.length <= 0)
+                                return res.status(401).send({ error: 'User not found!' });
 
-                    if (id) {
-                        if (typeof result['Messages'] === 'string') {
-                            let messages = JSON.parse(lzstring.decompressFromBase64(result['Messages']));
-                            if (messages instanceof Array)
-                                return messages[(id - 1 < 0 ? 0 : --id)];
-                        }
-                    }
+                            query.results = query.results.map(result => {
 
-                    if (typeof result['Messages'] === 'string')
-                        return JSON.parse(lzstring.decompressFromBase64(result['Messages']));
-                    else return [];
+                                if (id) {
+                                    if (typeof result['messages'] === 'string') {
+                                        let messages = JSON.parse(lzstring.decompressFromBase64(result['messages']));
+                                        if (messages instanceof Array)
+                                            return messages[(id - 1 < 0 ? 0 : --id)];
+                                    }
+                                }
 
-                });
-                return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
+                                if (typeof result['messages'] === 'string')
+                                    return JSON.parse(lzstring.decompressFromBase64(result['messages']));
+                                else return [];
+
+                            });
+
+                            return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
-        return res.status(400).send({ error: 'Get users failed', details: err });
+        return res.status(400).send({ error: 'Get messages of user is failed', details: err });
     }
 });
 
 router.post(`/messages/send`, apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+    let { userId, database } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    const { filial, author, emitter, receiver, copied, subject, message } = req.body;
+    const { author, emitter, receiver, copied, subject, message } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' });
 
-    if (!filial || !author || !emitter || !receiver || !subject || !message)
+    if (!database)
+        return res.status(401).send({ error: 'Database not found!' })
+
+    if (!author || !emitter || !receiver || !subject || !message)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(database))
+            .then((database) => {
+                try {
 
-        mysql.getInTable(database, 'users', 'Email= ?', [receiver])
-            .then(({ sql, query }) => {
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-                if (query.results.length <= 0)
-                    return res.status(401).send({ error: 'Receiver not found!' });
+                    mysql.getInTable(database, 'usuario', 'email= ?', [receiver])
+                        .then(({ sql, query }) => {
 
-                query.results = query.results.map(result => {
+                            if (query.results.length <= 0)
+                                return res.status(401).send({ error: 'Receiver not found!' });
 
-                    let messages = typeof result['Messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['Messages'])) : [];
+                            query.results = query.results.map(result => {
 
-                    if (messages instanceof Array === false) messages = [];
+                                let messages = typeof result['messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['messages'])) : [];
 
-                    messages.push({
-                        id: ((l, i = 0, value = 1) => {
-                            for (; i < l; i++) {
-                                if (messages[i]['id'] === value) value++;
-                            }
-                            return value;
-                        })(messages.length),
-                        author: author,
-                        emitter: emitter,
-                        receiver: receiver,
-                        copied: copied,
-                        subject: subject,
-                        message: message,
-                        new: true,
-                        dateAt: new Date().toString(),
-                    })
+                                if (messages instanceof Array === false) messages = [];
 
-                    return { messages: messages, id: result['ID'] };
+                                messages.push({
+                                    id: ((l, i = 0, value = 1) => {
+                                        for (; i < l; i++) {
+                                            if (messages[i]['id'] === value) value++;
+                                        }
+                                        return value;
+                                    })(messages.length),
+                                    author: author,
+                                    emitter: emitter,
+                                    receiver: receiver,
+                                    copied: copied,
+                                    subject: subject,
+                                    message: message,
+                                    new: true,
+                                    dateAt: new Date().toString(),
+                                })
 
-                });
+                                return { messages: messages, id: result['ID'] };
 
-                if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
+                            });
 
-                mysql.updateInTable(database, 'users',
-                    `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
-                    query.results[0].id)
-                    .then(({ sql, query }) => {
-                        return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
-                    })
-                    .catch(({ err, details }) => {
-                        if (err) return res.status(400).send({ error: err, details });
-                    })
+                            if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
 
+                            mysql.updateInTable(database, 'usuario',
+                                `messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
+                                query.results[0].id)
+                                .then(({ sql, query }) => {
+                                    return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
+                                })
+                                .catch(({ err, details }) => {
+                                    if (err) return res.status(400).send({ error: err, details });
+                                })
+
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
-        return res.status(400).send({ error: 'Registration Failed', details: err });
+        return res.status(400).send({ error: 'Registration message of user is Failed', details: err });
     }
 })
 
 router.put([`/messages/update`, `/messages/update/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+    let { userId, database, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    let { filial, author, emitter, receiver, copied, subject, message } = req.body;
+    let { author, emitter, receiver, copied, subject, message } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
-    if (!filial || !author || !emitter || !receiver || !subject || !message)
+    if (!database)
+        return res.status(401).send({ error: 'Database not found!' })
+
+    if (!author || !emitter || !receiver || !subject || !message)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(database))
+            .then((database) => {
+                try {
 
-        mysql.getInTable(database, 'users', 'ID= ?', [userId])
-            .then(({ sql, query }) => {
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-                if (query.results.length <= 0)
-                    return res.status(401).send({ error: 'User not found!' });
+                    mysql.getInTable(database, 'usuario', 'ID= ?', [userId])
+                        .then(({ sql, query }) => {
 
-                query.results = query.results.map(result => {
+                            if (query.results.length <= 0)
+                                return res.status(401).send({ error: 'User not found!' });
 
-                    let messages = typeof result['Messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['Messages'])) : '';
+                            query.results = query.results.map(result => {
 
-                    if (messages instanceof Array === true) {
-                        if (id) {
-                            let selected = messages.filter(message => { return String(message['id']) === String(id) })[0];
-                            if (selected) {
-                                messages[messages.indexOf(selected)]['author'] = author;
-                                messages[messages.indexOf(selected)]['emitter'] = emitter;
-                                messages[messages.indexOf(selected)]['receiver'] = receiver;
-                                messages[messages.indexOf(selected)]['copied'] = copied;
-                                messages[messages.indexOf(selected)]['subject'] = subject;
-                                messages[messages.indexOf(selected)]['message'] = message;
-                            }
-                        } else {
-                            messages = messages.map(msg => {
-                                msg['author'] = author;
-                                msg['emitter'] = emitter;
-                                msg['receiver'] = receiver;
-                                msg['copied'] = copied;
-                                msg['subject'] = subject;
-                                msg['message'] = message;
-                                return msg;
-                            })
-                        }
-                    }
+                                let messages = typeof result['messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['messages'])) : '';
 
-                    return { messages: messages, id: result['ID'] };
+                                if (messages instanceof Array === true) {
+                                    if (id) {
+                                        let selected = messages.filter(message => { return String(message['id']) === String(id) })[0];
+                                        if (selected) {
+                                            messages[messages.indexOf(selected)]['author'] = author;
+                                            messages[messages.indexOf(selected)]['emitter'] = emitter;
+                                            messages[messages.indexOf(selected)]['receiver'] = receiver;
+                                            messages[messages.indexOf(selected)]['copied'] = copied;
+                                            messages[messages.indexOf(selected)]['subject'] = subject;
+                                            messages[messages.indexOf(selected)]['message'] = message;
+                                        }
+                                    } else {
+                                        messages = messages.map(msg => {
+                                            msg['author'] = author;
+                                            msg['emitter'] = emitter;
+                                            msg['receiver'] = receiver;
+                                            msg['copied'] = copied;
+                                            msg['subject'] = subject;
+                                            msg['message'] = message;
+                                            return msg;
+                                        })
+                                    }
+                                }
 
-                });
+                                return { messages: messages, id: result['ID'] };
 
-                if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
+                            });
 
-                mysql.updateInTable(database, 'users',
-                    `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
-                    query.results[0].id)
-                    .then(({ sql, query }) => {
-                        return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
-                    })
-                    .catch(({ err, details }) => {
-                        if (err) return res.status(400).send({ error: err, details });
-                    })
+                            if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
 
+                            mysql.updateInTable(database, 'usuario',
+                                `messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
+                                query.results[0].id)
+                                .then(({ sql, query }) => {
+                                    return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
+                                })
+                                .catch(({ err, details }) => {
+                                    if (err) return res.status(400).send({ error: err, details });
+                                })
+
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
-        return res.status(400).send({ error: 'Update user failed', details: err });
+        return res.status(400).send({ error: 'Update message of user is failed', details: err });
     }
 })
 
 router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+    let { userId, database, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    const { filial } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
-    if (!filial)
-        return res.status(401).send({ error: 'Body content is not valid!' });
+    if (!database)
+        return res.status(401).send({ error: 'Database not found!' })
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(database))
+            .then((database) => {
+                try {
 
-        mysql.getInTable(database, 'users', 'ID= ?', [userId])
-            .then(({ sql, query }) => {
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-                if (query.results.length <= 0)
-                    return res.status(401).send({ error: 'User not found!' });
+                    mysql.getInTable(database, 'usuario', 'ID= ?', [userId])
+                        .then(({ sql, query }) => {
 
-                query.results = query.results.map(result => {
+                            if (query.results.length <= 0)
+                                return res.status(401).send({ error: 'User not found!' });
 
-                    let messages = typeof result['Messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['Messages'])) : '';
+                            query.results = query.results.map(result => {
 
-                    if (messages instanceof Array === true) {
-                        if (id) {
-                            let selected = messages.filter(message => { return String(message['id']) === String(id) })[0];
-                            if (selected) messages.splice(messages.indexOf(selected), 1);
-                        }
-                        else messages.splice(0, messages.length);
-                    }
+                                let messages = typeof result['messages'] === 'string' ? JSON.parse(lzstring.decompressFromBase64(result['messages'])) : '';
 
-                    return { messages: messages, id: result['ID'] };
+                                if (messages instanceof Array === true) {
+                                    if (id) {
+                                        let selected = messages.filter(message => { return String(message['id']) === String(id) })[0];
+                                        if (selected) messages.splice(messages.indexOf(selected), 1);
+                                    }
+                                    else messages.splice(0, messages.length);
+                                }
 
-                });
+                                return { messages: messages, id: result['ID'] };
 
-                if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
+                            });
 
-                mysql.updateInTable(database, 'users',
-                    `Messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
-                    query.results[0].id)
-                    .then(({ sql, query }) => {
-                        return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: { results: query.results[0] } });
-                    })
-                    .catch(({ err, details }) => {
-                        if (err) return res.status(400).send({ error: err, details });
-                    })
+                            if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
 
+                            mysql.updateInTable(database, 'usuario',
+                                `messages='${lzstring.compressToBase64(Buffer.from(JSON.stringify(query.results[0].messages)).toString('utf8'))}'`,
+                                query.results[0].id)
+                                .then(({ sql, query }) => {
+                                    return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: { results: query.results[0] } });
+                                })
+                                .catch(({ err, details }) => {
+                                    if (err) return res.status(400).send({ error: err, details });
+                                })
+
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
-        return res.status(400).send({ error: 'Remove user failed', details: err });
+        return res.status(400).send({ error: 'Remove message of user is failed', details: err });
     }
 })
 
@@ -301,238 +376,211 @@ router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authM
  * Level Access
  */
 
-router.get([`/levelaccess`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+router.get(`/levelaccess`, apiMiddleware, authMiddleware, async (req, res) => {
+    let { userId, database } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    const { filial } = req.body;
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
-    if (!filial)
-        return res.status(401).send({ error: 'Body content is not valid!' });
+    if (!database)
+        return res.status(401).send({ error: 'Database not found!' })
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(database))
+            .then((database) => {
+                try {
 
-        mysql.getInTable(database, 'users', 'ID= ?', [userId])
-            .then(({ sql, query }) => {
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-                if (query.results.length <= 0)
-                    return res.status(401).send({ error: 'User not found!' });
+                    mysql.getInTable(database, 'usuario', 'ID= ?', [userId])
+                        .then(({ sql, query }) => {
 
-                query.results = query.results.map(result => {
-                    return result['Level_Access'];
-                });
+                            if (query.results.length <= 0)
+                                return res.status(401).send({ error: 'User not found!' });
 
-                return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
+                            query.results = query.results.map(result => {
+                                return { id: result['ID'], levelaccessId: result['nivel_acesso_id'] };
+                            });
+
+                            if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
+
+                            mysql.getReferenceInTable(database, ['usuario', 'nivel_acesso_id'], ['nivel_acesso', 'codigo'], '')
+                                .then(({ sql, query }) => {
+
+                                    const data = query.results[0];
+
+                                    if (!data) return res.status(401).send({ error: 'Date not ready, try again!' });
+
+                                    let levelaccess = JSON.parse(lzstring.decompressFromBase64(data['menu']));
+
+                                    return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: levelaccess } });
+
+                                })
+                                .catch(({ err, details }) => {
+                                    if (err) return res.status(400).send({ error: err, details });
+                                })
+
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
-        return res.status(400).send({ error: 'Get users failed', details: err });
+        return res.status(400).send({ error: 'Get level access of user failed', details: err });
     }
 });
 
-router.put([`/levelaccess/update`, `/levelaccess/update/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+router.post([`/levelaccess`, `/levelaccess/:codigo`], apiMiddleware, authMiddleware, async (req, res) => {
+    let { userId, database, codigo } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    const { filial } = req.body;
-
-    let { level } = String(id) !== 'undefined' ? { level: String(id) } : req.body;
+    if (!codigo) codigo = req.body['codigo'];
 
     if (!userId)
         return res.status(401).send({ error: 'User not found!' })
 
-    if (!filial || !level)
+    if (!database)
+        return res.status(401).send({ error: 'Database not found!' })
+
+    if (!codigo)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(database))
+            .then((database) => {
+                try {
 
-        mysql.getInTable(database, 'users', 'ID= ?', [userId])
-            .then(({ sql, query }) => {
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-                if (query.results.length <= 0)
-                    return res.status(401).send({ error: 'User not found!' });
+                    mysql.getInTable(database, 'usuario', 'ID= ?', [userId])
+                        .then(({ sql, query }) => {
 
-                query.results = query.results.map(result => {
-                    return { id: result['ID'] };
-                });
+                            if (query.results.length <= 0)
+                                return res.status(401).send({ error: 'User not found!' });
 
-                if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
+                            query.results = query.results.map(result => {
+                                return { id: result['ID'] };
+                            });
 
-                mysql.updateInTable(database, 'users',
-                    `Level_Access='${level.substring(0, table_user.varchar.limits.level_access)}'`,
-                    query.results[0].id)
-                    .then(({ sql, query }) => {
-                        return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
-                    })
-                    .catch(({ err, details }) => {
-                        if (err) return res.status(400).send({ error: err, details });
-                    })
+                            if (query.results[0].id !== userId) return res.status(401).send({ error: 'Token for user is invalid. The token is valid, but has a other owner user!' });
 
+                            mysql.updateInTable(database, 'usuario',
+                                `nivel_acesso_id='${Number(codigo)}'`,
+                                query.results[0].id)
+                                .then(({ sql, query }) => {
+                                    return res.status(200).send({ success: 'Update in table is success', sql: sql, query: { results: query.results[0] } });
+                                })
+                                .catch(({ err, details }) => {
+                                    if (err) return res.status(400).send({ error: err, details });
+                                })
+
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
-        return res.status(400).send({ error: 'Update level of user for access is failed', details: err });
+        return res.status(400).send({ error: 'Set level access for user failed', details: err });
     }
-})
-
+});
 
 /**
  * Pattern Routers
  */
 
 /**
- * Level Access
- */
-
-router.get([`/levelsaccess`, `/levelsaccess/:level`], apiMiddleware, async (req, res) => {
-    let { level } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    try {
-        switch (String(level).toLocaleLowerCase()) {
-            case 'administrator':
-                return res.status(200).send({
-                    success: 'Get level of user for access is success', query: {
-                        results: {
-                            'dashboard': true,
-                            'messages': true,
-                            'comercial': true,
-                            'dp_rh': true,
-                            'operacional': true,
-                            'financeiro': true
-                        }
-                    }
-                });
-            case 'comercial':
-                return res.status(200).send({
-                    success: 'Get level of user for access is success', query: {
-                        results: {
-                            'dashboard': true,
-                            'messages': true,
-                            'comercial': true,
-                            'dp_rh': false,
-                            'operacional': false,
-                            'financeiro': false
-                        }
-                    }
-                });
-            case 'dp/rh':
-            case 'dp_rh':
-            case 'dp':
-            case 'rh':
-                return res.status(200).send({
-                    success: 'Get level of user for access is success', query: {
-                        results: {
-                            'dashboard': true,
-                            'messages': true,
-                            'comercial': false,
-                            'dp_rh': true,
-                            'operacional': false,
-                            'financeiro': false
-                        }
-                    }
-                });
-            case 'operacional':
-                return res.status(200).send({
-                    success: 'Get level of user for access is success', query: {
-                        results: {
-                            'dashboard': true,
-                            'messages': true,
-                            'comercial': false,
-                            'dp_rh': false,
-                            'operacional': true,
-                            'financeiro': false
-                        }
-                    }
-                });
-            case 'financeiro':
-                return res.status(200).send({
-                    success: 'Get level of user for access is success', query: {
-                        results: {
-                            'dashboard': true,
-                            'messages': true,
-                            'comercial': false,
-                            'dp_rh': false,
-                            'operacional': false,
-                            'financeiro': true
-                        }
-                    }
-                });
-            default:
-                return res.status(200).send({
-                    success: 'Get level of user for access is success', query: {
-                        results: {
-                            'dashboard': true,
-                            'messages': true,
-                            'comercial': false,
-                            'dp_rh': false,
-                            'operacional': false,
-                            'financeiro': false
-                        }
-                    }
-                });
-        }
-
-    } catch (err) {
-        return res.status(400).send({ error: 'Get level of user for access is failed', details: err });
-    }
-});
-
-/**
  * User
  */
 
 router.get([`/`, `/:id`], apiMiddleware, async (req, res) => {
-    let { id, email } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
+    let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    const { filial } = req.body;
+    const { email, webtoken } = req.body;
 
-    if (!filial)
+    if (!webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        let filter = '';
+        databaseWebToken.verify(String(webtoken))
+            .then((database) => {
+                try {
 
-        if (!email) {
-            filter = 'ID= ?';
-        } else {
-            filter = 'Email= ?';
-            id = email;
-        }
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-        const database = filial;
+                    let filter = '';
 
-        mysql.getInTable(database, 'users', filter, [id])
-            .then(({ sql, query }) => {
+                    if (!email) {
+                        filter = 'ID= ?';
+                    } else {
+                        filter = 'email= ?';
+                        id = email;
+                    }
 
-                query.results = query.results.map(user => {
-                    /** Removing keys from response requested */
-                    delete user['Password'];
-                    delete user['Password_Reset'];
-                    delete user['Messages'];
+                    mysql.getInTable(database, 'usuario', filter, [id])
+                        .then(({ sql, query }) => {
 
-                    return user;
-                });
+                            query.results = query.results.map(user => {
+                                /** Removing keys from response requested */
+                                delete user['database_token'];
+                                delete user['nivel_acesso_id'];
+                                delete user['password'];
+                                delete user['password_reset'];
+                                delete user['messages'];
 
-                return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
+                                return user;
+                            });
+
+                            return res.status(200).send({ success: 'Get all in table is success', sql: sql, query: { results: query.results } });
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
@@ -554,7 +602,8 @@ router.post(`/register`, apiMiddleware, async (req, res) => {
 
                     const
                         now = new Date(),
-                        expiresIn = new Date(invite['expiresIn']);
+                        expiresIn = new Date(invite['expiresIn']),
+                        levelaccess = invite['levelaccess'];
 
                     if (now > expiresIn) {
                         inviteWebToken.destroy(String(invitewebtoken))
@@ -575,8 +624,9 @@ router.post(`/register`, apiMiddleware, async (req, res) => {
 
                             encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
 
-                            mysql.insertInTable(database, 'usuario', '(nome, email, password)', [
+                            mysql.insertInTable(database, 'usuario', '(nivel_acesso_id, nome, email, password)', [
                                 [
+                                    Number(levelaccess),
                                     String(name.substring(0, table_user.varchar.limits.nome)),
                                     String(email.substring(0, table_user.varchar.limits.email)),
                                     String(encoded_password),
@@ -609,7 +659,7 @@ router.post(`/register`, apiMiddleware, async (req, res) => {
                                                             success: 'Get user in table from Email and Password values is success', sql: sql, query: {
                                                                 results: {
                                                                     user,
-                                                                    token: generateToken({ id: user['ID'] })
+                                                                    token: generateToken({ id: user['ID'], database: user['database_token'] })
                                                                 }
                                                             }
                                                         });
@@ -655,29 +705,47 @@ router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
     let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    const { filial, name, email, password } = req.body;
+    const { webtoken, name, email, password } = req.body;
 
-    if (!filial || !name || !email || !password)
+    if (!webtoken || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(webtoken))
+            .then((database) => {
+                try {
 
-        let encoded_password = crypto.encrypt(password);
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
-        encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
+                    let encoded_password = crypto.encrypt(password);
 
-        mysql.updateInTable(database, 'users',
-            `Nome='${name.substring(0, table_user.varchar.limits.nome)}',` +
-            `Email='${email.substring(0, table_user.varchar.limits.email)}',` +
-            `Password='${encoded_password}'`,
-            id)
-            .then(({ sql, query }) => {
-                return res.status(200).send({ success: 'Update in table is success', sql: sql, query: query });
+                    encoded_password = lzstring.compressToBase64(Buffer.from(JSON.stringify(encoded_password)).toString('binary'));
+
+                    mysql.updateInTable(database, 'usuario',
+                        `nome='${name.substring(0, table_user.varchar.limits.nome)}',` +
+                        `email='${email.substring(0, table_user.varchar.limits.email)}',` +
+                        `password='${encoded_password}'`,
+                        id)
+                        .then(({ sql, query }) => {
+                            return res.status(200).send({ success: 'Update in table is success', sql: sql, query: query });
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {
@@ -689,18 +757,39 @@ router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
     let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
         req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
 
-    const { filial } = req.body;
+    const { webtoken } = req.body;
+
+    if (!webtoken)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        const database = filial;
+        databaseWebToken.verify(String(webtoken))
+            .then((database) => {
+                try {
 
-        mysql.dropInTable(database, 'users', id)
-            .then(({ sql, query }) => {
-                return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: query });
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
+
+                    mysql.dropInTable(database, 'usuario', id)
+                        .then(({ sql, query }) => {
+                            return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: query });
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
             })
-            .catch(({ err, details }) => {
-                if (err) return res.status(400).send({ error: err, details });
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
             })
 
     } catch (err) {

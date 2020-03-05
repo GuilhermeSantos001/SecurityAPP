@@ -1,10 +1,16 @@
 {
+    "nivel_acesso": {
+        "varchar": {
+            "limits": {
+                "nome": 120
+            }
+        }
+    },
     "usuario": {
         "varchar": {
             "limits": {
                 "nome": 120,
-                "email": 120,
-                "level_access": 120
+                "email": 120
             }
         }
     },
