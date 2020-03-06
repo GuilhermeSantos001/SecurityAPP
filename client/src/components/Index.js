@@ -10,11 +10,6 @@ import ReactDOM from 'react-dom'
 import * as LZString from 'lz-string';
 
 /**
- * Import Axios
- */
-import axios from 'axios';
-
-/**
  * Import CanvasJSReact
  */
 import CanvasJSReact from '../assets/canvasjs.react';
@@ -100,10 +95,10 @@ export default class Index extends React.Component {
         super(props);
 
         this.state = {
+            update: true,
             menu: 'dashboard',
             clock: this.getClock(),
             username: this.getUsername(),
-            userlevelaccess: '',
             definitionlevelaccess: {},
             message: {
                 active: false
@@ -205,10 +200,11 @@ export default class Index extends React.Component {
     }
 
     update() {
-        this.setClock();
-        this.updateUserMessages();
-        this.updateUserLevelAccess();
-        this.updateDefinitionsLevelAccess();
+        if (this.state.update) {
+            this.setClock();
+            this.updateUserMessages();
+            this.updateDefinitionsLevelAccess();
+        }
     }
 
     componentDidUpdate(prop, state) {
@@ -257,12 +253,6 @@ export default class Index extends React.Component {
             this.getUserMessages((messages) => {
                 this.setState({ 'usermessages': { menu: 'list', data: messages, selected: 0 } })
             })
-    }
-
-    updateUserLevelAccess() {
-        this.getUserlevelaccess((level_access) => {
-            this.setState({ 'userlevelaccess': String(level_access).length > 0 ? String(level_access) : String('Default') });
-        })
     }
 
     updateDefinitionsLevelAccess() {
@@ -339,56 +329,6 @@ export default class Index extends React.Component {
         req.end();
     }
 
-    getUserlevelaccess(callback) {
-        const
-            http = require("http"),
-            options = {
-                "method": "GET",
-                "hostname": "reactappstudy.ddns.net",
-                "port": "5000",
-                "path": "/api/users/levelaccess",
-                "headers": {
-                    "content-type": "application/json",
-                    "api_key": this.getApiKey(),
-                    "authorization": this.getUserToken()
-                }
-            },
-            req = http.request(options, function (res) {
-                let chunks = [];
-
-                const
-                    onSuccess = (data) => {
-                        if (data instanceof Array)
-                            callback(data[0]);
-                    },
-                    onError = () => {
-                    }
-
-                res.on("data", chunk => chunks.push(chunk));
-
-                res.on("end", () => {
-                    const body = Buffer.concat(chunks);
-
-                    try {
-                        const data = JSON.parse(body.toString());
-
-                        if (data['error']) {
-                            return onError();
-                        } else {
-                            return onSuccess(data['query']['results']);
-                        }
-
-                    } catch (err) {
-                        return new Error(err);
-                    }
-
-                });
-            });
-
-        req.write(JSON.stringify({}));
-        req.end();
-    }
-
     getDefinitionslevelaccess(callback) {
         const
             http = require("http"),
@@ -396,10 +336,11 @@ export default class Index extends React.Component {
                 "method": "GET",
                 "hostname": "reactappstudy.ddns.net",
                 "port": "5000",
-                "path": `/api/users/levelsaccess/${this.state.userlevelaccess}`,
+                "path": `/api/users/levelaccess`,
                 "headers": {
                     "content-type": "application/json",
-                    "api_key": this.getApiKey()
+                    "api_key": this.getApiKey(),
+                    "authorization": this.getUserToken()
                 }
             },
             req = http.request(options, function (res) {
@@ -720,7 +661,7 @@ export default class Index extends React.Component {
                                         outline={this.state.menu === 'exit' ? false : true}
                                         color="white"
                                         onClick={() => {
-                                            this.setState({ menu: 'exit' });
+                                            this.setState({ menu: 'exit', update: false });
                                             animateCSS('container-all', 'flash');
                                             sessionStorage.setItem('authRemove', true);
                                             this.componentCallChangePage('/', {});

@@ -80,6 +80,8 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
                                         code: 2
                                     });
 
+                                const database = user['database_token'];
+
                                 /** Removing keys from response requested */
                                 delete user['database_token'];
                                 delete user['nivel_acesso_id'];
@@ -94,7 +96,8 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
                                         results: {
                                             user,
                                             token: generateToken({
-                                                id: user['ID']
+                                                id: user['ID'],
+                                                database: String(database)
                                             })
                                         }
                                     }

@@ -26,6 +26,7 @@ export default class Index extends React.Component {
         this.state = {
             new_account: false,
             forgot_password: false,
+            record_webtoken: '',
             record_email: '',
             message_error: '',
             message_error_code: 0,
@@ -41,7 +42,7 @@ export default class Index extends React.Component {
         return "5i@41Yb#!##@P4!NsrvJ-D3DK$Q89-3*Y-#59#$*CW2#!P@U45#q*#$42H4q!63gsQ-64b991IK$R#8r_-$*_46#*1@5s!@A3@_56e36!*@65n517W76_@9P#!$54s@-dQ45#7rtp7-5!2!34@#4Fj44g1-_7-@8-#Smf37Bkg@1D$6-_eT#3@@3PHpPa55q_7@-4-aj2788K_@K1g!913_S72h3$@5#71-g!5vN34*uH834o-7t@t#$@9QH4sp1";
     }
 
-    UNSAFE_componentWillMount() {
+    componentDidMount() {
         document.body.style.backgroundColor = '#282c34';
         document.body.style.backgroundSize = 'cover';
         document.body.style.animationDuration = '1s';
@@ -64,7 +65,9 @@ export default class Index extends React.Component {
             prevState.forgot_password !== this.state.forgot_password
         ) {
             if (this.state.new_account) {
-                document.getElementById('email').value = document.getElementById('name').value;
+                document.getElementById('invitetoken').value = '';
+                document.getElementById('webtoken').value = String(this.state.record_webtoken).length > 0 ? String(this.state.record_webtoken) : '';
+                document.getElementById('email').value = String(this.state.record_email).length > 0 ? String(this.state.record_email) : '';
                 document.getElementById('name').value = '';
                 document.getElementById('password').value = '';
                 document.getElementById('password_confirm').value = '';
@@ -75,6 +78,13 @@ export default class Index extends React.Component {
                 document.getElementById('password').value = '';
                 document.getElementById('password_confirm').value = '';
             } else {
+                if (document.getElementById('webtoken')) {
+                    if (this.state.message_error_code !== 1) {
+                        document.getElementById('webtoken').value = String(this.state.record_webtoken).length > 0 ? String(this.state.record_webtoken) : '';
+                        document.getElementById('webtoken').disabled = false;
+                    }
+                }
+
                 if (document.getElementById('email')) {
                     if (this.state.message_error_code !== 1) {
                         document.getElementById('email').value = String(this.state.record_email).length > 0 ? String(this.state.record_email) : '';
@@ -164,6 +174,7 @@ export default class Index extends React.Component {
 
             if (
                 typeof forgotPassword !== 'object' ||
+                typeof forgotPassword.webtoken !== 'string' ||
                 typeof forgotPassword.email !== 'string' ||
                 !forgotPassword.expires
             ) {
@@ -175,9 +186,11 @@ export default class Index extends React.Component {
             if (now > forgotPassword.expires) {
                 return sessionStorage.removeItem('reset_password');
             } else {
-                this.setState({ 'forgot_password': { 'email': forgotPassword.email, 'reset_password': true } });
+                this.setState({ 'forgot_password': { 'email': forgotPassword.email, 'webtoken': forgotPassword.webtoken, 'reset_password': true } });
                 if (document.getElementById('email'))
                     document.getElementById('email').value = String(forgotPassword.email);
+                if (document.getElementById('webtoken'))
+                    document.getElementById('webtoken').value = String(forgotPassword.webtoken);
             }
 
         } catch { return; }
@@ -193,7 +206,13 @@ export default class Index extends React.Component {
             });
         }
 
-        const email = document.getElementById('email').value;
+        const
+            webtoken = document.getElementById('webtoken').value,
+            email = document.getElementById('email').value;
+
+        if (
+            String(webtoken).length <= 0
+        ) return animateCSS('webtoken', 'shake');
 
         if (
             String(email).length <= 0
@@ -226,11 +245,12 @@ export default class Index extends React.Component {
 
                             sessionStorage.setItem('reset_password', LZString.compressToBase64(JSON.stringify({
                                 'email': String(email),
+                                'webtoken': String(webtoken),
                                 'expires': now
                             })))
 
                             animateCSS('form-container', 'fadeOutDown', () => {
-                                context.setState({ 'forgot_password': { 'email': email } });
+                                context.setState({ 'forgot_password': { 'email': email, 'webtoken': webtoken } });
                                 animateCSS('alertForgotPassword', 'fadeInUp');
                             });
                         }
@@ -264,12 +284,13 @@ export default class Index extends React.Component {
                 });
             });
 
-        req.write(JSON.stringify({ email: String(email) }));
+        req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email) }));
         req.end();
     }
 
     handleClickResetPassword() {
         const
+            webtoken = document.getElementById('webtoken').value,
             email = document.getElementById('email').value,
             token = document.getElementById('token_resetPassword').value,
             password = document.getElementById('password').value,
@@ -369,7 +390,7 @@ export default class Index extends React.Component {
                     });
                 });
 
-            req.write(JSON.stringify({ email: String(email), token: String(token), password: String(password) }));
+            req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email), token: String(token), password: String(password) }));
             req.end();
         }
     }
@@ -489,7 +510,6 @@ export default class Index extends React.Component {
 
                         if (user) {
                             context.setSessionUser({
-                                'webtoken': String(user['ID']),
                                 'name': String(user['nome']),
                                 'email': String(user['email']),
                                 'token': String(token)
@@ -559,8 +579,11 @@ export default class Index extends React.Component {
 
     handleEmailExist = () => {
         const
+            webtoken = document.getElementById('webtoken').value,
             email = document.getElementById('email').value,
             validation = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i;
+
+        if (String(webtoken).length <= 0) { return; }
 
         if (String(email).length <= 0) {
             if (
@@ -682,7 +705,7 @@ export default class Index extends React.Component {
                 });
             });
 
-        req.write(JSON.stringify({ email: String(email) }));
+        req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email) }));
         req.end();
     }
 
@@ -906,6 +929,13 @@ export default class Index extends React.Component {
                         placeholder="Codigo de verificação" />
                     <input
                         className="mb-2 form-control form-control-lg"
+                        id="webtoken"
+                        type="text"
+                        placeholder="Codigo de acesso"
+                        defaultValue={forgot_password.webtoken}
+                        disabled />
+                    <input
+                        className="mb-2 form-control form-control-lg"
                         id="email"
                         type="email"
                         placeholder="Endereço de email"
@@ -935,7 +965,7 @@ export default class Index extends React.Component {
                         className="mb-2 btn btn-primary btn-lg btn-block"
                         onClick={() => {
                             animateCSS('form-container', 'fadeOutDown', () => {
-                                context.setState({ 'forgot_password': false, 'record_email': document.getElementById('email').value });
+                                context.setState({ 'forgot_password': false, 'record_email': document.getElementById('email').value, 'record_webtoken': document.getElementById('webtoken').value });
                                 animateCSS('form-container', 'bounceIn');
                             });
                         }}>
@@ -1015,7 +1045,7 @@ export default class Index extends React.Component {
                         ref={btn => context.buttonCreateNewAccount = btn}
                         onClick={() => {
                             animateCSS('form-container', 'bounceIn');
-                            context.setState({ 'new_account': true, 'record_email': document.getElementById('email').value });
+                            context.setState({ 'new_account': true, 'record_email': document.getElementById('email').value, 'record_webtoken': document.getElementById('webtoken').value });
                         }}>
                         Criar uma conta
                     </button>
@@ -1074,11 +1104,11 @@ export default class Index extends React.Component {
                         className="mb-2 btn btn-primary btn-lg btn-block"
                         onClick={() => {
                             animateCSS('form-container', 'bounceIn');
-                            context.setState({ 'new_account': false, 'record_email': document.getElementById('email').value });
+                            context.setState({ 'new_account': false, 'record_email': document.getElementById('email').value, 'record_webtoken': document.getElementById('webtoken').value });
                         }}>
                         Voltar
                     </button>
-                </div>
+                </div >
             )
         }
     }
