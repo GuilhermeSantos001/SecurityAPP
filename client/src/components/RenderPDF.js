@@ -68,9 +68,6 @@ const styles = StyleSheet.create({
 class MyDocument extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {
-            chart: null
-        };
     }
 
     render() {
@@ -144,7 +141,7 @@ class MyDocument extends React.Component {
                 <Page size="A4" orientation="landscape" style={styles.body}>
                     <Text style={styles.header} fixed>
                         ~ {this.props.configs.header} ~
-              </Text>
+          </Text>
                     <Text style={styles.title} fixed>
                         {this.props.configs.title}
                     </Text>
@@ -161,9 +158,9 @@ class MyDocument extends React.Component {
     }
 }
 
-export default {
-    printNow: (configs) => (
-        <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf">
+export default function GraphicsPDF(configs) {
+    return (
+        <PDFDownloadLink document={<MyDocument configs={configs || {}} />} fileName="somename.pdf" style={{ 'color': '#282c34', 'textDecoration': 'none' }}>
             {({ blob, url, loading, error }) => (loading ? 'Carregando Documento...' : 'Exportar para PDF')}
         </PDFDownloadLink>
     )

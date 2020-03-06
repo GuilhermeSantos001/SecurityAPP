@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "C:\\Users\\Guilherme\\Documents\\Projetos\\SecurityAPP\\client"
+		},
+		{
+			"path": "C:\\Users\\Guilherme\\Documents\\Projetos\\SecurityAPP"
+		}
+	],
+	"settings": {
+		"files.defaultLanguage": "${activeEditorLanguage}",
+		"editor.fontLigatures": true,
+		"editor.fontWeight": "500",
+		"editor.fontFamily": "Consolas, 'Fira Code', monospace"
+	}
+}

@@ -1,28 +1,20 @@
-.App-logo {
-  margin-top: 1vh;
-  text-align: left;
-  height: 5vmin;
-  pointer-events: none;
+/* 
+    Scroll Bar
+*/
+
+.overflow-auto::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, .3);
+    border-radius: 10px;
+    background-color: #282c34;
 }
 
-.App-Title {
-  font-size: 3vh;
-  margin-top: -4vh;
-  margin-left: calc(10px + 5vmin);
-  margin-bottom: 2vh;
-  color: #00d9ff;
+.overflow-auto::-webkit-scrollbar {
+    width: .3vw;
+    background-color: #282c34;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
+.overflow-auto::-webkit-scrollbar-thumb {
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, .3);
+    border-radius: 10px;
+    background-color: #00d9ff;
 }
