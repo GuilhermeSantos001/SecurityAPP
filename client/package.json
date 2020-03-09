@@ -21,8 +21,8 @@
     "react-scripts": "^2.1.8"
   },
   "scripts": {
-    "installer": "yarn global add serve && npm install && yarn install && npm run update",
-    "update": "npm update -i && yarn upgrade",
+    "installer": "node .preinstall.js && yarn global add serve && yarn install",
+    "update": "yarn upgrade",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "server": "serve -s build -l 3000",

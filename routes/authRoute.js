@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ strict: true, caseSensitive: true });
 const mysql = require('../modules/mysql');
 const databaseWebToken = require('../mysql/databaseWebToken');
 const generateToken = require('../modules/generateToken');
@@ -8,30 +8,6 @@ const crypto = require('../api/crypto');
 const cryptoNodeJs = require('crypto');
 const mailer = require('../modules/mailer');
 const lzstring = require('lz-string');
-
-/**
- * Cors configuration
- */
-const cors = require('cors');
-const corsOptions = {
-    "origin": function (origin, callback) {
-        if (['http://reactappstudy.ddns.net:3000', 'http://localhost:3000', undefined].indexOf(origin) !== -1) {
-            callback(null, true)
-        } else {
-            callback(new Error('Not allowed by CORS'))
-        }
-    },
-    "methods": "GET, POST, PUT, DELETE, OPTIONS"
-}
-
-router.options('*', function (req, res) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Origin, Content-type, api_key");
-    return res.sendStatus(200);
-});
-
-router.use(cors(corsOptions));
 
 router.post(`/sign`, apiMiddleware, async (req, res) => {
 

@@ -149,7 +149,8 @@ export default class Index extends React.Component {
             'id': data['id'],
             'name': data['name'],
             'email': data['email'],
-            'token': data['token']
+            'token': data['token'],
+            'webtoken': data['webtoken']
         })));
 
     }
@@ -512,7 +513,8 @@ export default class Index extends React.Component {
                             context.setSessionUser({
                                 'name': String(user['nome']),
                                 'email': String(user['email']),
-                                'token': String(token)
+                                'token': String(token),
+                                'webtoken': String(webtoken),
                             })
                             context.componentCallChangePage('/app', {});
                         }
@@ -618,7 +620,7 @@ export default class Index extends React.Component {
                 "method": "GET",
                 "hostname": "reactappstudy.ddns.net",
                 "port": "5000",
-                "path": "/api/users",
+                "path": "/api/users/all",
                 "headers": {
                     "content-type": "application/json",
                     "api_key": this.getApiKey(),
@@ -765,7 +767,8 @@ export default class Index extends React.Component {
                                     'id': String(user['ID']),
                                     'name': String(user['nome']),
                                     'email': String(user['email']),
-                                    'token': String(token)
+                                    'token': String(token),
+                                    'webtoken': String(webtoken)
                                 })
                                 context.componentCallChangePage('/app', {});
                             }

@@ -5,6 +5,11 @@ import React from "react";
 import ReactDOM from 'react-dom'
 
 /**
+ * Import Axios
+ */
+import axios from 'axios';
+
+/**
  * Import LZ-String
  */
 import * as LZString from 'lz-string';
@@ -23,6 +28,7 @@ import {
     Button
 } from 'react-bootstrap';
 
+
 /**
  * Import MDBREACT
  */
@@ -31,8 +37,7 @@ import {
     MDBRow,
     MDBCol,
     MDBBtn,
-    MDBHamburgerToggler,
-    MDBCollapse,
+    MDBInput,
     MDBListGroup,
     MDBListGroupItem
 } from 'mdbreact';
@@ -46,6 +51,7 @@ import logo from '../logo.svg';
  * Import Icons
  */
 import {
+    MdAndroid,
     MdDashboard,
     MdWork,
     MdAnnouncement,
@@ -73,7 +79,9 @@ import {
     MdYoutubeSearchedFor,
     MdMessage,
     MdMailOutline,
-    MdPayment
+    MdPayment,
+    MdGavel,
+    MdInfo
 } from 'react-icons/md';
 
 /**
@@ -109,6 +117,9 @@ export default class Index extends React.Component {
                 selected: 0
             },
             send_email: false,
+            administratormenus: {
+                menu: 'default'
+            },
             collapse1: false,
             collapseID: '',
             data: {
@@ -279,7 +290,14 @@ export default class Index extends React.Component {
         return data['token'];
     }
 
+    getUserWebtoken() {
+        const data = JSON.parse(LZString.decompressFromBase64(localStorage.getItem('auth'))) || null;
+        if (!data) return '???';
+        return data['webtoken'];
+    }
+
     getUserMessages(callback) {
+
         const
             http = require("http"),
             options = {
@@ -288,7 +306,7 @@ export default class Index extends React.Component {
                 "port": "5000",
                 "path": "/api/users/messages",
                 "headers": {
-                    "content-type": "application/json",
+                    "Content-Type": "application/json",
                     "api_key": this.getApiKey(),
                     "authorization": this.getUserToken()
                 }
@@ -377,6 +395,27 @@ export default class Index extends React.Component {
 
         req.write(JSON.stringify({}));
         req.end();
+    }
+
+    getlevelaccess(callback) {
+        axios.defaults.baseURL = 'http://reactappstudy.ddns.net:5000'
+        axios.defaults.headers = {
+            "content-type": "application/json",
+            "api_key": this.getApiKey()
+        }
+        axios.get('/api/adm/sign/levelaccess', {
+            params: {
+                webtoken: this.getUserWebtoken()
+            }
+        })
+            .then((data) => {
+                if (!data['error']) {
+                    return callback(data['data']['query']['results']);
+                }
+            })
+            .catch((err) => {
+                console.log(err);
+            })
     }
 
     renderChartCanvas() {
@@ -572,6 +611,40 @@ export default class Index extends React.Component {
         this.setState({ ...menu });
     }
 
+
+    handleEmailExist(id) {
+        const
+            email = document.getElementById(`message_email-${id}`).value,
+            validation = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i;
+
+        if (String(email).length <= 0) {
+            if (
+                document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
+                document.getElementById(`message_email-${id}`).classList.contains('is-valid')
+            ) {
+                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+            }
+            return;
+        }
+        else if (!validation.test(String(email))) {
+            if (
+                !document.getElementById(`message_email-${id}`).classList.contains('is-invalid')
+            ) {
+                document.getElementById(`message_email-${id}`).classList.add('is-invalid');
+                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
+            }
+            return;
+        } else {
+            if (
+                document.getElementById(`message_email-${id}`).classList.contains('is-invalid')
+            ) {
+                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
+                document.getElementById(`message_email-${id}`).classList.add('is-valid');
+            }
+        }
+    }
+
     render() {
         return (
             <MDBContainer className="container-all" fluid>
@@ -593,6 +666,18 @@ export default class Index extends React.Component {
                         <MDBRow className="d-none d-lg-block d-xl-block" style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
                             <MDBCol size="12" sm="12" lg="12" className="d-none d-lg-block d-xl-block overflow-auto" style={{ 'height': '80vh', 'marginBottom': '15%' }}>
                                 <MDBRow className="d-flex flex-column">
+                                    {
+                                        this.state.definitionlevelaccess['administrator'] ? (
+                                            <MDBBtn
+                                                id="_administrator"
+                                                className="col-10 ml-auto mr-auto"
+                                                outline={this.state.menu === 'administrator' ? false : true}
+                                                color="white"
+                                                onClick={() => this.setState({ menu: 'administrator' })}>
+                                                <MdAndroid /> Administrator
+                                            </MDBBtn>
+                                        ) : false
+                                    }
                                     <MDBBtn
                                         id="_dashboard"
                                         className="col-10 ml-auto mr-auto"
@@ -680,9 +765,175 @@ export default class Index extends React.Component {
 
     content() {
         /**
+         * Administrator
+         */
+        if (this.state.menu === 'administrator') {
+            if (this.state.administratormenus.menu === 'default') {
+                return (
+                    <MDBCol className='administrator' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
+                        <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                            <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                    <MdAssignment /> Chave de segurança
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <MDBRow>
+                                    <MDBCol size="12">
+                                        <input className="col-12" defaultValue="1" type="number" placeholder="Escreva o codigo" id="_invitetoken_code_" min="1" max="9999999999" />
+                                        <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Esse codigo deve ser unico.<br />
+                                            <MdInfo /> O codigo pode conter o total de 10 digitos.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <MDBInput label="Escreva o texto que desejar" id="_invitetoken_" />
+                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Esse texto serve para destinguir a chave de acesso dentro do sistema.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12" className="form-check">
+                                        <h5 className="text-left" style={{ 'color': '#282c34' }}>
+                                            <MdGavel /> Nivel de acesso
+                                        </h5>
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck1" />
+                                        <label className="form-check-label ml-4" htmlFor="defaultCheck1">
+                                            Administrator
+                                        </label><br />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck1" />
+                                        <label className="form-check-label ml-4" htmlFor="defaultCheck1">
+                                            Dashboard
+                                        </label><br />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck2" />
+                                        <label className="form-check-label ml-4" htmlFor="defaultCheck2">
+                                            Mensagens
+                                        </label><br />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck3" />
+                                        <label className="form-check-label ml-4" htmlFor="defaultCheck3">
+                                            Comercial
+                                        </label><br />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
+                                        <label className="form-check-label ml-4" htmlFor="defaultCheck4">
+                                            DP_RH
+                                        </label><br />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
+                                        <label className="form-check-label ml-4" htmlFor="defaultCheck4">
+                                            Operacional
+                                        </label><br />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
+                                        <label className="form-check-label ml-4" htmlFor="defaultCheck4">
+                                            Financeiro
+                                        </label><br />
+                                        <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Ao selecionar o administrator, o usuario terá acesso completo ao sistema.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <Button
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                const
+                                                    invitetokencode = document.getElementById('_invitetoken_code_'),
+                                                    invite = document.getElementById('_invitetoken_');
+
+                                                const
+                                                    http = require("http"),
+                                                    options = {
+                                                        "method": "POST",
+                                                        "hostname": "reactappstudy.ddns.net",
+                                                        "port": "5000",
+                                                        "path": "/api/adm/sign/webtokeninvite",
+                                                        "headers": {
+                                                            "content-type": "application/json",
+                                                            "api_key": this.getApiKey()
+                                                        }
+                                                    },
+                                                    context = this,
+                                                    req = http.request(options, function (res) {
+                                                        let chunks = [];
+
+                                                        const
+                                                            onSuccess = () => {
+                                                                animateCSS('messages', 'fadeIn');
+                                                                context.getUserMessages((messages) => {
+                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                });
+                                                            },
+                                                            onError = () => {
+                                                                animateCSS('messages', 'fadeIn');
+                                                                context.getUserMessages((messages) => {
+                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                });
+                                                            }
+
+                                                        res.on("data", chunk => chunks.push(chunk));
+
+                                                        res.on("end", () => {
+                                                            const body = Buffer.concat(chunks);
+
+                                                            try {
+                                                                const data = JSON.parse(body.toString());
+
+                                                                if (data['error']) {
+                                                                    return onError();
+                                                                } else {
+                                                                    return onSuccess(data['query']['results']);
+                                                                }
+
+                                                            } catch (err) {
+                                                                return new Error(err);
+                                                            }
+
+                                                        });
+                                                    });
+
+                                                req.write(JSON.stringify({ 'webtoken': this.getUserWebtoken(), 'invite': invite, 'levelaccess': invitetokencode }));
+                                                req.end();
+                                            }}>
+                                            <MdHdrWeak /> Gerar chave de segurança
+                                        </Button>
+                                        <Button
+                                            className="mt-2"
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('administrator', 'fadeIn');
+                                                this.getlevelaccess((data) => {
+                                                    console.log(data);
+                                                })
+                                                this.setState({ administratormenus: { menu: 'invitetokencodes' } });
+                                            }}>
+                                            <MdHdrWeak /> Ver lista de chaves de segurança
+                                        </Button>
+                                    </MDBCol>
+                                </MDBRow>
+                            </MDBCol>
+                        </MDBRow>
+                    </MDBCol>
+                )
+            } else if (this.state.administratormenus.menu === 'invitetokencodes') {
+                return (
+                    <MDBCol className='administrator' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
+                        <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
+                            <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                    <MdAssignment /> Chaves de segurança
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                            </MDBCol>
+                        </MDBRow>
+                    </MDBCol>
+                )
+            }
+        }
+        /**
          * Dashboard
          */
-        if (this.state.menu === 'dashboard') {
+        else if (this.state.menu === 'dashboard') {
             return (
                 <MDBCol className='dashboard' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
                     <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
@@ -1066,13 +1317,13 @@ export default class Index extends React.Component {
                         <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                             <MDBCol size="12" className="mt-2">
                                 <MDBCol size="12" className="message-form-all">
-                                    <label htmlFor="message_email-1" className="font-weight-bold">Destinatário:</label>
+                                    <label htmlhtmlFor="message_email-1" className="font-weight-bold">Destinatário:</label>
                                     <input type="text" className="form-control mb-2" id="message_email-1" placeholder="Endereço de email" onChange={this.handleEmailExist.bind(this, '1')} onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
-                                    <label htmlFor="message_email-2" className="font-weight-bold">Cc:</label>
+                                    <label htmlhtmlFor="message_email-2" className="font-weight-bold">Cc:</label>
                                     <input type="text" className="form-control mb-2" id="message_email-2" placeholder="Endereço de email" onChange={this.handleEmailExist.bind(this, '2')} onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
-                                    <label htmlFor="message_subject" className="font-weight-bold">Assunto:</label>
+                                    <label htmlhtmlFor="message_subject" className="font-weight-bold">Assunto:</label>
                                     <input type="text" className="form-control mb-2" id="message_subject" placeholder="Defina o assunto" onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
-                                    <label htmlFor="message_textarea" className="font-weight-bold">Mensagem:</label>
+                                    <label htmlhtmlFor="message_textarea" className="font-weight-bold">Mensagem:</label>
                                     <textarea className="form-control mb-2" id="message_textarea" onKeyUp={onChangeEmailSend.bind(this)} style={{ 'height': '50vh', 'resize': 'none', 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
                                 </MDBCol>
                                 <ButtonToolbar>
@@ -1659,99 +1910,6 @@ export default class Index extends React.Component {
                 </MDBCol>
             )
         }
-    }
-
-    handleEmailExist(id) {
-        const
-            email = document.getElementById(`message_email-${id}`).value,
-            validation = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i;
-
-        if (String(email).length <= 0) {
-            if (
-                document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
-                document.getElementById(`message_email-${id}`).classList.contains('is-valid')
-            ) {
-                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
-                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
-            }
-            return;
-        }
-        else if (!validation.test(String(email))) {
-            if (
-                document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
-                document.getElementById(`message_email-${id}`).classList.contains('is-valid')
-            ) {
-                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
-                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
-            }
-            return;
-        };
-
-        const
-            http = require("http"),
-            options = {
-                "method": "GET",
-                "hostname": "reactappstudy.ddns.net",
-                "port": "5000",
-                "path": `/api/users`,
-                "headers": {
-                    "content-type": "application/json",
-                    "api_key": this.getApiKey()
-                }
-            },
-            req = http.request(options, function (res) {
-                let chunks = [];
-
-                const
-                    onSuccess = (data) => {
-                        if (data.length > 0 && data.filter(user => user['Email'] === String(email)).length > 0) {
-                            if (
-                                document.getElementById(`message_email-${id}`).classList.contains('is-invalid') ||
-                                !document.getElementById(`message_email-${id}`).classList.contains('is-valid')
-                            ) {
-                                document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
-                                document.getElementById(`message_email-${id}`).classList.add('is-valid');
-                            }
-                        } else {
-                            if (
-                                document.getElementById(`message_email-${id}`).classList.contains('is-valid') ||
-                                !document.getElementById(`message_email-${id}`).classList.contains('is-invalid')
-                            ) {
-                                document.getElementById(`message_email-${id}`).classList.remove('is-valid');
-                                document.getElementById(`message_email-${id}`).classList.add('is-invalid');
-                            }
-                        }
-                    },
-                    onError = () => {
-                        animateCSS('alertUser', 'fadeOutDown', () => {
-                            document.getElementById(`message_email-${id}`).classList.remove('is-invalid');
-                            document.getElementById(`message_email-${id}`).classList.remove('is-valid');
-                        });
-                    }
-
-                res.on("data", chunk => chunks.push(chunk));
-
-                res.on("end", () => {
-                    const body = Buffer.concat(chunks);
-
-                    try {
-                        const data = JSON.parse(body.toString());
-
-                        if (data['error']) {
-                            return onError();
-                        } else {
-                            return onSuccess(data['query']['results']);
-                        }
-
-                    } catch (err) {
-                        return new Error(err);
-                    }
-
-                });
-            });
-
-        req.write(JSON.stringify({ "email": String(email) }));
-        req.end();
     }
 }
 

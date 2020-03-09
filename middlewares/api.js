@@ -21,21 +21,19 @@ if (!fs.existsSync(file)) {
 }
 
 module.exports = (req, res, next) => {
-    const authHeader = req.headers['api_key'];
+    const authHeader = req.headers.api_key;
 
     if (!fs.existsSync(file))
         return res.status(401).send({ error: 'Not possible access the Api Key' });
 
-    if (!authHeader)
-        return res.status(401).send({ error: 'No Api Key provided' });
+    if (!authHeader) return res.status(401).send({ error: 'No Api Key provided' });
 
     let api_key = JSON.parse(fs.readFileSync(file, 'utf8'));
 
     api_key.tag = Buffer.from(api_key.tag, 'binary');
     api_key.iv = authHeader;
 
-    if (!crypto.decrypt(api_key, key))
-        return res.status(401).send({ error: 'Verify your Api Key' });
+    if (!crypto.decrypt(api_key, key)) return res.status(401).send({ error: 'Verify your Api Key' });
 
     return next();
 };
