@@ -449,7 +449,7 @@ module.exports = {
             });
         })
     },
-    insertReferenceInTable: (database, table1 = [], table2 = [], constraint) => {
+    insertReferenceInTable: (database, table1 = [], table2 = []) => {
         return new Promise(async (resolve, reject) => {
 
             const connection = await mysql.createConnection(Object.assign({
@@ -466,7 +466,7 @@ module.exports = {
                     return connection.destroy();
                 }
 
-                const sql = `ALTER TABLE ${table1[0]} ADD CONSTRAINT ${constraint} FOREIGN KEY (${table1[1]}) REFERENCES ${table2[0]}(${table2[1]})`;
+                const sql = `ALTER TABLE ${table1[0]} ADD FOREIGN KEY (${table1[1]}) REFERENCES ${table2[0]}(${table2[1]})`;
 
                 connection.query(sql, (err, results, fields) => {
                     if (err) {
@@ -526,6 +526,49 @@ module.exports = {
                             fields
                         }
                     });
+
+                    return connection.end();
+                });
+            });
+        })
+    },
+    removeReferenceInTable: (database, table, foreignKey) => {
+        return new Promise(async (resolve, reject) => {
+
+            const connection = await mysql.createConnection(Object.assign({
+                database: database
+            }, mysqlConfig));
+
+            connection.connect((err) => {
+                if (err) {
+                    if (typeof reject === 'function')
+                        reject({
+                            err: 'Connection with database failed',
+                            details: err
+                        });
+                    return connection.destroy();
+                }
+
+                const sql = `ALTER TABLE ${table} DROP FOREIGN KEY ${foreignKey}`;
+
+                connection.query(sql, (err, results, fields) => {
+                    if (err) {
+                        if (typeof reject === 'function')
+                            reject({
+                                err: 'Drop in table is failed',
+                                details: err
+                            });
+                        return connection.destroy();
+                    }
+
+                    if (typeof resolve === 'function')
+                        resolve({
+                            sql,
+                            query: {
+                                results,
+                                fields
+                            }
+                        });
 
                     return connection.end();
                 });

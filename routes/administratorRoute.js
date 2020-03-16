@@ -5,26 +5,12 @@ const table_levelaccess = require('../config/tables').nivel_acesso;
 const databaseWebToken = require('../mysql/databaseWebToken');
 const webTokenInvite = require('../mysql/inviteWebToken');
 const apiMiddleware = require('../middlewares/api');
+const getReqProps = require('../modules/getReqProps');
 const LZString = require('lz-string');
 
-function getReqProps(req, props = []) {
-    let reqProps = {};
-
-    props.forEach(prop => {
-        if (Object.keys(req.params).filter(param => param === prop).length > 0) {
-            return reqProps[prop] = req.params[prop];
-        }
-        else if (Object.keys(req.body).filter(param => param === prop).length > 0) {
-            return reqProps[prop] = req.body[prop];
-        }
-        else if (Object.keys(req.query).filter(param => param === prop).length > 0) {
-            return reqProps[prop] = req.query[prop];
-        }
-    });
-
-    return reqProps;
-}
-
+/**
+ * LEVEL ACCESS
+ */
 
 router.get(['/sign/levelaccess', '/sign/levelaccess/:codigo'], apiMiddleware, async (req, res) => {
     const { codigo, webtoken } = getReqProps(req, ['codigo', 'webtoken']);
@@ -47,7 +33,7 @@ router.get(['/sign/levelaccess', '/sign/levelaccess/:codigo'], apiMiddleware, as
                             sql,
                             query
                         }) => {
-                            if (query.results.length <= 0) return res.status(400).send({ error: 'The code for Level Access already registered!' });
+                            if (query.results.length <= 0) return res.status(400).send({ error: 'There are no registered level access!' });
 
                             query.results = query.results.map(levelaccess => {
                                 levelaccess['menu'] = JSON.parse(LZString.decompressFromBase64(levelaccess['menu']));
@@ -92,7 +78,7 @@ router.get(['/sign/levelaccess', '/sign/levelaccess/:codigo'], apiMiddleware, as
 })
 
 router.post('/sign/levelaccess', apiMiddleware, async (req, res) => {
-    const { webtoken, codigo, nome, menu } = req.body;
+    const { codigo, webtoken, nome, menu } = getReqProps(req, ['codigo', 'webtoken', 'nome', 'menu']);
 
     if (!webtoken || !codigo || !nome || !menu || menu && typeof menu != 'object')
         return res.status(401).send({
@@ -179,14 +165,9 @@ router.post('/sign/levelaccess', apiMiddleware, async (req, res) => {
 })
 
 router.put(['/sign/levelaccess/update', '/sign/levelaccess/update/:codigo'], apiMiddleware, async (req, res) => {
-    let { codigo } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+    const { codigo, webtoken, nome, menu } = getReqProps(req, ['codigo', 'webtoken', 'nome', 'menu']);
 
-    const { webtoken, nome, menu } = req.body;
-
-    if (!codigo) codigo = req.body['codigo'];
-
-    if (!webtoken || !nome || !menu)
+    if (!webtoken || !codigo || !nome || !menu)
         return res.status(401).send({
             error: 'Body content is not valid!'
         });
@@ -255,8 +236,58 @@ router.put(['/sign/levelaccess/update', '/sign/levelaccess/update/:codigo'], api
     }
 })
 
+router.delete(['/sign/levelaccess/remove', '/sign/levelaccess/remove/:id'], apiMiddleware, async (req, res) => {
+    const { id, webtoken } = getReqProps(req, ['id', 'webtoken']);
+
+    if (!webtoken)
+        return res.status(401).send({
+            error: 'Body content is not valid!'
+        });
+
+    try {
+
+        databaseWebToken.verify(String(webtoken))
+            .then((database) => {
+                try {
+
+                    if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
+
+                    mysql.dropInTable(String(database), 'nivel_acesso', id)
+                        .then(({ sql, query }) => {
+                            return res.status(200).send({ success: 'Drop in table is success', sql: sql, query: query });
+                        })
+                        .catch(({ err, details }) => {
+                            if (err) return res.status(400).send({ error: err, details });
+                        })
+
+                } catch (error) {
+                    return console.error({
+                        message: `Não foi possivel se conectar ao banco de dados ${database}`,
+                        error: error
+                    });
+                }
+            })
+            .catch(() => {
+                return res.status(400).send({
+                    error: 'Webtoken is invalid!',
+                    code: 1
+                });
+            })
+
+    } catch (err) {
+        return res.status(400).send({
+            error: 'Auth Failed',
+            details: err
+        });
+    }
+})
+
+/**
+ * WEB TOKEN INVITE
+ */
+
 router.post('/sign/webtokeninvite', apiMiddleware, async (req, res) => {
-    const { webtoken, invite, levelaccess } = req.body;
+    const { webtoken, invite, levelaccess } = getReqProps(req, ['webtoken', 'invite', 'levelaccess']);
 
     if (!webtoken || !invite)
         return res.status(401).send({

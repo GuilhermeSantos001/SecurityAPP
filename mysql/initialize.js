@@ -5,7 +5,7 @@ const databaseWebToken = require('./databaseWebToken');
 
 if (databases instanceof Array && databases.length > 0) {
     databases.map(database => {
-       if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
+        if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
         const token = {
             value: '',
@@ -2345,6 +2345,22 @@ if (databases instanceof Array && databases.length > 0) {
                                         `LONGTEXT AFTER data_de_criacao`
                                     ]
                                 ])
+                                    .then(({
+                                        sql,
+                                        query
+                                    }) => {
+                                        mysql.insertReferenceInTable(database, ['usuario', 'nivel_acesso_id'], ['nivel_acesso', 'codigo'])
+                                            .catch(({
+                                                err,
+                                                details
+                                            }) => {
+                                                if (err)
+                                                    if (details['errno'] != 1826 && details['errno'] != 1213) return console.error({
+                                                        error: err,
+                                                        details
+                                                    });
+                                            })
+                                    })
                                     .catch(({
                                         err,
                                         details
@@ -2373,21 +2389,6 @@ if (databases instanceof Array && databases.length > 0) {
                             error: err,
                             details
                         });
-                    })
-
-                /**
-                 * ADICIONA REFERENCIA ENTRE TABELAS
-                 */
-                mysql.insertReferenceInTable(database, ['usuario', 'nivel_acesso_id'], ['nivel_acesso', 'codigo'], 'fk_nivel_acesso')
-                    .catch(({
-                        err,
-                        details
-                    }) => {
-                        if (err)
-                            if (details['errno'] != 1826 && details['errno'] != 1213) return console.error({
-                                error: err,
-                                details
-                            });
                     })
 
                 /** PONTO FINAL PARA NOVOS BANCO DE DADOS */

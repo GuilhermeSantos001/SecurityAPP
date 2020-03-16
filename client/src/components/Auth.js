@@ -4,6 +4,11 @@
 import React from "react";
 
 /**
+ * Import Axios
+ */
+import axios from 'axios';
+
+/**
  * Import LZ-String
  */
 import * as LZString from 'lz-string';
@@ -38,14 +43,12 @@ export default class Index extends React.Component {
         }
     }
 
-    getApiKey() {
-        return "5i@41Yb#!##@P4!NsrvJ-D3DK$Q89-3*Y-#59#$*CW2#!P@U45#q*#$42H4q!63gsQ-64b991IK$R#8r_-$*_46#*1@5s!@A3@_56e36!*@65n517W76_@9P#!$54s@-dQ45#7rtp7-5!2!34@#4Fj44g1-_7-@8-#Smf37Bkg@1D$6-_eT#3@@3PHpPa55q_7@-4-aj2788K_@K1g!913_S72h3$@5#71-g!5vN34*uH834o-7t@t#$@9QH4sp1";
-    }
-
     componentDidMount() {
         document.body.style.backgroundColor = '#282c34';
         document.body.style.backgroundSize = 'cover';
         document.body.style.animationDuration = '1s';
+
+        axios.defaults.baseURL = 'http://localhost:5000';
 
         this.componentCallLoading('stop');
         this.userSessionLogin();
@@ -74,6 +77,8 @@ export default class Index extends React.Component {
 
                 this.handleEmailExist();
             } else if (this.state.forgot_password && this.state.forgot_password['reset_password']) {
+                document.getElementById('webtoken').value = this.state.forgot_password['webtoken'];
+                document.getElementById('email').value = this.state.forgot_password['email'];
                 document.getElementById('token_resetPassword').value = '';
                 document.getElementById('password').value = '';
                 document.getElementById('password_confirm').value = '';
@@ -141,6 +146,10 @@ export default class Index extends React.Component {
         }, 1000);
     }
 
+    getApiKey() {
+        return "5i@41Yb#!##@P4!NsrvJ-D3DK$Q89-3*Y-#59#$*CW2#!P@U45#q*#$42H4q!63gsQ-64b991IK$R#8r_-$*_46#*1@5s!@A3@_56e36!*@65n517W76_@9P#!$54s@-dQ45#7rtp7-5!2!34@#4Fj44g1-_7-@8-#Smf37Bkg@1D$6-_eT#3@@3PHpPa55q_7@-4-aj2788K_@K1g!913_S72h3$@5#71-g!5vN34*uH834o-7t@t#$@9QH4sp1";
+    }
+
     setSessionUser(data) {
 
         if (typeof data !== 'object') return false;
@@ -156,7 +165,6 @@ export default class Index extends React.Component {
     }
 
     userSessionLogin() {
-
         if (sessionStorage.getItem('authRemove')) {
             sessionStorage.removeItem('authRemove');
             return localStorage.removeItem('auth');
@@ -167,7 +175,6 @@ export default class Index extends React.Component {
     }
 
     forgotPasswordSessionStorage() {
-
         try {
             let
                 forgotPassword = JSON.parse(LZString.decompressFromBase64(sessionStorage.getItem('reset_password'))) || null,
@@ -199,7 +206,6 @@ export default class Index extends React.Component {
     }
 
     handleClickForgotPassword() {
-
         if (sessionStorage.getItem('reset_password')) {
             return animateCSS('form-container', 'fadeOutDown', () => {
                 animateCSS('form-container', 'bounceIn');
@@ -219,74 +225,48 @@ export default class Index extends React.Component {
             String(email).length <= 0
         ) return animateCSS('email', 'shake');
 
-        const
-            http = require("http"),
-            options = {
-                "method": "POST",
-                "hostname": "reactappstudy.ddns.net",
-                "port": "5000",
-                "path": "/api/auth/forgot_password",
-                "headers": {
-                    "content-type": "application/json",
-                    "api_key": this.getApiKey(),
-                    "content-length": "57"
-                }
+        axios.post('/api/auth/forgot_password',
+            {
+                webtoken: String(webtoken),
+                email: String(email)
             },
-            context = this,
-            req = http.request(options, function (res) {
-                let chunks = [];
+            {
+                headers: {
+                    "content-type": 'application/json',
+                    "api_key": this.getApiKey()
+                }
+            })
+            .then((data) => {
+                if (!data['error']) {
+                    data = data['data']['query']['results'];
 
-                const
-                    onSuccess = (data) => {
-                        if (data.user) {
+                    if (data.user) {
+                        let now = new Date();
 
-                            let now = new Date();
+                        now.setHours(now.getHours() + 1);
 
-                            now.setHours(now.getHours() + 1);
+                        sessionStorage.setItem('reset_password', LZString.compressToBase64(JSON.stringify({
+                            'email': String(email),
+                            'webtoken': String(webtoken),
+                            'expires': now
+                        })))
 
-                            sessionStorage.setItem('reset_password', LZString.compressToBase64(JSON.stringify({
-                                'email': String(email),
-                                'webtoken': String(webtoken),
-                                'expires': now
-                            })))
-
-                            animateCSS('form-container', 'fadeOutDown', () => {
-                                context.setState({ 'forgot_password': { 'email': email, 'webtoken': webtoken } });
-                                animateCSS('alertForgotPassword', 'fadeInUp');
-                            });
-                        }
-                    },
-                    onError = () => {
-                        context.setState({ 'message_error': `Não foi possivel enviar a solicitação para a troca de senha no endereço de email (${email})` });
-                        if (document.getElementById('alertUser').classList.contains('invisible')) {
-                            document.getElementById('alertUser').classList.remove("invisible");
-                            animateCSS('alertUser', 'fadeInUp');
-                        }
+                        animateCSS('form-container', 'fadeOutDown', () => {
+                            this.setState({ 'forgot_password': { 'email': String(email), 'webtoken': String(webtoken) } });
+                            animateCSS('alertForgotPassword', 'fadeInUp');
+                        });
                     }
-
-                res.on("data", chunk => chunks.push(chunk));
-
-                res.on("end", () => {
-                    const body = Buffer.concat(chunks);
-
-                    try {
-                        const data = JSON.parse(body.toString());
-
-                        if (data['error']) {
-                            return onError();
-                        } else {
-                            return onSuccess(data['query']['results']);
-                        }
-
-                    } catch (err) {
-                        return new Error(err);
+                } else {
+                    this.setState({ 'message_error': `Não foi possivel enviar a solicitação para a troca de senha no endereço de email (${email})` });
+                    if (document.getElementById('alertUser').classList.contains('invisible')) {
+                        document.getElementById('alertUser').classList.remove("invisible");
+                        animateCSS('alertUser', 'fadeInUp');
                     }
-
-                });
-            });
-
-        req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email) }));
-        req.end();
+                }
+            })
+            .catch((err) => {
+                return new Error(err);
+            })
     }
 
     handleClickResetPassword() {
@@ -309,90 +289,69 @@ export default class Index extends React.Component {
         }
 
         if (this.state.new_account_password) {
-            const
-                http = require("http"),
-                options = {
-                    "method": "POST",
-                    "hostname": "reactappstudy.ddns.net",
-                    "port": "5000",
-                    "path": "/api/auth/reset_password",
-                    "headers": {
-                        "content-type": "application/json",
-                        "api_key": this.getApiKey(),
-                        "content-length": "57"
-                    }
+            axios.post('/api/auth/reset_password',
+                {
+                    webtoken: String(webtoken),
+                    email: String(email),
+                    token: String(token),
+                    password: String(password)
                 },
-                context = this,
-                req = http.request(options, function (res) {
-                    let chunks = [];
+                {
+                    headers: {
+                        "content-type": "application/json",
+                        "api_key": this.getApiKey()
+                    }
+                })
+                .then((data) => {
+                    if (!data['error']) {
+                        data = data['data']['query']['results'];
 
-                    const
-                        onSuccess = (data) => {
-                            if (data.user) {
+                        if (data.user) {
+                            sessionStorage.removeItem('reset_password');
+                            document.getElementById('token_resetPassword').disabled = true;
+                            document.getElementById('email').disabled = true;
+                            document.getElementById('password').disabled = true;
+                            document.getElementById('password_confirm').disabled = true;
 
-                                sessionStorage.removeItem('reset_password');
-                                document.getElementById('token_resetPassword').disabled = true;
-                                document.getElementById('email').disabled = true;
-                                document.getElementById('password').disabled = true;
-                                document.getElementById('password_confirm').disabled = true;
-                                context.buttonResetPassword.disabled = true;
+                            this.buttonResetPassword.disabled = true;
 
-                                context.setState({ 'message_error': `Senha alterada com sucesso!` });
-                                if (document.getElementById('alertUser').classList.contains('alert-danger')) {
-                                    document.getElementById('alertUser').classList.remove("alert-danger");
-                                    document.getElementById('alertUser').classList.add("alert-success");
-                                }
-
-                                if (document.getElementById('alertUser').classList.contains('invisible')) {
-                                    document.getElementById('alertUser').classList.remove("invisible");
-                                    document.getElementById('alertUser').classList.add("alert-success");
-                                    animateCSS('alertUser', 'fadeInUp');
-                                }
-                            }
-                        },
-                        onError = (code) => {
-                            if (code === 1) {
-                                context.setState({ 'message_error': `Não foi possivel encontrar seu token` });
-                                sessionStorage.removeItem('reset_password');
-                            } else if (code === 2) {
-                                context.setState({ 'message_error': `Token invalido` });
-                            } else if (code === 3) {
-                                context.setState({ 'message_error': `Token expirado` });
-                                sessionStorage.removeItem('reset_password');
-                            } else {
-                                context.setState({ 'message_error': `Não foi possivel redefinir sua senha` });
-                                sessionStorage.removeItem('reset_password');
+                            this.setState({ 'message_error': `Senha alterada com sucesso!` });
+                            if (document.getElementById('alertUser').classList.contains('alert-danger')) {
+                                document.getElementById('alertUser').classList.remove("alert-danger");
+                                document.getElementById('alertUser').classList.add("alert-success");
                             }
 
                             if (document.getElementById('alertUser').classList.contains('invisible')) {
                                 document.getElementById('alertUser').classList.remove("invisible");
+                                document.getElementById('alertUser').classList.add("alert-success");
                                 animateCSS('alertUser', 'fadeInUp');
                             }
                         }
+                    } else {
+                        const code = Number(data['code']);
 
-                    res.on("data", chunk => chunks.push(chunk));
-
-                    res.on("end", () => {
-                        const body = Buffer.concat(chunks);
-
-                        try {
-                            const data = JSON.parse(body.toString());
-
-                            if (data['error']) {
-                                return onError(data['code']);
-                            } else {
-                                return onSuccess(data['query']['results']);
-                            }
-
-                        } catch (err) {
-                            return new Error(err);
+                        if (code === 1) {
+                            this.setState({ 'message_error': `Não foi possivel encontrar seu token` });
+                            sessionStorage.removeItem('reset_password');
+                        } else if (code === 2) {
+                            this.setState({ 'message_error': `Token invalido` });
+                        } else if (code === 3) {
+                            this.setState({ 'message_error': `Token expirado` });
+                            sessionStorage.removeItem('reset_password');
+                        } else {
+                            this.setState({ 'message_error': `Não foi possivel redefinir sua senha` });
+                            sessionStorage.removeItem('reset_password');
                         }
 
-                    });
-                });
-
-            req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email), token: String(token), password: String(password) }));
-            req.end();
+                        if (document.getElementById('alertUser').classList.contains('invisible')) {
+                            document.getElementById('alertUser').classList.remove("invisible");
+                            animateCSS('alertUser', 'fadeInUp');
+                        }
+                    }
+                })
+                .catch((err) => {
+                    return new Error(err);
+                })
         }
     }
 
@@ -490,7 +449,7 @@ export default class Index extends React.Component {
             http = require("http"),
             options = {
                 "method": "POST",
-                "hostname": "reactappstudy.ddns.net",
+                "hostname": 'base_url',
                 "port": "5000",
                 "path": "/api/auth/sign",
                 "headers": {
@@ -618,7 +577,7 @@ export default class Index extends React.Component {
             http = require("http"),
             options = {
                 "method": "GET",
-                "hostname": "reactappstudy.ddns.net",
+                "hostname": 'base_url',
                 "port": "5000",
                 "path": "/api/users/all",
                 "headers": {
@@ -743,7 +702,7 @@ export default class Index extends React.Component {
                 http = require("http"),
                 options = {
                     "method": "POST",
-                    "hostname": "reactappstudy.ddns.net",
+                    "hostname": 'base_url',
                     "port": "5000",
                     "path": "/api/users/register",
                     "headers": {
@@ -995,7 +954,7 @@ export default class Index extends React.Component {
                             onClick={() => {
                                 animateCSS('alertForgotPassword', 'fadeOut', () => {
                                     context.alertForgotPassword.classList.remove('show');
-                                    context.setState({ 'forgot_password': { 'email': forgot_password.email, 'reset_password': true } });
+                                    context.setState({ 'forgot_password': { 'email': forgot_password.email, 'webtoken': forgot_password.webtoken, 'reset_password': true } });
                                     animateCSS('form-container', 'bounceIn');
                                 });
                             }}>

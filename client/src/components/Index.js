@@ -81,7 +81,9 @@ import {
     MdMailOutline,
     MdPayment,
     MdGavel,
-    MdInfo
+    MdInfo,
+    MdCheck,
+    MdClose
 } from 'react-icons/md';
 
 /**
@@ -94,6 +96,12 @@ import GraphicsPDF from './RenderPDF';
  */
 import 'animate.css';
 import '../css/Index.css';
+
+/**
+ * Variables
+ */
+
+const base_url = 'localhost';
 
 /**
  * Class
@@ -118,7 +126,9 @@ export default class Index extends React.Component {
             },
             send_email: false,
             administratormenus: {
-                menu: 'default'
+                menu: 'default',
+                data: [],
+                selected: 0
             },
             collapse1: false,
             collapseID: '',
@@ -302,7 +312,7 @@ export default class Index extends React.Component {
             http = require("http"),
             options = {
                 "method": "GET",
-                "hostname": "reactappstudy.ddns.net",
+                "hostname": base_url,
                 "port": "5000",
                 "path": "/api/users/messages",
                 "headers": {
@@ -352,7 +362,7 @@ export default class Index extends React.Component {
             http = require("http"),
             options = {
                 "method": "GET",
-                "hostname": "reactappstudy.ddns.net",
+                "hostname": base_url,
                 "port": "5000",
                 "path": `/api/users/levelaccess`,
                 "headers": {
@@ -398,7 +408,7 @@ export default class Index extends React.Component {
     }
 
     getlevelaccess(callback) {
-        axios.defaults.baseURL = 'http://reactappstudy.ddns.net:5000'
+        axios.defaults.baseURL = 'http://localhost:5000'
         axios.defaults.headers = {
             "content-type": "application/json",
             "api_key": this.getApiKey()
@@ -835,14 +845,14 @@ export default class Index extends React.Component {
                                             block
                                             onClick={() => {
                                                 const
-                                                    invitetokencode = document.getElementById('_invitetoken_code_'),
-                                                    invite = document.getElementById('_invitetoken_');
+                                                    invitetokencode = document.getElementById('_invitetoken_code_').value,
+                                                    invite = document.getElementById('_invitetoken_').value;
 
                                                 const
                                                     http = require("http"),
                                                     options = {
                                                         "method": "POST",
-                                                        "hostname": "reactappstudy.ddns.net",
+                                                        "hostname": base_url,
                                                         "port": "5000",
                                                         "path": "/api/adm/sign/webtokeninvite",
                                                         "headers": {
@@ -902,9 +912,8 @@ export default class Index extends React.Component {
                                             onClick={() => {
                                                 animateCSS('administrator', 'fadeIn');
                                                 this.getlevelaccess((data) => {
-                                                    console.log(data);
+                                                    this.setState({ administratormenus: { menu: 'invitetokencodes', data: data, selected: 0 } });
                                                 })
-                                                this.setState({ administratormenus: { menu: 'invitetokencodes' } });
                                             }}>
                                             <MdHdrWeak /> Ver lista de chaves de segurança
                                         </Button>
@@ -915,6 +924,60 @@ export default class Index extends React.Component {
                     </MDBCol>
                 )
             } else if (this.state.administratormenus.menu === 'invitetokencodes') {
+                let list = this.state.administratormenus.data.map(invitetoken => {
+                    console.log(invitetoken);
+                    if (invitetoken) {
+                        return <MDBListGroupItem className="mb-2" key={invitetoken['ID']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #282c34' }}>
+                            <hr />
+                            <p className="text-left mb-2">
+                                <MdInfo /> Código: {Math.abs(Number(invitetoken['codigo']))}
+                            </p>
+                            <hr />
+                            <p className="text-left mb-2">
+                                <MdInfo /> Nome: {invitetoken['nome']}
+                            </p>
+                            <hr />
+                            <p className="text-left mb-2">
+                                <MdGavel /> Nivel de acesso
+                            </p>
+                            <hr />
+                            <p className="text-left mb-1">
+                                {invitetoken['menu']['administrator'] ? <MdCheck /> : <MdClose />} Administrator
+                            </p>
+                            <p className="text-left mb-1">
+                                {invitetoken['menu']['dashboard'] ? <MdCheck /> : <MdClose />} Dashboard
+                            </p>
+                            <p className="text-left mb-1">
+                                {invitetoken['menu']['messages'] ? <MdCheck /> : <MdClose />} Mensagens
+                            </p>
+                            <p className="text-left mb-1">
+                                {invitetoken['menu']['comercial'] ? <MdCheck /> : <MdClose />} Comercial
+                            </p>
+                            <p className="text-left mb-1">
+                                {invitetoken['menu']['dp_rh'] ? <MdCheck /> : <MdClose />} DP_RH
+                            </p>
+                            <p className="text-left mb-1">
+                                {invitetoken['menu']['operacional'] ? <MdCheck /> : <MdClose />} Operacional
+                            </p>
+                            <p className="text-left mb-1">
+                                {invitetoken['menu']['financeiro'] ? <MdCheck /> : <MdClose />} Financeiro
+                            </p>
+                            <hr />
+                            <Button
+                                className="mb-2"
+                                bsSize="small"
+                                style={{ 'color': '#282c34' }}
+                                variant="outline-dark"
+                                block
+                                onClick={() => {
+                                    animateCSS('administrator', 'fadeIn');
+                                    this.setState({ administratormenus: { menu: 'default', data: [], selected: 0 } });
+                                }}>
+                                <MdHdrWeak /> Excluir
+                            </Button>
+                        </MDBListGroupItem>
+                    }
+                });
                 return (
                     <MDBCol className='administrator' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
                         <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
@@ -924,6 +987,24 @@ export default class Index extends React.Component {
                                     <MdAssignment /> Chaves de segurança
                                 </h1>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
+                            </MDBCol>
+                            <MDBCol size="12">
+                                <MDBListGroup className="overflow-auto" style={{ 'backgroundColor': '#f2f2f2' }}>
+                                    {list}
+                                </MDBListGroup>
+                            </MDBCol>
+                            <MDBCol size="12" bottom>
+                                <Button
+                                    className="mb-2"
+                                    style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                    variant="outline-dark"
+                                    block
+                                    onClick={() => {
+                                        animateCSS('administrator', 'fadeIn');
+                                        this.setState({ administratormenus: { menu: 'default', data: [], selected: 0 } });
+                                    }}>
+                                    <MdHdrWeak /> Voltar
+                                </Button>
                             </MDBCol>
                         </MDBRow>
                     </MDBCol>
@@ -1022,7 +1103,7 @@ export default class Index extends React.Component {
                             <MDBCol size="12">
                                 <p className="text-left font-weight-bold pt-2" style={{ 'fontSize': 20, 'color': '#282c34' }}>
                                     Caixa de entrada
-                                    </p>
+                                </p>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <MDBListGroup className="overflow-auto" style={{ 'height': '70vh', 'backgroundColor': '#f2f2f2' }}>
                                     {messages}
@@ -1054,7 +1135,7 @@ export default class Index extends React.Component {
                                                         http = require("http"),
                                                         options = {
                                                             "method": "DELETE",
-                                                            "hostname": "reactappstudy.ddns.net",
+                                                            "hostname": base_url,
                                                             "port": "5000",
                                                             "path": "/api/users/messages/remove",
                                                             "headers": {
@@ -1221,7 +1302,7 @@ export default class Index extends React.Component {
                                                     http = require("http"),
                                                     options = {
                                                         "method": "DELETE",
-                                                        "hostname": "reactappstudy.ddns.net",
+                                                        "hostname": base_url,
                                                         "port": "5000",
                                                         "path": `/api/users/messages/remove/${selected['id']}`,
                                                         "headers": {
@@ -1362,7 +1443,7 @@ export default class Index extends React.Component {
                                                             http = require("http"),
                                                             options = {
                                                                 "method": "POST",
-                                                                "hostname": "reactappstudy.ddns.net",
+                                                                "hostname": base_url,
                                                                 "port": "5000",
                                                                 "path": `/api/users/messages/send`,
                                                                 "headers": {

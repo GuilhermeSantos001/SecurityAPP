@@ -4,18 +4,14 @@ const mysql = require('../modules/mysql');
 const databaseWebToken = require('../mysql/databaseWebToken');
 const generateToken = require('../modules/generateToken');
 const apiMiddleware = require('../middlewares/api');
+const getReqProps = require('../modules/getReqProps');
 const crypto = require('../api/crypto');
 const cryptoNodeJs = require('crypto');
 const mailer = require('../modules/mailer');
 const lzstring = require('lz-string');
 
 router.post(`/sign`, apiMiddleware, async (req, res) => {
-
-    const {
-        webtoken,
-        email,
-        password
-    } = req.body;
+    const { webtoken, email, password } = getReqProps(req, ['webtoken', 'email', 'password']);
 
     if (!webtoken || !email || !password)
         return res.status(401).send({
@@ -116,10 +112,7 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
 })
 
 router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
-    const {
-        webtoken,
-        email
-    } = req.body;
+    const { webtoken, email } = getReqProps(req, ['webtoken', 'email']);
 
     if (!email || !webtoken)
         return res.status(401).send({
@@ -270,12 +263,7 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
 })
 
 router.post('/reset_password', apiMiddleware, async (req, res) => {
-    const {
-        webtoken,
-        email,
-        token,
-        password
-    } = req.body;
+    const { webtoken, email, token, password } = getReqProps(req, ['webtoken', 'email', 'token', 'password']);
 
     if (!webtoken || !email || !token || !password)
         return res.status(401).send({

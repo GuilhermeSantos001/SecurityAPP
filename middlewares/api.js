@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const file = path.resolve('./api/apiKey.json');
 const key = require('../config/api').key;
+const getReqProps = require('../modules/getReqProps');
 
 /**
  * Generate API Key
@@ -21,7 +22,7 @@ if (!fs.existsSync(file)) {
 }
 
 module.exports = (req, res, next) => {
-    const authHeader = req.headers.api_key;
+    const authHeader = getReqProps(req, ['api_key'])['api_key'];
 
     if (!fs.existsSync(file))
         return res.status(401).send({ error: 'Not possible access the Api Key' });

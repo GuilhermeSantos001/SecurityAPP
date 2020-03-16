@@ -9,12 +9,10 @@ const authMiddleware = require('../middlewares/auth');
 const crypto = require('../api/crypto');
 const lzstring = require('lz-string');
 const generateToken = require('../modules/generateToken');
+const getReqProps = require('../modules/getReqProps');
 
 router.get([`/all`, `/all/:id`], apiMiddleware, async (req, res) => {
-    let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    const { email, webtoken } = req.body;
+    const { id, webtoken, email } = getReqProps(req, ['id', 'webtoken', 'email']);
 
     if (!webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -76,7 +74,7 @@ router.get([`/all`, `/all/:id`], apiMiddleware, async (req, res) => {
 });
 
 router.post([`/register`], apiMiddleware, async (req, res) => {
-    const { invitewebtoken, webtoken, name, email, password } = req.body;
+    const { invitewebtoken, webtoken, name, email, password } = getReqProps(req, ['invitewebtoken', 'webtoken', 'name', 'email', 'password']);
 
     if (!invitewebtoken || !webtoken || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -114,7 +112,7 @@ router.post([`/register`], apiMiddleware, async (req, res) => {
                             mysql.insertInTable(database, 'usuario', '(nivel_acesso_id, nome, email, password)', [
                                 [
                                     Number(levelaccess),
-                                    String(nome.substring(0, table_user.varchar.limits.nome)),
+                                    String(name.substring(0, table_user.varchar.limits.nome)),
                                     String(email.substring(0, table_user.varchar.limits.email)),
                                     String(encoded_password),
                                 ]
@@ -189,10 +187,7 @@ router.post([`/register`], apiMiddleware, async (req, res) => {
 })
 
 router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
-    let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    const { webtoken, name, email, password } = req.body;
+    const { id, webtoken, name, email, password } = getReqProps(req, ['id', 'webtoken', 'name', 'email', 'password']);
 
     if (!webtoken || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -241,10 +236,7 @@ router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
 });
 
 router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
-    let { id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
-
-    const { webtoken } = req.body;
+    const { id, webtoken } = getReqProps(req, ['id', 'webtoken']);
 
     if (!webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -293,18 +285,14 @@ router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
  */
 
 router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, database, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+    const { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
 
-    if (!userId)
-        return res.status(401).send({ error: 'User not found!' })
-
-    if (!database)
-        return res.status(401).send({ error: 'Database not found!' })
+    if (!userId || !webtoken)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        databaseWebToken.verify(String(database))
+        databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
 
@@ -358,23 +346,32 @@ router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async 
 });
 
 router.post([`/messages/send`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, database } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+    const {
+        userId,
+        webtoken,
+        author,
+        emitter,
+        receiver,
+        copied,
+        subject,
+        message
+    } = getReqProps(req, [
+        'userId',
+        'webtoken',
+        'author',
+        'emitter',
+        'receiver',
+        'copied',
+        'subject',
+        'message'
+    ]);
 
-    const { author, emitter, receiver, copied, subject, message } = req.body;
-
-    if (!userId)
-        return res.status(401).send({ error: 'User not found!' });
-
-    if (!database)
-        return res.status(401).send({ error: 'Database not found!' })
-
-    if (!author || !emitter || !receiver || !subject || !message)
+    if (!userId || !webtoken || !author || !emitter || !receiver || !subject || !message)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        databaseWebToken.verify(String(database))
+        databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
 
@@ -450,23 +447,34 @@ router.post([`/messages/send`], apiMiddleware, authMiddleware, async (req, res) 
 })
 
 router.put([`/messages/update`, `/messages/update/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, database, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+    const {
+        userId,
+        webtoken,
+        id,
+        author,
+        emitter,
+        receiver,
+        copied,
+        subject,
+        message
+    } = getReqProps(req, [
+        'userId',
+        'webtoken',
+        'id',
+        'author',
+        'emitter',
+        'receiver',
+        'copied',
+        'subject',
+        'message'
+    ]);
 
-    let { author, emitter, receiver, copied, subject, message } = req.body;
-
-    if (!userId)
-        return res.status(401).send({ error: 'User not found!' })
-
-    if (!database)
-        return res.status(401).send({ error: 'Database not found!' })
-
-    if (!author || !emitter || !receiver || !subject || !message)
+    if (!userId || !webtoken || !id || !author || !emitter || !receiver || !subject || !message)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        databaseWebToken.verify(String(database))
+        databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
 
@@ -547,18 +555,14 @@ router.put([`/messages/update`, `/messages/update/:id`], apiMiddleware, authMidd
 })
 
 router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, database, id } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+    const { userId, webtoken, id } = getReqProps(req, ['userId', 'webtoken', 'id']);
 
-    if (!userId)
-        return res.status(401).send({ error: 'User not found!' })
-
-    if (!database)
-        return res.status(401).send({ error: 'Database not found!' })
+    if (!userId || !webtoken)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        databaseWebToken.verify(String(database))
+        databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
 
@@ -627,18 +631,14 @@ router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authM
  */
 
 router.get([`/levelaccess`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, database } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+    const { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
 
-    if (!userId)
-        return res.status(401).send({ error: 'User not found!' })
-
-    if (!database)
-        return res.status(401).send({ error: 'Database not found!' })
+    if (!userId || !webtoken)
+        return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        databaseWebToken.verify(String(database))
+        databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
 
@@ -697,23 +697,14 @@ router.get([`/levelaccess`], apiMiddleware, authMiddleware, async (req, res) => 
 });
 
 router.post([`/levelaccess`, `/levelaccess/:codigo`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, database, codigo } = Object.keys(req.params).filter(param => req.params[param] !== undefined).length > 0 ?
-        req.params : Object.keys(req.query).filter(param => req.query[param] !== undefined).length > 0 ? req.query : req.body;
+    const { userId, webtoken, codigo } = getReqProps(req, ['userId', 'webtoken', 'codigo']);
 
-    if (!codigo) codigo = req.body['codigo'];
-
-    if (!userId)
-        return res.status(401).send({ error: 'User not found!' })
-
-    if (!database)
-        return res.status(401).send({ error: 'Database not found!' })
-
-    if (!codigo)
+    if (!userId || !webtoken || !codigo)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
 
-        databaseWebToken.verify(String(database))
+        databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
 
