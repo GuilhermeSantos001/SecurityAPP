@@ -428,7 +428,6 @@ export default class Index extends React.Component {
     }
 
     handleClickLogin = () => {
-
         const
             webtoken = document.getElementById('webtoken').value,
             email = document.getElementById('email').value,
@@ -445,97 +444,74 @@ export default class Index extends React.Component {
             return;
         }
 
-        const
-            http = require("http"),
-            options = {
-                "method": "POST",
-                "hostname": 'base_url',
-                "port": "5000",
-                "path": "/api/auth/sign",
-                "headers": {
-                    "content-type": "application/json",
-                    "api_key": this.getApiKey(),
-                    "content-length": "57"
-                }
+        axios.post('/api/auth/sign',
+            {
+                webtoken: String(webtoken),
+                email: String(email),
+                password: String(password)
             },
-            context = this,
-            req = http.request(options, function (res) {
-                let chunks = [];
+            {
+                headers: {
+                    "content-type": 'application/json',
+                    "api_key": this.getApiKey()
+                }
+            })
+            .then((data) => {
+                if (!data['error']) {
+                    data = data['data']['query']['results'];
 
-                const
-                    onSuccess = (data) => {
-                        const
-                            user = data.user,
-                            token = data.token;
+                    const
+                        user = data.user,
+                        token = data.token;
 
-                        if (user) {
-                            context.setSessionUser({
-                                'name': String(user['nome']),
-                                'email': String(user['email']),
-                                'token': String(token),
-                                'webtoken': String(webtoken),
-                            })
-                            context.componentCallChangePage('/app', {});
-                        }
-                    },
-                    onError = (code) => {
+                    if (user) {
+                        this.setSessionUser({
+                            'name': String(user['nome']),
+                            'email': String(user['email']),
+                            'token': String(token),
+                            'webtoken': String(webtoken),
+                        })
+                        this.componentCallChangePage('/app', {});
+                    }
+                } else {
+                    document.getElementById('password').value = '';
 
-                        document.getElementById('password').value = '';
-
-                        if (
-                            !document.getElementById('webtoken').classList.contains("is-invalid") ||
-                            !document.getElementById('email').classList.contains("is-invalid") ||
-                            !document.getElementById('password').classList.contains("is-invalid")
-                        ) {
-                            document.getElementById('webtoken').classList.add("is-invalid");
-                            document.getElementById('email').classList.add("is-invalid");
-                            document.getElementById('password').classList.add("is-invalid");
-                        }
-
-                        switch (code) {
-                            case 1:
-                                context.setState({ 'message_error': `Chave de acesso inválida.`, 'message_error_code': 1 });
-                                break;
-                            case 2:
-                                context.setState({ 'message_error': `Senha inválida.`, 'message_error_code': 1 });
-                                break;
-                            case 3:
-                                context.setState({ 'message_error': `Endereço de email não existe.`, 'message_error_code': 1 });
-                                break;
-                            default:
-                                context.setState({ 'message_error': `Não foi possível efetuar o login, tente novamente mais tarde...`, 'message_error_code': 1 });
-                                break;
-                        }
-
-                        if (document.getElementById('alertUser').classList.contains("invisible")) {
-                            document.getElementById('alertUser').classList.remove("invisible");
-                            animateCSS('alertUser', 'fadeInUp');
-                        }
+                    if (
+                        !document.getElementById('webtoken').classList.contains("is-invalid") ||
+                        !document.getElementById('email').classList.contains("is-invalid") ||
+                        !document.getElementById('password').classList.contains("is-invalid")
+                    ) {
+                        document.getElementById('webtoken').classList.add("is-invalid");
+                        document.getElementById('email').classList.add("is-invalid");
+                        document.getElementById('password').classList.add("is-invalid");
                     }
 
-                res.on("data", chunk => chunks.push(chunk));
+                    const code = Number(data['code']);
 
-                res.on("end", () => {
-                    const body = Buffer.concat(chunks);
-
-                    try {
-                        const data = JSON.parse(body.toString());
-
-                        if (data['error']) {
-                            return onError(data['code']);
-                        } else {
-                            return onSuccess(data['query']['results']);
-                        }
-
-                    } catch (err) {
-                        return new Error(err);
+                    switch (code) {
+                        case 1:
+                            this.setState({ 'message_error': `Chave de acesso inválida.`, 'message_error_code': 1 });
+                            break;
+                        case 2:
+                            this.setState({ 'message_error': `Senha inválida.`, 'message_error_code': 1 });
+                            break;
+                        case 3:
+                            this.setState({ 'message_error': `Endereço de email não existe.`, 'message_error_code': 1 });
+                            break;
+                        default:
+                            this.setState({ 'message_error': `Não foi possível efetuar o login, tente novamente mais tarde...`, 'message_error_code': 1 });
+                            break;
                     }
 
-                });
-            });
-
-        req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email), password: String(password) }));
-        req.end();
+                    if (document.getElementById('alertUser').classList.contains("invisible")) {
+                        document.getElementById('alertUser').classList.remove("invisible");
+                        animateCSS('alertUser', 'fadeInUp');
+                    }
+                }
+            })
+            .catch((err) => {
+                return new Error(err);
+            })
     }
 
     handleEmailExist = () => {
@@ -573,105 +549,79 @@ export default class Index extends React.Component {
             return;
         };
 
-        const
-            http = require("http"),
-            options = {
-                "method": "GET",
-                "hostname": 'base_url',
-                "port": "5000",
-                "path": "/api/users/all",
-                "headers": {
-                    "content-type": "application/json",
-                    "api_key": this.getApiKey(),
-                    "content-length": "57"
+        axios.get('/api/users/all',
+            {
+                headers: {
+                    "content-type": 'application/json',
+                    "api_key": this.getApiKey()
+                },
+                params: {
+                    webtoken: String(webtoken),
+                    email: String(email)
                 }
-            },
-            context = this,
-            req = http.request(options, function (res) {
-                let chunks = [];
+            })
+            .then((data) => {
+                if (!data['error']) {
+                    data = data['data']['query']['results'];
 
-                const
-                    onSuccess = (data) => {
-                        if (data.length > 0 && data.filter(user => user['email'] === String(email)).length > 0) {
-                            context.setState({ 'message_error': `Endereço de email (${email}) já está em uso.`, 'new_account_email': false });
+                    if (data.length > 0 && data.filter(user => user['email'] === String(email)).length > 0) {
+                        this.setState({ 'message_error': `Endereço de email (${email}) já está em uso.`, 'new_account_email': false });
 
-                            if (document.getElementById('alertUser').classList.contains('invisible')) {
-                                document.getElementById('alertUser').classList.remove('invisible');
-                                document.getElementById('email').classList.add('is-invalid');
-                                animateCSS('alertUser', 'fadeInUp');
-                            }
-                        } else {
-                            context.setState({ 'new_account_email': true });
-
-                            if (!document.getElementById('alertUser').classList.contains('invisible')) {
-                                animateCSS('alertUser', 'fadeOutDown', () => {
-                                    document.getElementById('alertUser').classList.add('invisible');
-                                });
-                            }
-
-                            if (
-                                document.getElementById('email').classList.contains('is-invalid') ||
-                                !document.getElementById('email').classList.contains('is-valid')
-                            ) {
-                                document.getElementById('email').classList.remove('is-invalid');
-                                document.getElementById('email').classList.add('is-valid');
-                            }
+                        if (document.getElementById('alertUser').classList.contains('invisible')) {
+                            document.getElementById('alertUser').classList.remove('invisible');
+                            document.getElementById('email').classList.add('is-invalid');
+                            animateCSS('alertUser', 'fadeInUp');
                         }
-                    },
-                    onError = () => {
-                        animateCSS('alertUser', 'fadeOutDown', () => {
-                            if (document.getElementById('alertUser'))
+                    } else {
+                        this.setState({ 'new_account_email': true });
+
+                        if (!document.getElementById('alertUser').classList.contains('invisible')) {
+                            animateCSS('alertUser', 'fadeOutDown', () => {
                                 document.getElementById('alertUser').classList.add('invisible');
-
-                            if (document.getElementById('name')) {
-                                document.getElementById('name').classList.remove('is-invalid');
-                                document.getElementById('name').classList.remove('is-valid');
-                            }
-
-                            if (document.getElementById('email')) {
-                                document.getElementById('email').classList.remove('is-invalid');
-                                document.getElementById('email').classList.remove('is-valid');
-                            }
-
-                            if (document.getElementById('password')) {
-                                document.getElementById('password').classList.remove('is-invalid');
-                                document.getElementById('password').classList.remove('is-valid');
-                            }
-
-                            if (document.getElementById('password_confirm')) {
-                                document.getElementById('password_confirm').classList.remove('is-invalid');
-                                document.getElementById('password_confirm').classList.remove('is-valid');
-                            }
-                        });
-                    }
-
-                res.on("data", chunk => chunks.push(chunk));
-
-                res.on("end", () => {
-                    const body = Buffer.concat(chunks);
-
-                    try {
-                        const data = JSON.parse(body.toString());
-
-                        if (data['error']) {
-                            return onError();
-                        } else {
-                            return onSuccess(data['query']['results']);
+                            });
                         }
 
-                    } catch (err) {
-                        return new Error(err);
+                        if (
+                            document.getElementById('email').classList.contains('is-invalid') ||
+                            !document.getElementById('email').classList.contains('is-valid')
+                        ) {
+                            document.getElementById('email').classList.remove('is-invalid');
+                            document.getElementById('email').classList.add('is-valid');
+                        }
                     }
+                } else {
+                    animateCSS('alertUser', 'fadeOutDown', () => {
+                        if (document.getElementById('alertUser'))
+                            document.getElementById('alertUser').classList.add('invisible');
 
-                });
-            });
+                        if (document.getElementById('name')) {
+                            document.getElementById('name').classList.remove('is-invalid');
+                            document.getElementById('name').classList.remove('is-valid');
+                        }
 
-        req.write(JSON.stringify({ webtoken: String(webtoken), email: String(email) }));
-        req.end();
+                        if (document.getElementById('email')) {
+                            document.getElementById('email').classList.remove('is-invalid');
+                            document.getElementById('email').classList.remove('is-valid');
+                        }
+
+                        if (document.getElementById('password')) {
+                            document.getElementById('password').classList.remove('is-invalid');
+                            document.getElementById('password').classList.remove('is-valid');
+                        }
+
+                        if (document.getElementById('password_confirm')) {
+                            document.getElementById('password_confirm').classList.remove('is-invalid');
+                            document.getElementById('password_confirm').classList.remove('is-valid');
+                        }
+                    });
+                }
+            })
+            .catch((err) => {
+                return new Error(err);
+            })
     }
 
     handleClickNewAccount = () => {
-
         const
             invitetoken = document.getElementById('invitetoken').value,
             webtoken = document.getElementById('webtoken').value,
@@ -698,126 +648,104 @@ export default class Index extends React.Component {
         }
 
         if (this.state.new_account_invitetoken && this.state.new_account_webtoken && this.state.new_account_name && this.state.new_account_email && this.state.new_account_password) {
-            const
-                http = require("http"),
-                options = {
-                    "method": "POST",
-                    "hostname": 'base_url',
-                    "port": "5000",
-                    "path": "/api/users/register",
-                    "headers": {
-                        "content-type": "application/json",
-                        "api_key": this.getApiKey(),
-                        "content-length": "57"
-                    }
+            axios.post('/api/users/register',
+                {
+                    invitetoken: String(invitetoken),
+                    webtoken: String(webtoken),
+                    name: String(name),
+                    email: String(email),
+                    password: String(password)
                 },
-                context = this,
-                req = http.request(options, function (res) {
-                    let chunks = [];
+                {
+                    headers: {
+                        "content-type": 'application/json',
+                        "api_key": this.getApiKey()
+                    }
+                })
+                .then((data) => {
+                    if (!data['error']) {
+                        data = data['data']['query']['results'];
 
-                    const
-                        onSuccess = (data) => {
-                            const
-                                user = data.user,
-                                token = data.token;
+                        const
+                            user = data.user,
+                            token = data.token;
 
-                            if (user) {
-                                context.setSessionUser({
-                                    'id': String(user['ID']),
-                                    'name': String(user['nome']),
-                                    'email': String(user['email']),
-                                    'token': String(token),
-                                    'webtoken': String(webtoken)
-                                })
-                                context.componentCallChangePage('/app', {});
-                            }
-                        },
-                        onError = () => {
-                            if (
-                                document.getElementById('invitetoken').classList.contains('is-valid') ||
-                                document.getElementById('invitetoken').classList.contains('is-invalid')
-                            ) {
-                                document.getElementById('invitetoken').classList.remove('is-valid');
-                                document.getElementById('invitetoken').classList.remove('is-invalid');
-                            }
-
-                            if (
-                                document.getElementById('webtoken').classList.contains('is-valid') ||
-                                document.getElementById('webtoken').classList.contains('is-invalid')
-                            ) {
-                                document.getElementById('webtoken').classList.remove('is-valid');
-                                document.getElementById('webtoken').classList.remove('is-invalid');
-                            }
-
-                            if (
-                                document.getElementById('name').classList.contains('is-valid') ||
-                                document.getElementById('name').classList.contains('is-invalid')
-                            ) {
-                                document.getElementById('name').classList.remove('is-valid');
-                                document.getElementById('name').classList.remove('is-invalid');
-                            }
-
-                            if (
-                                document.getElementById('email').classList.contains('is-valid') ||
-                                document.getElementById('email').classList.contains('is-invalid')
-                            ) {
-                                document.getElementById('email').classList.remove('is-valid');
-                                document.getElementById('email').classList.remove('is-invalid');
-                            }
-
-                            if (
-                                document.getElementById('password').classList.contains('is-valid') ||
-                                document.getElementById('password').classList.contains('is-invalid')
-                            ) {
-                                document.getElementById('password').classList.remove('is-valid');
-                                document.getElementById('password').classList.remove('is-invalid');
-                            }
-
-                            if (
-                                document.getElementById('password_confirm').classList.contains('is-valid') ||
-                                document.getElementById('password_confirm').classList.contains('is-invalid')
-                            ) {
-                                document.getElementById('password_confirm').classList.remove('is-valid');
-                                document.getElementById('password_confirm').classList.remove('is-invalid');
-                            }
-
-                            document.getElementById('invitetoken').value = '';
-                            document.getElementById('webtoken').value = '';
-                            document.getElementById('name').value = '';
-                            document.getElementById('email').value = '';
-                            document.getElementById('password').value = '';
-                            document.getElementById('password_confirm').value = '';
-
-                            context.setState({ 'message_error': `Não foi possivel criar sua conta` });
-                            if (document.getElementById('alertUser').classList.contains('invisible')) {
-                                document.getElementById('alertUser').classList.remove("invisible");
-                                animateCSS('alertUser', 'fadeInUp');
-                            }
+                        if (user) {
+                            this.setSessionUser({
+                                'id': String(user['ID']),
+                                'name': String(user['nome']),
+                                'email': String(user['email']),
+                                'token': String(token),
+                                'webtoken': String(webtoken)
+                            })
+                            this.componentCallChangePage('/app', {});
+                        }
+                    } else {
+                        if (
+                            document.getElementById('invitetoken').classList.contains('is-valid') ||
+                            document.getElementById('invitetoken').classList.contains('is-invalid')
+                        ) {
+                            document.getElementById('invitetoken').classList.remove('is-valid');
+                            document.getElementById('invitetoken').classList.remove('is-invalid');
                         }
 
-                    res.on("data", chunk => chunks.push(chunk));
-
-                    res.on("end", () => {
-                        const body = Buffer.concat(chunks);
-
-                        try {
-                            const data = JSON.parse(body.toString());
-
-                            if (data['error']) {
-                                return onError();
-                            } else {
-                                return onSuccess(data['query']['results']);
-                            }
-
-                        } catch (err) {
-                            return new Error(err);
+                        if (
+                            document.getElementById('webtoken').classList.contains('is-valid') ||
+                            document.getElementById('webtoken').classList.contains('is-invalid')
+                        ) {
+                            document.getElementById('webtoken').classList.remove('is-valid');
+                            document.getElementById('webtoken').classList.remove('is-invalid');
                         }
 
-                    });
-                });
+                        if (
+                            document.getElementById('name').classList.contains('is-valid') ||
+                            document.getElementById('name').classList.contains('is-invalid')
+                        ) {
+                            document.getElementById('name').classList.remove('is-valid');
+                            document.getElementById('name').classList.remove('is-invalid');
+                        }
 
-            req.write(JSON.stringify({ invitetoken: String(invitetoken), webtoken: String(webtoken), name: String(name), email: String(email), password: String(password) }));
-            req.end();
+                        if (
+                            document.getElementById('email').classList.contains('is-valid') ||
+                            document.getElementById('email').classList.contains('is-invalid')
+                        ) {
+                            document.getElementById('email').classList.remove('is-valid');
+                            document.getElementById('email').classList.remove('is-invalid');
+                        }
+
+                        if (
+                            document.getElementById('password').classList.contains('is-valid') ||
+                            document.getElementById('password').classList.contains('is-invalid')
+                        ) {
+                            document.getElementById('password').classList.remove('is-valid');
+                            document.getElementById('password').classList.remove('is-invalid');
+                        }
+
+                        if (
+                            document.getElementById('password_confirm').classList.contains('is-valid') ||
+                            document.getElementById('password_confirm').classList.contains('is-invalid')
+                        ) {
+                            document.getElementById('password_confirm').classList.remove('is-valid');
+                            document.getElementById('password_confirm').classList.remove('is-invalid');
+                        }
+
+                        document.getElementById('invitetoken').value = '';
+                        document.getElementById('webtoken').value = '';
+                        document.getElementById('name').value = '';
+                        document.getElementById('email').value = '';
+                        document.getElementById('password').value = '';
+                        document.getElementById('password_confirm').value = '';
+
+                        this.setState({ 'message_error': `Não foi possivel criar sua conta` });
+                        if (document.getElementById('alertUser').classList.contains('invisible')) {
+                            document.getElementById('alertUser').classList.remove("invisible");
+                            animateCSS('alertUser', 'fadeInUp');
+                        }
+                    }
+                })
+                .catch((err) => {
+                    return new Error(err);
+                })
         }
     }
 

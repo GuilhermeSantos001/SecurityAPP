@@ -13,7 +13,7 @@ const LZString = require('lz-string');
  */
 
 router.get(['/sign/levelaccess', '/sign/levelaccess/:codigo'], apiMiddleware, async (req, res) => {
-    const { codigo, webtoken } = getReqProps(req, ['codigo', 'webtoken']);
+    let { codigo, webtoken } = getReqProps(req, ['codigo', 'webtoken']);
 
     if (!webtoken)
         return res.status(401).send({
@@ -78,7 +78,7 @@ router.get(['/sign/levelaccess', '/sign/levelaccess/:codigo'], apiMiddleware, as
 })
 
 router.post('/sign/levelaccess', apiMiddleware, async (req, res) => {
-    const { codigo, webtoken, nome, menu } = getReqProps(req, ['codigo', 'webtoken', 'nome', 'menu']);
+    let { codigo, webtoken, nome, menu } = getReqProps(req, ['codigo', 'webtoken', 'nome', 'menu']);
 
     if (!webtoken || !codigo || !nome || !menu || menu && typeof menu != 'object')
         return res.status(401).send({
@@ -165,7 +165,7 @@ router.post('/sign/levelaccess', apiMiddleware, async (req, res) => {
 })
 
 router.put(['/sign/levelaccess/update', '/sign/levelaccess/update/:codigo'], apiMiddleware, async (req, res) => {
-    const { codigo, webtoken, nome, menu } = getReqProps(req, ['codigo', 'webtoken', 'nome', 'menu']);
+    let { codigo, webtoken, nome, menu } = getReqProps(req, ['codigo', 'webtoken', 'nome', 'menu']);
 
     if (!webtoken || !codigo || !nome || !menu)
         return res.status(401).send({
@@ -237,7 +237,7 @@ router.put(['/sign/levelaccess/update', '/sign/levelaccess/update/:codigo'], api
 })
 
 router.delete(['/sign/levelaccess/remove', '/sign/levelaccess/remove/:id'], apiMiddleware, async (req, res) => {
-    const { id, webtoken } = getReqProps(req, ['id', 'webtoken']);
+    let { id, webtoken } = getReqProps(req, ['id', 'webtoken']);
 
     if (!webtoken)
         return res.status(401).send({
@@ -287,15 +287,52 @@ router.delete(['/sign/levelaccess/remove', '/sign/levelaccess/remove/:id'], apiM
  */
 
 router.post('/sign/webtokeninvite', apiMiddleware, async (req, res) => {
-    const { webtoken, invite, levelaccess } = getReqProps(req, ['webtoken', 'invite', 'levelaccess']);
+    let { webtoken, invite, levelaccess } = getReqProps(req, ['webtoken', 'invite', 'levelaccess']);
 
     if (!webtoken || !invite)
         return res.status(401).send({
             error: 'Body content is not valid!'
         });
 
+        console.log()
+
     databaseWebToken.verify(String(webtoken))
         .then(() => {
+            mysql.getInTable(database, 'nivel_acesso', 'codigo= ?', [codigo])
+                .then(async ({
+                    sql,
+                    query
+                }) => {
+                    if (query.results.length <= 0) return res.status(400).send({ error: 'The code for Level Access not registered!' });
+
+                    query.results = query.results.map(levelaccess => {
+                        levelaccess['nome'] = String(nome.substring(0, table_levelaccess.varchar.limits.nome));
+                        levelaccess['menu'] = LZString.compressToBase64(JSON.stringify(menu));
+
+                        if (!codigo || codigo && codigo === String(levelaccess['ID']))
+                            mysql.updateInTable(database, 'nivel_acesso',
+                                `nome='${levelaccess['nome']}',` +
+                                `menu='${levelaccess['menu']}'`,
+                                levelaccess['ID'])
+                                .then(({ sql, query }) => {
+                                    return res.status(200).send({ success: 'Update in table is success', sql: sql, query: query });
+                                })
+                                .catch(({ err, details }) => {
+                                    if (err) return res.status(400).send({ error: err, details });
+                                })
+                    });
+
+                })
+                .catch(({
+                    err,
+                    details
+                }) => {
+                    if (err) return res.status(400).send({
+                        error: err,
+                        details
+                    });
+                })
+
             webTokenInvite.sign(invite, levelaccess, webtoken)
                 .then((token) => {
                     return res.status(200).send({

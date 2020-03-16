@@ -12,7 +12,7 @@ const generateToken = require('../modules/generateToken');
 const getReqProps = require('../modules/getReqProps');
 
 router.get([`/all`, `/all/:id`], apiMiddleware, async (req, res) => {
-    const { id, webtoken, email } = getReqProps(req, ['id', 'webtoken', 'email']);
+    let { id, webtoken, email } = getReqProps(req, ['id', 'webtoken', 'email']);
 
     if (!webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -74,24 +74,23 @@ router.get([`/all`, `/all/:id`], apiMiddleware, async (req, res) => {
 });
 
 router.post([`/register`], apiMiddleware, async (req, res) => {
-    const { invitewebtoken, webtoken, name, email, password } = getReqProps(req, ['invitewebtoken', 'webtoken', 'name', 'email', 'password']);
+    let { invitetoken, webtoken, name, email, password } = getReqProps(req, ['invitetoken', 'webtoken', 'name', 'email', 'password']);
 
-    if (!invitewebtoken || !webtoken || !name || !email || !password)
+    if (!invitetoken || !webtoken || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     databaseWebToken.verify(String(webtoken))
         .then((database) => {
-
-            inviteWebToken.verify(String(invitewebtoken), String(webtoken))
+            inviteWebToken.verify(String(invitetoken), String(webtoken))
                 .then((invite) => {
-
                     const
                         now = new Date(),
                         expiresIn = new Date(invite['expiresIn']),
                         levelaccess = invite['levelaccess'];
 
+
                     if (now > expiresIn) {
-                        inviteWebToken.destroy(String(invitewebtoken))
+                        inviteWebToken.destroy(String(invitetoken))
                             .then(() => {
                                 return res.status(401).send({
                                     error: 'Webtoken invite expired, request new other!'
@@ -138,7 +137,7 @@ router.post([`/register`], apiMiddleware, async (req, res) => {
                                                 delete user['messages'];
                                                 delete user['dateat'];
 
-                                                inviteWebToken.destroy(String(invitewebtoken))
+                                                inviteWebToken.destroy(String(invitetoken))
                                                     .then(() => {
                                                         return res.status(200).send({
                                                             success: 'Get user in table from Email and Password values is success', sql: sql, query: {
@@ -187,7 +186,7 @@ router.post([`/register`], apiMiddleware, async (req, res) => {
 })
 
 router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
-    const { id, webtoken, name, email, password } = getReqProps(req, ['id', 'webtoken', 'name', 'email', 'password']);
+    let { id, webtoken, name, email, password } = getReqProps(req, ['id', 'webtoken', 'name', 'email', 'password']);
 
     if (!webtoken || !name || !email || !password)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -236,7 +235,7 @@ router.put([`/update`, `/update/:id`], apiMiddleware, async (req, res) => {
 });
 
 router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
-    const { id, webtoken } = getReqProps(req, ['id', 'webtoken']);
+    let { id, webtoken } = getReqProps(req, ['id', 'webtoken']);
 
     if (!webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -285,7 +284,7 @@ router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
  */
 
 router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    const { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
+    let { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
 
     if (!userId || !webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -346,7 +345,7 @@ router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async 
 });
 
 router.post([`/messages/send`], apiMiddleware, authMiddleware, async (req, res) => {
-    const {
+    let {
         userId,
         webtoken,
         author,
@@ -447,7 +446,7 @@ router.post([`/messages/send`], apiMiddleware, authMiddleware, async (req, res) 
 })
 
 router.put([`/messages/update`, `/messages/update/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    const {
+    let {
         userId,
         webtoken,
         id,
@@ -555,7 +554,7 @@ router.put([`/messages/update`, `/messages/update/:id`], apiMiddleware, authMidd
 })
 
 router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    const { userId, webtoken, id } = getReqProps(req, ['userId', 'webtoken', 'id']);
+    let { userId, webtoken, id } = getReqProps(req, ['userId', 'webtoken', 'id']);
 
     if (!userId || !webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -631,7 +630,7 @@ router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authM
  */
 
 router.get([`/levelaccess`], apiMiddleware, authMiddleware, async (req, res) => {
-    const { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
+    let { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
 
     if (!userId || !webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
@@ -697,7 +696,7 @@ router.get([`/levelaccess`], apiMiddleware, authMiddleware, async (req, res) => 
 });
 
 router.post([`/levelaccess`, `/levelaccess/:codigo`], apiMiddleware, authMiddleware, async (req, res) => {
-    const { userId, webtoken, codigo } = getReqProps(req, ['userId', 'webtoken', 'codigo']);
+    let { userId, webtoken, codigo } = getReqProps(req, ['userId', 'webtoken', 'codigo']);
 
     if (!userId || !webtoken || !codigo)
         return res.status(401).send({ error: 'Body content is not valid!' });
