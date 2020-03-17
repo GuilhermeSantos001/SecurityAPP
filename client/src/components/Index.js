@@ -208,6 +208,8 @@ export default class Index extends React.Component {
 
         this.renderChartCanvas();
 
+        axios.defaults.baseURL = 'http://localhost:5000';
+
         ReactDOM.render(
             this.chartDonwload('Postos Cobertos'),
             document.getElementById('chartDonwload-Postos Cobertos')
@@ -307,113 +309,56 @@ export default class Index extends React.Component {
     }
 
     getUserMessages(callback) {
-
-        const
-            http = require("http"),
-            options = {
-                "method": "GET",
-                "hostname": base_url,
-                "port": "5000",
-                "path": "/api/users/messages",
-                "headers": {
-                    "Content-Type": "application/json",
+        axios.get('/api/users/messages',
+            {
+                headers: {
+                    "content-type": 'application/json',
                     "api_key": this.getApiKey(),
                     "authorization": this.getUserToken()
                 }
-            },
-            req = http.request(options, function (res) {
-                let chunks = [];
+            })
+            .then((data) => {
+                if (!data['error']) {
+                    data = data['data']['query']['results'];
 
-                const
-                    onSuccess = (data) => {
-                        if (data instanceof Array)
-                            callback(data[0]);
-                    },
-                    onError = () => {
-                    }
-
-                res.on("data", chunk => chunks.push(chunk));
-
-                res.on("end", () => {
-                    const body = Buffer.concat(chunks);
-
-                    try {
-                        const data = JSON.parse(body.toString());
-
-                        if (data['error']) {
-                            return onError();
-                        } else {
-                            return onSuccess(data['query']['results']);
-                        }
-
-                    } catch (err) {
-                        return new Error(err);
-                    }
-
-                });
-            });
-
-        req.write(JSON.stringify({}));
-        req.end();
+                    if (data instanceof Array)
+                        return callback(data[0]);
+                }
+            })
+            .catch((err) => {
+                return new Error(err);
+            })
     }
 
     getDefinitionslevelaccess(callback) {
-        const
-            http = require("http"),
-            options = {
-                "method": "GET",
-                "hostname": base_url,
-                "port": "5000",
-                "path": `/api/users/levelaccess`,
-                "headers": {
-                    "content-type": "application/json",
+        console.log(this.getUserToken());
+        axios.get('/api/users/levelaccess',
+            {
+                headers: {
+                    "content-type": 'application/json',
                     "api_key": this.getApiKey(),
                     "authorization": this.getUserToken()
                 }
-            },
-            req = http.request(options, function (res) {
-                let chunks = [];
+            })
+            .then((data) => {
+                if (!data['error']) {
+                    data = data['data']['query']['results'];
 
-                const
-                    onSuccess = (data) => {
-                        if (data instanceof Object)
-                            callback(data);
-                    },
-                    onError = () => {
-                    }
-
-                res.on("data", chunk => chunks.push(chunk));
-
-                res.on("end", () => {
-                    const body = Buffer.concat(chunks);
-
-                    try {
-                        const data = JSON.parse(body.toString());
-
-                        if (data['error']) {
-                            return onError();
-                        } else {
-                            return onSuccess(data['query']['results']);
-                        }
-
-                    } catch (err) {
-                        return new Error(err);
-                    }
-
-                });
-            });
-
-        req.write(JSON.stringify({}));
-        req.end();
+                    if (data instanceof Object)
+                        return callback(data);
+                }
+            })
+            .catch((err) => {
+                return new Error(err);
+            })
     }
 
     getlevelaccess(callback) {
-        axios.defaults.baseURL = 'http://localhost:5000'
-        axios.defaults.headers = {
-            "content-type": "application/json",
-            "api_key": this.getApiKey()
-        }
         axios.get('/api/adm/sign/levelaccess', {
+            headers: {
+                "content-type": "application/json",
+                "api_key": this.getApiKey()
+            },
             params: {
                 webtoken: this.getUserWebtoken()
             }
@@ -424,7 +369,7 @@ export default class Index extends React.Component {
                 }
             })
             .catch((err) => {
-                console.log(err);
+                return new Error(err);
             })
     }
 
@@ -848,59 +793,28 @@ export default class Index extends React.Component {
                                                     invitetokencode = document.getElementById('_invitetoken_code_').value,
                                                     invite = document.getElementById('_invitetoken_').value;
 
-                                                const
-                                                    http = require("http"),
-                                                    options = {
-                                                        "method": "POST",
-                                                        "hostname": base_url,
-                                                        "port": "5000",
-                                                        "path": "/api/adm/sign/webtokeninvite",
-                                                        "headers": {
-                                                            "content-type": "application/json",
+                                                axios.post('/api/adm/sign/webtokeninvite',
+                                                    {
+                                                        'webtoken': this.getUserWebtoken(),
+                                                        'invite': String(invite),
+                                                        'levelaccess': Number(invitetokencode)
+                                                    },
+                                                    {
+                                                        headers: {
+                                                            "content-type": 'application/json',
                                                             "api_key": this.getApiKey()
                                                         }
-                                                    },
-                                                    context = this,
-                                                    req = http.request(options, function (res) {
-                                                        let chunks = [];
+                                                    })
+                                                    .then((data) => {
+                                                        if (!data['error']) {
+                                                            data = data['data']['query']['results'];
 
-                                                        const
-                                                            onSuccess = () => {
-                                                                animateCSS('messages', 'fadeIn');
-                                                                context.getUserMessages((messages) => {
-                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                });
-                                                            },
-                                                            onError = () => {
-                                                                animateCSS('messages', 'fadeIn');
-                                                                context.getUserMessages((messages) => {
-                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                });
-                                                            }
-
-                                                        res.on("data", chunk => chunks.push(chunk));
-
-                                                        res.on("end", () => {
-                                                            const body = Buffer.concat(chunks);
-
-                                                            try {
-                                                                const data = JSON.parse(body.toString());
-
-                                                                if (data['error']) {
-                                                                    return onError();
-                                                                } else {
-                                                                    return onSuccess(data['query']['results']);
-                                                                }
-
-                                                            } catch (err) {
-                                                                return new Error(err);
-                                                            }
-
-                                                        });
-                                                    });
-
-                                                req.write(JSON.stringify({ 'webtoken': this.getUserWebtoken(), 'invite': invite, 'levelaccess': invitetokencode }));
-                                                req.end();
+                                                            console.log(data);
+                                                        }
+                                                    })
+                                                    .catch((err) => {
+                                                        return new Error(err);
+                                                    })
                                             }}>
                                             <MdHdrWeak /> Gerar chave de segurança
                                         </Button>
@@ -1131,60 +1045,24 @@ export default class Index extends React.Component {
                                                 block
                                                 disabled={this.state.usermessages.data.length <= 0}
                                                 onClick={() => {
-                                                    const
-                                                        http = require("http"),
-                                                        options = {
-                                                            "method": "DELETE",
-                                                            "hostname": base_url,
-                                                            "port": "5000",
-                                                            "path": "/api/users/messages/remove",
-                                                            "headers": {
-                                                                "content-type": "application/json",
-                                                                "api_key": this.getApiKey(),
-                                                                "authorization": this.getUserToken()
+                                                    axios.delete('/api/users/messages/remove', {
+                                                        headers: {
+                                                            "content-type": "application/json",
+                                                            "api_key": this.getApiKey(),
+                                                            "authorization": this.getUserToken()
+                                                        }
+                                                    })
+                                                        .then((data) => {
+                                                            if (!data['error']) {
+                                                                animateCSS('messages', 'fadeIn');
+                                                                this.getUserMessages((messages) => {
+                                                                    this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                });
                                                             }
-                                                        },
-                                                        context = this,
-                                                        req = http.request(options, function (res) {
-                                                            let chunks = [];
-
-                                                            const
-                                                                onSuccess = () => {
-                                                                    animateCSS('messages', 'fadeIn');
-                                                                    context.getUserMessages((messages) => {
-                                                                        context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                    });
-                                                                },
-                                                                onError = () => {
-                                                                    animateCSS('messages', 'fadeIn');
-                                                                    context.getUserMessages((messages) => {
-                                                                        context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                    });
-                                                                }
-
-                                                            res.on("data", chunk => chunks.push(chunk));
-
-                                                            res.on("end", () => {
-                                                                const body = Buffer.concat(chunks);
-
-                                                                try {
-                                                                    const data = JSON.parse(body.toString());
-
-                                                                    if (data['error']) {
-                                                                        return onError();
-                                                                    } else {
-                                                                        return onSuccess(data['query']['results']);
-                                                                    }
-
-                                                                } catch (err) {
-                                                                    return new Error(err);
-                                                                }
-
-                                                            });
-                                                        });
-
-                                                    req.write(JSON.stringify({}));
-                                                    req.end();
+                                                        })
+                                                        .catch((err) => {
+                                                            return new Error(err);
+                                                        })
                                                 }}>
                                                 <MdHdrWeak /><br /> Descartar todos os emails
                                             </Button>
@@ -1298,60 +1176,25 @@ export default class Index extends React.Component {
                                             variant="outline-dark"
                                             block
                                             onClick={() => {
-                                                const
-                                                    http = require("http"),
-                                                    options = {
-                                                        "method": "DELETE",
-                                                        "hostname": base_url,
-                                                        "port": "5000",
-                                                        "path": `/api/users/messages/remove/${selected['id']}`,
-                                                        "headers": {
-                                                            "content-type": "application/json",
-                                                            "api_key": this.getApiKey(),
-                                                            "authorization": this.getUserToken()
-                                                        }
+                                                axios.delete('/api/users/messages/remove', {
+                                                    headers: {
+                                                        "content-type": "application/json",
+                                                        "api_key": this.getApiKey(),
+                                                        "authorization": this.getUserToken()
                                                     },
-                                                    context = this,
-                                                    req = http.request(options, function (res) {
-                                                        let chunks = [];
-
-                                                        const
-                                                            onSuccess = () => {
-                                                                animateCSS('messages', 'fadeIn');
-                                                                context.getUserMessages((messages) => {
-                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                });
-                                                            },
-                                                            onError = () => {
-                                                                animateCSS('messages', 'fadeIn');
-                                                                context.getUserMessages((messages) => {
-                                                                    context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                });
-                                                            }
-
-                                                        res.on("data", chunk => chunks.push(chunk));
-
-                                                        res.on("end", () => {
-                                                            const body = Buffer.concat(chunks);
-
-                                                            try {
-                                                                const data = JSON.parse(body.toString());
-
-                                                                if (data['error']) {
-                                                                    return onError();
-                                                                } else {
-                                                                    return onSuccess(data['query']['results']);
-                                                                }
-
-                                                            } catch (err) {
-                                                                return new Error(err);
-                                                            }
-
+                                                    params: {
+                                                        id: Number(selected['id'])
+                                                    }
+                                                })
+                                                    .then((data) => {
+                                                        animateCSS('messages', 'fadeIn');
+                                                        this.getUserMessages((messages) => {
+                                                            this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
                                                         });
-                                                    });
-
-                                                req.write(JSON.stringify({}));
-                                                req.end();
+                                                    })
+                                                    .catch((err) => {
+                                                        return new Error(err);
+                                                    })
                                             }}>
                                             <MdHdrWeak /><br /> Descartar
                                         </Button>
@@ -1439,72 +1282,46 @@ export default class Index extends React.Component {
                                                 const send = function (api_key, user_token, emitter, receiver, copied, subject, message) {
                                                     const context = this;
                                                     return new Promise((resolve, reject) => {
-                                                        const
-                                                            http = require("http"),
-                                                            options = {
-                                                                "method": "POST",
-                                                                "hostname": base_url,
-                                                                "port": "5000",
-                                                                "path": `/api/users/messages/send`,
-                                                                "headers": {
-                                                                    "content-type": "application/json",
+                                                        axios.post('/api/users/messages/send',
+                                                            {
+                                                                "author": String(username),
+                                                                "emitter": String(emitter),
+                                                                "receiver": String(receiver),
+                                                                "copied": String(copied),
+                                                                "subject": String(subject),
+                                                                "message": String(message)
+                                                            },
+                                                            {
+                                                                headers: {
+                                                                    "content-type": 'application/json',
                                                                     "api_key": api_key,
                                                                     "authorization": user_token
                                                                 }
-                                                            },
-                                                            req = http.request(options, function (res) {
-                                                                let chunks = [];
+                                                            })
+                                                            .then((data) => {
+                                                                if (!data['error']) {
+                                                                    data = data['data']['query']['results'];
 
-                                                                const
-                                                                    onSuccess = () => {
-                                                                        animateCSS('messages', 'fadeIn');
-                                                                        resolve();
-                                                                        context.getUserMessages((messages) => {
-                                                                            context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                        });
-                                                                    },
-                                                                    onError = () => {
-                                                                        document.getElementById('message_email-1').value = '';
-                                                                        document.getElementById('message_email-2').value = '';
-                                                                        document.getElementById('message_subject').value = '';
-                                                                        document.getElementById('message_textarea').value = '';
-                                                                        reject();
-                                                                        animateCSS('messages', 'fadeIn');
-                                                                        context.getUserMessages((messages) => {
-                                                                            context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
-                                                                        });
-                                                                    }
-
-                                                                res.on("data", chunk => chunks.push(chunk));
-
-                                                                res.on("end", () => {
-                                                                    const body = Buffer.concat(chunks);
-
-                                                                    try {
-                                                                        const data = JSON.parse(body.toString());
-
-                                                                        if (data['error']) {
-                                                                            return onError();
-                                                                        } else {
-                                                                            return onSuccess(data['query']['results']);
-                                                                        }
-
-                                                                    } catch (err) {
-                                                                        return new Error(err);
-                                                                    }
-
-                                                                });
-                                                            });
-
-                                                        req.write(JSON.stringify({
-                                                            "author": String(username),
-                                                            "emitter": String(emitter),
-                                                            "receiver": String(receiver),
-                                                            "copied": String(copied),
-                                                            "subject": String(subject),
-                                                            "message": String(message)
-                                                        }));
-                                                        req.end();
+                                                                    animateCSS('messages', 'fadeIn');
+                                                                    resolve();
+                                                                    context.getUserMessages((messages) => {
+                                                                        context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                    });
+                                                                } else {
+                                                                    document.getElementById('message_email-1').value = '';
+                                                                    document.getElementById('message_email-2').value = '';
+                                                                    document.getElementById('message_subject').value = '';
+                                                                    document.getElementById('message_textarea').value = '';
+                                                                    reject();
+                                                                    animateCSS('messages', 'fadeIn');
+                                                                    context.getUserMessages((messages) => {
+                                                                        context.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
+                                                                    });
+                                                                }
+                                                            })
+                                                            .catch((err) => {
+                                                                return new Error(err);
+                                                            })
                                                     })
                                                 }
 

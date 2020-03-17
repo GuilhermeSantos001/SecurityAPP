@@ -69,7 +69,7 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
                                             user,
                                             token: generateToken({
                                                 id: user['ID'],
-                                                database: String(database)
+                                                webtoken: String(database)
                                             })
                                         }
                                     }

@@ -88,7 +88,6 @@ router.post([`/register`], apiMiddleware, async (req, res) => {
                         expiresIn = new Date(invite['expiresIn']),
                         levelaccess = invite['levelaccess'];
 
-
                     if (now > expiresIn) {
                         inviteWebToken.destroy(String(invitetoken))
                             .then(() => {
@@ -143,7 +142,7 @@ router.post([`/register`], apiMiddleware, async (req, res) => {
                                                             success: 'Get user in table from Email and Password values is success', sql: sql, query: {
                                                                 results: {
                                                                     user,
-                                                                    token: generateToken({ id: user['ID'], database: user['database_token'] })
+                                                                    token: generateToken({ id: user['ID'], webtoken: user['database_token'] })
                                                                 }
                                                             }
                                                         });

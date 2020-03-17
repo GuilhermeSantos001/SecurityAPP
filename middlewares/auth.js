@@ -12,7 +12,7 @@ module.exports = (req, res, next) => {
         if (err) return res.status(401).send({ error: 'Token invalid' });
 
         req.params['userId'] = decoded['id'];
-        req.params['database'] = decoded['database'];
+        req.params['webtoken'] = decoded['webtoken'];
 
         return next();
     });

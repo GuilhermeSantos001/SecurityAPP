@@ -289,39 +289,33 @@ router.delete(['/sign/levelaccess/remove', '/sign/levelaccess/remove/:id'], apiM
 router.post('/sign/webtokeninvite', apiMiddleware, async (req, res) => {
     let { webtoken, invite, levelaccess } = getReqProps(req, ['webtoken', 'invite', 'levelaccess']);
 
-    if (!webtoken || !invite)
+    if (!webtoken || !invite || !levelaccess)
         return res.status(401).send({
             error: 'Body content is not valid!'
         });
 
-        console.log()
-
     databaseWebToken.verify(String(webtoken))
-        .then(() => {
-            mysql.getInTable(database, 'nivel_acesso', 'codigo= ?', [codigo])
+        .then((database) => {
+            mysql.getInTable(database, 'nivel_acesso', 'codigo= ?', [levelaccess])
                 .then(async ({
                     sql,
                     query
                 }) => {
                     if (query.results.length <= 0) return res.status(400).send({ error: 'The code for Level Access not registered!' });
 
-                    query.results = query.results.map(levelaccess => {
-                        levelaccess['nome'] = String(nome.substring(0, table_levelaccess.varchar.limits.nome));
-                        levelaccess['menu'] = LZString.compressToBase64(JSON.stringify(menu));
-
-                        if (!codigo || codigo && codigo === String(levelaccess['ID']))
-                            mysql.updateInTable(database, 'nivel_acesso',
-                                `nome='${levelaccess['nome']}',` +
-                                `menu='${levelaccess['menu']}'`,
-                                levelaccess['ID'])
-                                .then(({ sql, query }) => {
-                                    return res.status(200).send({ success: 'Update in table is success', sql: sql, query: query });
-                                })
-                                .catch(({ err, details }) => {
-                                    if (err) return res.status(400).send({ error: err, details });
-                                })
-                    });
-
+                    webTokenInvite.sign(invite, levelaccess, webtoken)
+                        .then((token) => {
+                            return res.status(200).send({
+                                success: 'Create a webtoken invite is success',
+                                invite: token
+                            })
+                        })
+                        .catch((error) => {
+                            return res.status(400).send({
+                                error: 'Create a Webtoken invite is failed!',
+                                details: error
+                            });
+                        })
                 })
                 .catch(({
                     err,
@@ -330,20 +324,6 @@ router.post('/sign/webtokeninvite', apiMiddleware, async (req, res) => {
                     if (err) return res.status(400).send({
                         error: err,
                         details
-                    });
-                })
-
-            webTokenInvite.sign(invite, levelaccess, webtoken)
-                .then((token) => {
-                    return res.status(200).send({
-                        success: 'Create a webtoken invite is success',
-                        invite: token
-                    })
-                })
-                .catch((error) => {
-                    return res.status(400).send({
-                        error: 'Create a Webtoken invite is failed!',
-                        details: error
                     });
                 })
         })
