@@ -17,3 +17,12 @@
 [MySQL]: https://dev.mysql.com/downloads/installer/
 [MySQL Notifier]: https://dev.mysql.com/downloads/windows/notifier/
 [MySQL Workbench]: https://dev.mysql.com/downloads/workbench/
+
+# VSCode Extensões
+
+* Atom One Dark Theme
+* vscode-icons
+* Bookmarks
+* Bracket Pair Colorizer
+* GitLens — Git supercharged
+* Git History
