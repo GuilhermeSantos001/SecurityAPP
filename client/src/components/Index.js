@@ -83,7 +83,8 @@ import {
     MdGavel,
     MdInfo,
     MdCheck,
-    MdClose
+    MdClose,
+    MdCopyright
 } from 'react-icons/md';
 
 /**
@@ -596,7 +597,7 @@ export default class Index extends React.Component {
     render() {
         return (
             <MDBContainer className="container-all" fluid>
-                <MDBRow>
+                <MDBRow style={{ 'height': '100vh' }}>
                     <MDBCol size="12" sm="12" lg="2" style={{ 'backgroundColor': '#282c34', 'border': '1px solid #17a2b8', 'borderLeft': '0px', 'borderTop': '0px' }}>
                         <MDBCol size="12" sm="12" lg="12">
                             <Image className="col-12" src={logo} style={{ 'height': '10vh' }} />
@@ -606,104 +607,114 @@ export default class Index extends React.Component {
                             <h1 className="text-center text-uppercase" style={{ 'color': '#f2f2f2', 'fontSize': 14 }}>Seu Patrimonio em boas mãos</h1>
                             <h1 className="text-center text-capitalize" style={{ 'color': '#f2f2f2', 'fontSize': 14 }}>Olá Sr(a). {this.getUsername()}.</h1>
                         </MDBCol>
-                        {
-                            /*
-                                Menu for Big and XL Monitors
-                            */
-                        }
-                        <MDBRow className="d-none d-lg-block d-xl-block" style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
-                            <MDBCol size="12" sm="12" lg="12" className="d-none d-lg-block d-xl-block overflow-auto" style={{ 'height': '80vh', 'marginBottom': '15%' }}>
-                                <MDBRow className="d-flex flex-column">
-                                    {
-                                        this.state.definitionlevelaccess['administrator'] ? (
-                                            <MDBBtn
-                                                id="_administrator"
-                                                className="col-10 ml-auto mr-auto"
-                                                outline={this.state.menu === 'administrator' ? false : true}
-                                                color="white"
-                                                onClick={() => this.setState({ menu: 'administrator' })}>
-                                                <MdAndroid /> Administrator
-                                            </MDBBtn>
-                                        ) : false
-                                    }
-                                    <MDBBtn
-                                        id="_dashboard"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'dashboard' ? false : true}
-                                        color="white"
-                                        disabled={this.state.definitionlevelaccess['dashboard'] ? false : true}
-                                        onClick={() => this.setState({ menu: 'dashboard' })}>
-                                        <MdDashboard /> Dashboard
-                                    </MDBBtn>
-                                    <MDBBtn
-                                        id="_messages"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'messages' ? false : true}
-                                        color="white"
-                                        disabled={this.state.definitionlevelaccess['messages'] ? false : true}
-                                        onClick={() => this.setState({ menu: 'messages' })}>
-                                        <MdMessage /> Mensagens(<span>{this.state.usermessages.data.length}</span>)
-                                    </MDBBtn>
-                                    <MDBBtn
-                                        id="_comercial"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'comercial' ? false : true}
-                                        color="white"
-                                        disabled={this.state.definitionlevelaccess['comercial'] ? false : true}
-                                        onClick={() => this.setState({ menu: 'comercial' })}>
-                                        <MdWork /> Comercial
+                        <MDBCol size="12" className="overflow-auto" style={{ 'height': '70vh' }}>
+                            <MDBRow style={{ 'backgroundColor': '#282c34', 'height': '70vh' }}>
+                                {
+                                    this.state.definitionlevelaccess['administrator'] ? (
+                                        <MDBBtn
+                                            id="_administrator"
+                                            outline={this.state.menu === 'administrator' ? false : true}
+                                            color="white"
+                                            className="col-12"
+                                            style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                            onClick={() => this.setState({ menu: 'administrator' })}>
+                                            <MdAndroid /> Administrator
                                         </MDBBtn>
-                                    <MDBBtn
-                                        id="_dp_rh"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'dp_rh' ? false : true}
-                                        color="white"
-                                        disabled={this.state.definitionlevelaccess['dp_rh'] ? false : true}
-                                        onClick={() => this.setState({ menu: 'dp_rh' })}>
-                                        <MdFolderShared /> DP/RH
-                                        </MDBBtn>
-                                    <MDBBtn
-                                        id="_operacional"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'operacional' ? false : true}
-                                        color="white"
-                                        disabled={this.state.definitionlevelaccess['operacional'] ? false : true}
-                                        onClick={() => this.setState({ menu: 'operacional' })}>
-                                        <MdSecurity /> Operacional
-                                        </MDBBtn>
-                                    <MDBBtn
-                                        id="_financeiro"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'financeiro' ? false : true}
-                                        color="white"
-                                        disabled={this.state.definitionlevelaccess['financeiro'] ? false : true}
-                                        onClick={() => this.setState({ menu: 'financeiro' })}>
-                                        <MdLocalAtm /> Financeiro
-                                    </MDBBtn>
-                                    <MDBBtn
-                                        id="_suport"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'suport' ? false : true}
-                                        color="white"
-                                        onClick={() => this.setState({ menu: 'suport' })}>
-                                        <MdAnnouncement /> Suporte
-                                    </MDBBtn>
-                                    <MDBBtn
-                                        id="_exit"
-                                        className="col-10 ml-auto mr-auto"
-                                        outline={this.state.menu === 'exit' ? false : true}
-                                        color="white"
-                                        onClick={() => {
-                                            this.setState({ menu: 'exit', update: false });
-                                            animateCSS('container-all', 'flash');
-                                            sessionStorage.setItem('authRemove', true);
-                                            this.componentCallChangePage('/', {});
-                                        }}>
-                                        <MdExitToApp /> Sair
-                                    </MDBBtn>
-                                </MDBRow>
-                            </MDBCol>
-                        </MDBRow>
+                                    ) : false
+                                }
+                                <MDBBtn
+                                    id="_dashboard"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'dashboard' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    disabled={this.state.definitionlevelaccess['dashboard'] ? false : true}
+                                    onClick={() => this.setState({ menu: 'dashboard' })}>
+                                    <MdDashboard /> Dashboard
+                                </MDBBtn>
+                                <MDBBtn
+                                    id="_messages"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'messages' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    disabled={this.state.definitionlevelaccess['messages'] ? false : true}
+                                    onClick={() => this.setState({ menu: 'messages' })}>
+                                    <MdMessage /> Mensagens(<span>{this.state.usermessages.data.length}</span>)
+                                </MDBBtn>
+                                <MDBBtn
+                                    id="_comercial"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'comercial' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    disabled={this.state.definitionlevelaccess['comercial'] ? false : true}
+                                    onClick={() => this.setState({ menu: 'comercial' })}>
+                                    <MdWork /> Comercial
+                                </MDBBtn>
+                                <MDBBtn
+                                    id="_dp_rh"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'dp_rh' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    disabled={this.state.definitionlevelaccess['dp_rh'] ? false : true}
+                                    onClick={() => this.setState({ menu: 'dp_rh' })}>
+                                    <MdFolderShared /> DP/RH
+                                </MDBBtn>
+                                <MDBBtn
+                                    id="_operacional"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'operacional' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    disabled={this.state.definitionlevelaccess['operacional'] ? false : true}
+                                    onClick={() => this.setState({ menu: 'operacional' })}>
+                                    <MdSecurity /> Operacional
+                                </MDBBtn>
+                                <MDBBtn
+                                    id="_financeiro"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'financeiro' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    disabled={this.state.definitionlevelaccess['financeiro'] ? false : true}
+                                    onClick={() => this.setState({ menu: 'financeiro' })}>
+                                    <MdLocalAtm /> Financeiro
+                                </MDBBtn>
+                                <MDBBtn
+                                    id="_suport"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'suport' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    onClick={() => this.setState({ menu: 'suport' })}>
+                                    <MdAnnouncement /> Suporte
+                                </MDBBtn>
+                                <MDBBtn
+                                    id="_exit"
+                                    className="col-10 ml-auto mr-auto"
+                                    outline={this.state.menu === 'exit' ? false : true}
+                                    color="white"
+                                    className="col-12"
+                                    style={{ 'marginLeft': 0, 'fontSize': 11 }}
+                                    onClick={() => {
+                                        this.setState({ menu: 'exit', update: false });
+                                        animateCSS('container-all', 'flash');
+                                        sessionStorage.setItem('authRemove', true);
+                                        this.componentCallChangePage('/', {});
+                                    }}>
+                                    <MdExitToApp /> Sair
+                                </MDBBtn>
+                            </MDBRow>
+                        </MDBCol>
                     </MDBCol>
                     {this.content()}
                 </MDBRow>
@@ -812,7 +823,7 @@ export default class Index extends React.Component {
                                             <MdHdrWeak /> Gerar chave de segurança
                                         </Button>
                                         <Button
-                                            className="mt-2"
+                                            className="mt-2 mb-2"
                                             style={{ 'color': '#282c34', 'fontSize': 18 }}
                                             variant="outline-dark"
                                             block
@@ -1227,7 +1238,7 @@ export default class Index extends React.Component {
                                 </MDBCol>
                                 <ButtonToolbar>
                                     <MDBCol size="6" className="mt-auto" bottom>
-                                        <Button
+                                        <Button className="mb-2"
                                             style={{ 'color': '#282c34', 'fontSize': 18 }}
                                             variant="outline-dark"
                                             block
@@ -1241,7 +1252,7 @@ export default class Index extends React.Component {
                                         </Button>
                                     </MDBCol>
                                     <MDBCol size="6" className="mt-auto" bottom>
-                                        <Button
+                                        <Button className="mb-2"
                                             style={{ 'color': '#282c34', 'fontSize': 18 }}
                                             variant="outline-dark"
                                             block
