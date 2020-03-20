@@ -66,10 +66,6 @@ const styles = StyleSheet.create({
 
 // Create Document Component
 class MyDocument extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
     render() {
         let data = [],
             line = 0,

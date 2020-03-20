@@ -283,17 +283,15 @@ router.delete([`/remove`, `/remove/:id`], apiMiddleware, async (req, res) => {
  */
 
 router.get([`/messages`, `/messages/:id`], apiMiddleware, authMiddleware, async (req, res) => {
-    let { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
+    let { userId, webtoken, id } = getReqProps(req, ['userId', 'webtoken', 'id']);
 
     if (!userId || !webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
 
     try {
-
         databaseWebToken.verify(String(webtoken))
             .then((database) => {
                 try {
-
                     if (String(database).length <= 0) return res.status(400).send({ error: 'Database is not defined!' });
 
                     mysql.getInTable(database, 'usuario', 'ID= ?', [userId])

@@ -98,12 +98,6 @@ import 'animate.css';
 import '../css/Index.css';
 
 /**
- * Variables
- */
-
-const base_url = 'localhost';
-
-/**
  * Class
  */
 export default class Index extends React.Component {
@@ -120,7 +114,7 @@ export default class Index extends React.Component {
                 active: false
             },
             usermessages: {
-                menu: '',
+                menu: 'list',
                 data: [],
                 selected: 0
             },
@@ -331,7 +325,6 @@ export default class Index extends React.Component {
     }
 
     getDefinitionslevelaccess(callback) {
-        console.log(this.getUserToken());
         axios.get('/api/users/levelaccess',
             {
                 headers: {
@@ -614,7 +607,7 @@ export default class Index extends React.Component {
                             <h1 className="text-center text-capitalize" style={{ 'color': '#f2f2f2', 'fontSize': 14 }}>Olá Sr(a). {this.getUsername()}.</h1>
                         </MDBCol>
                         {
-                            /* 
+                            /*
                                 Menu for Big and XL Monitors
                             */
                         }
@@ -752,31 +745,31 @@ export default class Index extends React.Component {
                                             <MdGavel /> Nivel de acesso
                                         </h5>
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck1" />
-                                        <label className="form-check-label ml-4" htmlFor="defaultCheck1">
+                                        <label className="form-check-label ml-4">
                                             Administrator
                                         </label><br />
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck1" />
-                                        <label className="form-check-label ml-4" htmlFor="defaultCheck1">
+                                        <label className="form-check-label ml-4">
                                             Dashboard
                                         </label><br />
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck2" />
-                                        <label className="form-check-label ml-4" htmlFor="defaultCheck2">
+                                        <label className="form-check-label ml-4">
                                             Mensagens
                                         </label><br />
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck3" />
-                                        <label className="form-check-label ml-4" htmlFor="defaultCheck3">
+                                        <label className="form-check-label ml-4">
                                             Comercial
                                         </label><br />
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
-                                        <label className="form-check-label ml-4" htmlFor="defaultCheck4">
+                                        <label className="form-check-label ml-4">
                                             DP_RH
                                         </label><br />
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
-                                        <label className="form-check-label ml-4" htmlFor="defaultCheck4">
+                                        <label className="form-check-label ml-4">
                                             Operacional
                                         </label><br />
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
-                                        <label className="form-check-label ml-4" htmlFor="defaultCheck4">
+                                        <label className="form-check-label ml-4">
                                             Financeiro
                                         </label><br />
                                         <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
@@ -839,70 +832,55 @@ export default class Index extends React.Component {
                 )
             } else if (this.state.administratormenus.menu === 'invitetokencodes') {
                 let list = this.state.administratormenus.data.map(invitetoken => {
-                    console.log(invitetoken);
-                    if (invitetoken) {
-                        return <MDBListGroupItem className="mb-2" key={invitetoken['ID']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #282c34' }}>
-                            <hr />
-                            <p className="text-left mb-2">
-                                <MdInfo /> Código: {Math.abs(Number(invitetoken['codigo']))}
+                    return <MDBListGroupItem className="mb-2" key={invitetoken['ID']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #282c34' }}>
+                        <hr />
+                        <p className="text-left mb-2">
+                            <MdInfo /> Código: {Math.abs(Number(invitetoken['codigo']))}
+                        </p>
+                        <hr />
+                        <p className="text-left mb-2">
+                            <MdInfo /> Nome: {invitetoken['nome']}
+                        </p>
+                        <hr />
+                        <p className="text-left mb-2">
+                            <MdGavel /> Nivel de acesso
                             </p>
-                            <hr />
-                            <p className="text-left mb-2">
-                                <MdInfo /> Nome: {invitetoken['nome']}
+                        <hr />
+                        <p className="text-left mb-1">
+                            {invitetoken['menu']['administrator'] ? <MdCheck /> : <MdClose />} Administrator
                             </p>
-                            <hr />
-                            <p className="text-left mb-2">
-                                <MdGavel /> Nivel de acesso
+                        <p className="text-left mb-1">
+                            {invitetoken['menu']['dashboard'] ? <MdCheck /> : <MdClose />} Dashboard
                             </p>
-                            <hr />
-                            <p className="text-left mb-1">
-                                {invitetoken['menu']['administrator'] ? <MdCheck /> : <MdClose />} Administrator
+                        <p className="text-left mb-1">
+                            {invitetoken['menu']['messages'] ? <MdCheck /> : <MdClose />} Mensagens
                             </p>
-                            <p className="text-left mb-1">
-                                {invitetoken['menu']['dashboard'] ? <MdCheck /> : <MdClose />} Dashboard
+                        <p className="text-left mb-1">
+                            {invitetoken['menu']['comercial'] ? <MdCheck /> : <MdClose />} Comercial
                             </p>
-                            <p className="text-left mb-1">
-                                {invitetoken['menu']['messages'] ? <MdCheck /> : <MdClose />} Mensagens
+                        <p className="text-left mb-1">
+                            {invitetoken['menu']['dp_rh'] ? <MdCheck /> : <MdClose />} DP_RH
                             </p>
-                            <p className="text-left mb-1">
-                                {invitetoken['menu']['comercial'] ? <MdCheck /> : <MdClose />} Comercial
+                        <p className="text-left mb-1">
+                            {invitetoken['menu']['operacional'] ? <MdCheck /> : <MdClose />} Operacional
                             </p>
-                            <p className="text-left mb-1">
-                                {invitetoken['menu']['dp_rh'] ? <MdCheck /> : <MdClose />} DP_RH
+                        <p className="text-left mb-1">
+                            {invitetoken['menu']['financeiro'] ? <MdCheck /> : <MdClose />} Financeiro
                             </p>
-                            <p className="text-left mb-1">
-                                {invitetoken['menu']['operacional'] ? <MdCheck /> : <MdClose />} Operacional
-                            </p>
-                            <p className="text-left mb-1">
-                                {invitetoken['menu']['financeiro'] ? <MdCheck /> : <MdClose />} Financeiro
-                            </p>
-                            <hr />
-                            <Button
-                                className="mb-2"
-                                bsSize="small"
-                                style={{ 'color': '#282c34' }}
-                                variant="outline-dark"
-                                block
-                                onClick={() => {
-                                    animateCSS('administrator', 'fadeIn');
-                                    this.setState({ administratormenus: { menu: 'default', data: [], selected: 0 } });
-                                }}>
-                                <MdHdrWeak /> Excluir
-                            </Button>
-                        </MDBListGroupItem>
-                    }
+                        <hr />
+                    </MDBListGroupItem>
                 });
                 return (
                     <MDBCol className='administrator' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
                         <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
-                            <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
+                            <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': 'red' }}>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
                                     <MdAssignment /> Chaves de segurança
                                 </h1>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                             </MDBCol>
-                            <MDBCol size="12">
+                            <MDBCol size="12" style={{ 'backgroundColor': 'black' }}>
                                 <MDBListGroup className="overflow-auto" style={{ 'backgroundColor': '#f2f2f2' }}>
                                     {list}
                                 </MDBListGroup>
@@ -990,26 +968,24 @@ export default class Index extends React.Component {
         else if (this.state.menu === 'messages') {
             if (this.state.usermessages.menu === 'list') {
                 let messages = this.state.usermessages.data.map(message => {
-                    if (message) {
-                        return <MDBListGroupItem className="mb-1" key={message['id']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #f2f2f2' }}>
-                            <Button
-                                className={`col mt-2 mr-3 text-left font-weight-bold ${message['new'] ? '' : 'disabled'}`}
-                                style={{ 'color': '#282c34', 'fontSize': 18 }}
-                                variant="outline-dark"
-                                size="lg"
-                                block
-                                onClick={() => {
-                                    animateCSS('messages', 'fadeIn');
-                                    this.getUserMessages((messages) => {
-                                        this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'message', data: messages, selected: message['id'] } })
-                                    });
-                                }}>
-                                <MdPersonPin /> Por: {message['author']}<br />
-                                <MdMailOutline /> Assunto: {message['subject']}<br />
-                                <MdMessage /> Resumo: {String(message['message']).slice(0, 100)}...
-                        </Button>
-                        </MDBListGroupItem>
-                    }
+                    return <MDBListGroupItem className="mb-1" key={message['id']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #f2f2f2' }}>
+                        <Button
+                            className={`col mt-2 mr-3 text-left font-weight-bold ${message['new'] ? '' : 'disabled'}`}
+                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                            variant="outline-dark"
+                            size="lg"
+                            block
+                            onClick={() => {
+                                animateCSS('messages', 'fadeIn');
+                                this.getUserMessages((messages) => {
+                                    this.setState({ 'message': { 'active': true }, 'usermessages': { menu: 'message', data: messages, selected: message['id'] } })
+                                });
+                            }}>
+                            <MdPersonPin /> Por: {message['author']}<br />
+                            <MdMailOutline /> Assunto: {message['subject']}<br />
+                            <MdMessage /> Resumo: {String(message['message']).slice(0, 100)}...
+                    </Button>
+                    </MDBListGroupItem>
                 });
                 return (
                     <MDBCol className='messages' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
@@ -1075,10 +1051,9 @@ export default class Index extends React.Component {
                 )
             } else if (this.state.usermessages.menu === 'message') {
                 let selected = this.state.usermessages.data.filter(message => {
-                    if (message) {
-                        if (message['id'] === this.state.usermessages.selected)
-                            return message;
-                    }
+                    if (message['id'] === this.state.usermessages.selected)
+                        return message;
+                    return false;
                 });
                 if (selected instanceof Array && selected.length > 0) selected = selected[0];
                 return (
@@ -1241,13 +1216,13 @@ export default class Index extends React.Component {
                         <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                             <MDBCol size="12" className="mt-2">
                                 <MDBCol size="12" className="message-form-all">
-                                    <label htmlhtmlFor="message_email-1" className="font-weight-bold">Destinatário:</label>
+                                    <label className="font-weight-bold">Destinatário:</label>
                                     <input type="text" className="form-control mb-2" id="message_email-1" placeholder="Endereço de email" onChange={this.handleEmailExist.bind(this, '1')} onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
-                                    <label htmlhtmlFor="message_email-2" className="font-weight-bold">Cc:</label>
+                                    <label className="font-weight-bold">Cc:</label>
                                     <input type="text" className="form-control mb-2" id="message_email-2" placeholder="Endereço de email" onChange={this.handleEmailExist.bind(this, '2')} onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
-                                    <label htmlhtmlFor="message_subject" className="font-weight-bold">Assunto:</label>
+                                    <label className="font-weight-bold">Assunto:</label>
                                     <input type="text" className="form-control mb-2" id="message_subject" placeholder="Defina o assunto" onKeyUp={onChangeEmailSend.bind(this)} style={{ 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
-                                    <label htmlhtmlFor="message_textarea" className="font-weight-bold">Mensagem:</label>
+                                    <label className="font-weight-bold">Mensagem:</label>
                                     <textarea className="form-control mb-2" id="message_textarea" onKeyUp={onChangeEmailSend.bind(this)} style={{ 'height': '50vh', 'resize': 'none', 'backgroundColor': '#f2f2f2', 'color': '#282c34', 'border': '1px solid #282c34', 'borderRadius': 5 }} />
                                 </MDBCol>
                                 <ButtonToolbar>
@@ -1356,7 +1331,7 @@ export default class Index extends React.Component {
             return (
                 <MDBCol className='comercial' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                     <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
-                        {/* 
+                        {/*
                             Cadastros
                         */}
                         <MDBCol size="12" className="mt-2">
@@ -1403,7 +1378,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Contratos
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1422,7 +1397,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Relatórios
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1460,7 +1435,7 @@ export default class Index extends React.Component {
             return (
                 <MDBCol className='dp_rh' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                     <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
-                        {/* 
+                        {/*
                             Cadastro de funcionários
                         */}
                         <MDBCol size="12" className="mt-2">
@@ -1480,7 +1455,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Valores e Regras
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1508,7 +1483,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Escala
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1527,7 +1502,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Relatórios
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1565,7 +1540,7 @@ export default class Index extends React.Component {
             return (
                 <MDBCol className='operacional' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                     <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
-                        {/* 
+                        {/*
                             Alocação de Funcionários
                         */}
                         <MDBCol size="12" className="mt-2">
@@ -1585,7 +1560,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Confirmação de Presença
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1604,7 +1579,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Manutenção de  Apontamentos
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1623,7 +1598,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Calculo de Pagamentos
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1642,7 +1617,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Conferência de Pagamento
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1661,7 +1636,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Relatórios
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1717,7 +1692,7 @@ export default class Index extends React.Component {
             return (
                 <MDBCol className='financeiro' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                     <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
-                        {/* 
+                        {/*
                             Pagamentos
                         */}
                         <MDBCol size="12" className="mt-2">
@@ -1737,7 +1712,7 @@ export default class Index extends React.Component {
                                     </Button>
                                 </MDBCol>
                             </ButtonToolbar>
-                            {/* 
+                            {/*
                                 Relatórios
                             */}
                             <hr style={{ 'backgroundColor': '#282c34' }} />
@@ -1775,7 +1750,7 @@ export default class Index extends React.Component {
             return (
                 <MDBCol className='suport' style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                     <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
-                        {/* 
+                        {/*
                             Suporte
                         */}
                         <MDBCol size="12" className="mt-2">
