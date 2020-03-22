@@ -628,7 +628,7 @@ router.delete([`/messages/remove`, `/messages/remove/:id`], apiMiddleware, authM
 
 router.get([`/levelaccess`], apiMiddleware, authMiddleware, async (req, res) => {
     let { userId, webtoken } = getReqProps(req, ['userId', 'webtoken']);
-
+    
     if (!userId || !webtoken)
         return res.status(401).send({ error: 'Body content is not valid!' });
 

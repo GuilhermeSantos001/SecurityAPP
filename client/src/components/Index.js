@@ -84,7 +84,8 @@ import {
     MdInfo,
     MdCheck,
     MdClose,
-    MdCopyright
+    MdLock,
+    MdWarning
 } from 'react-icons/md';
 
 /**
@@ -734,27 +735,24 @@ export default class Index extends React.Component {
                             <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
-                                    <MdAssignment /> Chave de segurança
+                                    <MdAssignment /> Chave de acesso
                                 </h1>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <MDBRow>
                                     <MDBCol size="12">
-                                        <input className="col-12" defaultValue="1" type="number" placeholder="Escreva o codigo" id="_invitetoken_code_" min="1" max="9999999999" />
+                                        <input className="col-12" defaultValue={this.getUserWebtoken()} type="text" disabled />
                                         <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
-                                            <MdInfo /> Esse codigo deve ser unico.<br />
-                                            <MdInfo /> O codigo pode conter o total de 10 digitos.
+                                            <MdInfo /> A chave de acesso é única e deve ser preservada pelo administrador.
                                         </h5>
                                     </MDBCol>
-                                    <MDBCol size="12">
-                                        <MDBInput label="Escreva o texto que desejar" id="_invitetoken_" />
-                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
-                                            <MdInfo /> Esse texto serve para destinguir a chave de acesso dentro do sistema.
-                                        </h5>
-                                    </MDBCol>
+                                </MDBRow>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                    <MdAssignment /> Nível de acesso
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <MDBRow>
                                     <MDBCol size="12" className="form-check">
-                                        <h5 className="text-left" style={{ 'color': '#282c34' }}>
-                                            <MdGavel /> Nivel de acesso
-                                        </h5>
                                         <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck1" />
                                         <label className="form-check-label ml-4">
                                             Administrator
@@ -785,6 +783,55 @@ export default class Index extends React.Component {
                                         </label><br />
                                         <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
                                             <MdInfo /> Ao selecionar o administrator, o usuario terá acesso completo ao sistema.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <Button
+                                            className="mt-2 mb-2"
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('administrator', 'fadeIn');
+                                            }}>
+                                            <MdHdrWeak /> Criar nível de acesso
+                                        </Button>
+                                        <Button
+                                            className="mt-2 mb-2"
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('administrator', 'fadeIn');
+                                            }}>
+                                            <MdHdrWeak /> Lista de níveis de acesso
+                                        </Button>
+                                    </MDBCol>
+                                </MDBRow>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                    <MdAssignment /> Chave de segurança
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <MDBRow>
+                                    <MDBCol size="12">
+                                        <input className="col-12" defaultValue="1" type="number" placeholder="Escreva o codigo" id="_invitetoken_code_" min="1" max="9999999999" />
+                                        <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Esse codigo deve ser unico.<br />
+                                            <MdInfo /> O codigo pode conter o total de 10 digitos.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <input className="col-12" defaultValue="1" type="number" placeholder="Escreva o codigo" id="_invitetoken_levelaccess_code_" min="1" max="9999999999" />
+                                        <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Codigo do nível de acesso.<br />
+                                            <MdInfo /> O codigo pode conter o total de 10 digitos.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <MDBInput label="Escreva o texto que desejar" id="_invitetoken_" />
+                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Esse texto serve para destinguir a chave de acesso dentro do sistema.
                                         </h5>
                                     </MDBCol>
                                     <MDBCol size="12">
@@ -837,6 +884,83 @@ export default class Index extends React.Component {
                                         </Button>
                                     </MDBCol>
                                 </MDBRow>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
+                                    <MdAssignment /> Usuarios do sistema
+                                </h1>
+                                <hr style={{ 'backgroundColor': '#282c34' }} />
+                                <MDBRow>
+                                    <MDBCol size="12">
+                                        <MDBInput label="Chave de segurança" id="_userSystem_invitewebtoken" />
+                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> A chave de segurança gerada pelo administrador do sistema.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <MDBInput label="Nome de usuário" id="_userSystem_name" />
+                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> O nome completo do usuário.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <MDBInput label="Email de usuário" id="_userSystem_name" />
+                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> O email fornecido deve ser único.<br />
+                                            <MdInfo /> O email fornecido será valídado após a tentativa de criação do usuário.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <MDBInput label="A senha de usuário" id="_userSystem_name" />
+                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> A senha fornecida deve conter os seguintes caracteres:<br />
+                                            <MdInfo /> Letras maiúsculas e minúsculas.<br />
+                                            <MdInfo /> Dígitos de 0 à 9.<br />
+                                            <MdInfo /> Caracteres especiais aceitos: @, !, # e $.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <Button
+                                            className="mt-2 mb-2"
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('administrator', 'fadeIn');
+                                            }}>
+                                            <MdHdrWeak /> Alterar dados do usuário
+                                        </Button>
+                                        <Button
+                                            className="mt-2 mb-2"
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('administrator', 'fadeIn');
+                                            }}>
+                                            <MdHdrWeak /> Adicionar novo usuário
+                                        </Button>
+                                        <Button
+                                            className="mt-2 mb-2"
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('administrator', 'fadeIn');
+                                            }}>
+                                            <MdHdrWeak /> Remover usuário
+                                        </Button>
+                                        <Button
+                                            className="mt-2 mb-2"
+                                            style={{ 'color': '#282c34', 'fontSize': 18 }}
+                                            variant="outline-dark"
+                                            block
+                                            onClick={() => {
+                                                animateCSS('administrator', 'fadeIn');
+                                            }}>
+                                            <MdHdrWeak /> Alterar nível de acesso do usuário
+                                        </Button>
+                                    </MDBCol>
+                                </MDBRow>
                             </MDBCol>
                         </MDBRow>
                     </MDBCol>
@@ -884,15 +1008,15 @@ export default class Index extends React.Component {
                 return (
                     <MDBCol className='administrator' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
                         <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
-                            <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': 'red' }}>
+                            <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
                                     <MdAssignment /> Chaves de segurança
                                 </h1>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                             </MDBCol>
-                            <MDBCol size="12" style={{ 'backgroundColor': 'black' }}>
-                                <MDBListGroup className="overflow-auto" style={{ 'backgroundColor': '#f2f2f2' }}>
+                            <MDBCol size="12" className="overflow-auto" style={{ 'height': '70vh', 'backgroundColor': '#f2f2f2' }}>
+                                <MDBListGroup style={{ 'backgroundColor': '#f2f2f2' }}>
                                     {list}
                                 </MDBListGroup>
                             </MDBCol>
