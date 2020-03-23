@@ -97,7 +97,7 @@ router.post(`/sign`, apiMiddleware, async (req, res) => {
                 }
             })
             .catch(() => {
-                return res.status(400).send({
+                return res.status(200).send({
                     error: 'Webtoken is invalid!',
                     code: 1
                 });
@@ -248,7 +248,7 @@ router.post(`/forgot_password`, apiMiddleware, async (req, res) => {
                 }
             })
             .catch(() => {
-                return res.status(400).send({
+                return res.status(200).send({
                     error: 'Webtoken is invalid!',
                     code: 1
                 });
@@ -286,7 +286,7 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                                 let user = query.results[0];
 
                                 if (!user['password_reset'])
-                                    return res.status(400).send({
+                                    return res.status(200).send({
                                         error: 'Token not found',
                                         code: 1
                                     });
@@ -371,7 +371,7 @@ router.post('/reset_password', apiMiddleware, async (req, res) => {
                 }
             })
             .catch(() => {
-                return res.status(400).send({
+                return res.status(200).send({
                     error: 'Webtoken is invalid!',
                     code: 1
                 });

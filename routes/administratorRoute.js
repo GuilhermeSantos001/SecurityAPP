@@ -63,7 +63,7 @@ router.get(['/sign/levelaccess', '/sign/levelaccess/:codigo'], apiMiddleware, as
                 }
             })
             .catch(() => {
-                return res.status(400).send({
+                return res.status(200).send({
                     error: 'Webtoken is invalid!',
                     code: 1
                 });
@@ -98,7 +98,11 @@ router.post('/sign/levelaccess', apiMiddleware, async (req, res) => {
                             sql,
                             query
                         }) => {
-                            if (query.results.length > 0) return res.status(400).send({ error: 'The code for Level Access already registered!' });
+                            if (query.results.length > 0)
+                                return res.status(200).send({
+                                    error: 'The code for Level Access already registered!',
+                                    code: 1
+                                });
 
                             mysql.insertInTable(database, 'nivel_acesso', '(codigo, nome, menu)', [
                                 [
@@ -150,7 +154,7 @@ router.post('/sign/levelaccess', apiMiddleware, async (req, res) => {
                 }
             })
             .catch(() => {
-                return res.status(400).send({
+                return res.status(200).send({
                     error: 'Webtoken is invalid!',
                     code: 1
                 });
@@ -222,7 +226,7 @@ router.put(['/sign/levelaccess/update', '/sign/levelaccess/update/:codigo'], api
                 }
             })
             .catch(() => {
-                return res.status(400).send({
+                return res.status(200).send({
                     error: 'Webtoken is invalid!',
                     code: 1
                 });
@@ -268,7 +272,7 @@ router.delete(['/sign/levelaccess/remove', '/sign/levelaccess/remove/:id'], apiM
                 }
             })
             .catch(() => {
-                return res.status(400).send({
+                return res.status(200).send({
                     error: 'Webtoken is invalid!',
                     code: 1
                 });

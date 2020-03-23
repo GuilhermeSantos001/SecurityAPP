@@ -84,8 +84,7 @@ import {
     MdInfo,
     MdCheck,
     MdClose,
-    MdLock,
-    MdWarning
+    MdErrorOutline
 } from 'react-icons/md';
 
 /**
@@ -125,6 +124,11 @@ export default class Index extends React.Component {
                 menu: 'default',
                 data: [],
                 selected: 0
+            },
+            administratorErrorMessage: {
+                active: false,
+                val: '',
+                timeoutTicks: 3500
             },
             collapse1: false,
             collapseID: '',
@@ -314,7 +318,7 @@ export default class Index extends React.Component {
                 }
             })
             .then((data) => {
-                if (!data['error']) {
+                if (!data['data']['error']) {
                     data = data['data']['query']['results'];
 
                     if (data instanceof Array)
@@ -336,7 +340,7 @@ export default class Index extends React.Component {
                 }
             })
             .then((data) => {
-                if (!data['error']) {
+                if (!data['data']['error']) {
                     data = data['data']['query']['results'];
 
                     if (data instanceof Object)
@@ -359,7 +363,7 @@ export default class Index extends React.Component {
             }
         })
             .then((data) => {
-                if (!data['error']) {
+                if (!data['data']['error']) {
                     return callback(data['data']['query']['results']);
                 }
             })
@@ -614,9 +618,9 @@ export default class Index extends React.Component {
                                     this.state.definitionlevelaccess['administrator'] ? (
                                         <MDBBtn
                                             id="_administrator"
+                                            className="col-12 ml-auto mr-auto"
                                             outline={this.state.menu === 'administrator' ? false : true}
                                             color="white"
-                                            className="col-12"
                                             style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                             onClick={() => this.setState({ menu: 'administrator' })}>
                                             <MdAndroid /> Administrator
@@ -625,10 +629,9 @@ export default class Index extends React.Component {
                                 }
                                 <MDBBtn
                                     id="_dashboard"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'dashboard' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     disabled={this.state.definitionlevelaccess['dashboard'] ? false : true}
                                     onClick={() => this.setState({ menu: 'dashboard' })}>
@@ -636,10 +639,9 @@ export default class Index extends React.Component {
                                 </MDBBtn>
                                 <MDBBtn
                                     id="_messages"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'messages' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     disabled={this.state.definitionlevelaccess['messages'] ? false : true}
                                     onClick={() => this.setState({ menu: 'messages' })}>
@@ -647,10 +649,9 @@ export default class Index extends React.Component {
                                 </MDBBtn>
                                 <MDBBtn
                                     id="_comercial"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'comercial' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     disabled={this.state.definitionlevelaccess['comercial'] ? false : true}
                                     onClick={() => this.setState({ menu: 'comercial' })}>
@@ -658,10 +659,9 @@ export default class Index extends React.Component {
                                 </MDBBtn>
                                 <MDBBtn
                                     id="_dp_rh"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'dp_rh' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     disabled={this.state.definitionlevelaccess['dp_rh'] ? false : true}
                                     onClick={() => this.setState({ menu: 'dp_rh' })}>
@@ -669,10 +669,9 @@ export default class Index extends React.Component {
                                 </MDBBtn>
                                 <MDBBtn
                                     id="_operacional"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'operacional' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     disabled={this.state.definitionlevelaccess['operacional'] ? false : true}
                                     onClick={() => this.setState({ menu: 'operacional' })}>
@@ -680,10 +679,9 @@ export default class Index extends React.Component {
                                 </MDBBtn>
                                 <MDBBtn
                                     id="_financeiro"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'financeiro' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     disabled={this.state.definitionlevelaccess['financeiro'] ? false : true}
                                     onClick={() => this.setState({ menu: 'financeiro' })}>
@@ -691,20 +689,18 @@ export default class Index extends React.Component {
                                 </MDBBtn>
                                 <MDBBtn
                                     id="_suport"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'suport' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     onClick={() => this.setState({ menu: 'suport' })}>
                                     <MdAnnouncement /> Suporte
                                 </MDBBtn>
                                 <MDBBtn
                                     id="_exit"
-                                    className="col-10 ml-auto mr-auto"
+                                    className="col-12 ml-auto mr-auto"
                                     outline={this.state.menu === 'exit' ? false : true}
                                     color="white"
-                                    className="col-12"
                                     style={{ 'marginLeft': 0, 'fontSize': 11 }}
                                     onClick={() => {
                                         this.setState({ menu: 'exit', update: false });
@@ -733,6 +729,11 @@ export default class Index extends React.Component {
                     <MDBCol className='administrator' style={{ 'height': '100vh', 'backgroundColor': '#282c34' }}>
                         <MDBRow className="overflow-auto" style={{ 'height': '100vh', 'backgroundColor': '#f2f2f2' }}>
                             <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
+                                <div className="sticky-top p-2 d-none" style={{ 'backgroundColor': '#282c34' }} id='administratorErrorMessage'>
+                                    <h1 className="text-left font-weight-bold" style={{ 'fontSize': 20, 'color': '#f2f2f2' }}>
+                                        <MdErrorOutline /> {this.state.administratorErrorMessage.val}
+                                    </h1>
+                                </div>                              
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
                                     <MdAssignment /> Chave de acesso
@@ -752,32 +753,45 @@ export default class Index extends React.Component {
                                 </h1>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <MDBRow>
+                                    <MDBCol size="12">
+                                        <input className="col-12" defaultValue="1" type="number" placeholder="Escreva o codigo" id="_invitetoken_levelaccess_code_" min="1" max="9999999999" />
+                                        <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Esse codigo deve ser unico.<br />
+                                            <MdInfo /> O codigo pode conter o total de 10 digitos.
+                                        </h5>
+                                    </MDBCol>
+                                    <MDBCol size="12">
+                                        <MDBInput label="Escreva o texto que desejar" id="_invitetoken_levelaccess_nome" />
+                                        <h5 className="text-left" style={{ 'color': '#282c34', 'fontSize': 14 }}>
+                                            <MdInfo /> Esse texto é um componente essencial para a criptografia do nível de acesso.
+                                        </h5>
+                                    </MDBCol>
                                     <MDBCol size="12" className="form-check">
-                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck1" />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="_invitetoken_menu_administrator" />
                                         <label className="form-check-label ml-4">
                                             Administrator
                                         </label><br />
-                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck1" />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="_invitetoken_menu_dashboard" />
                                         <label className="form-check-label ml-4">
                                             Dashboard
                                         </label><br />
-                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck2" />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="_invitetoken_menu_messages" />
                                         <label className="form-check-label ml-4">
                                             Mensagens
                                         </label><br />
-                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck3" />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="_invitetoken_menu_comercial" />
                                         <label className="form-check-label ml-4">
                                             Comercial
                                         </label><br />
-                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="_invitetoken_menu_dp_rh" />
                                         <label className="form-check-label ml-4">
                                             DP_RH
                                         </label><br />
-                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="_invitetoken_menu_operacional" />
                                         <label className="form-check-label ml-4">
                                             Operacional
                                         </label><br />
-                                        <input className="form-check-input ml-2" type="checkbox" value="" id="defaultCheck4" />
+                                        <input className="form-check-input ml-2" type="checkbox" value="" id="_invitetoken_menu_financeiro" />
                                         <label className="form-check-label ml-4">
                                             Financeiro
                                         </label><br />
@@ -792,7 +806,94 @@ export default class Index extends React.Component {
                                             variant="outline-dark"
                                             block
                                             onClick={() => {
-                                                animateCSS('administrator', 'fadeIn');
+                                                const
+                                                    webtoken = this.getUserWebtoken(),
+                                                    codigo = document.getElementById('_invitetoken_levelaccess_code_').value,
+                                                    nome = document.getElementById('_invitetoken_levelaccess_nome').value,
+                                                    menu = {
+                                                        administrator: document.getElementById('_invitetoken_menu_administrator').checked ? true : false,
+                                                        dashboard: document.getElementById('_invitetoken_menu_dashboard').checked ? true : false,
+                                                        messages: document.getElementById('_invitetoken_menu_messages').checked ? true : false,
+                                                        comercial: document.getElementById('_invitetoken_menu_comercial').checked ? true : false,
+                                                        dp_rh: document.getElementById('_invitetoken_menu_dp_rh').checked ? true : false,
+                                                        operacional: document.getElementById('_invitetoken_menu_operacional').checked ? true : false,
+                                                        financeiro: document.getElementById('_invitetoken_menu_financeiro').checked ? true : false
+                                                    }
+
+                                                if (menu['administrator']) {
+                                                    menu['dashboard'] = true;
+                                                    menu['messages'] = true;
+                                                    menu['comercial'] = true;
+                                                    menu['dp_rh'] = true;
+                                                    menu['operacional'] = true;
+                                                    menu['financeiro'] = true;
+                                                }
+
+                                                const error = (msg) => {
+                                                    if (!this.state.administratorErrorMessage.active) {
+                                                        this.state.administratorErrorMessage.active = true;
+                                                        this.state.administratorErrorMessage.val = String(msg);
+                                                        document.getElementById('administratorErrorMessage').classList.remove('d-none');
+                                                        animateCSS('administratorErrorMessage', 'fadeIn');
+                                                        function deactivate() {
+                                                            animateCSS('administratorErrorMessage', 'fadeOut', () => {
+                                                                document.getElementById('administratorErrorMessage').classList.add('d-none');
+                                                                this.state.administratorErrorMessage.active = false;
+                                                            });
+                                                        }
+                                                        setTimeout(deactivate.bind(this), this.state.administratorErrorMessage.timeoutTicks);
+                                                    }
+                                                }
+
+                                                let __return = false;
+
+                                                if (nome.length <= 0) {
+                                                    if (!document.getElementById('_invitetoken_levelaccess_nome').classList.contains('is-invalid')) {
+                                                        document.getElementById('_invitetoken_levelaccess_nome').classList.add('is-invalid');
+                                                        document.getElementById('_invitetoken_levelaccess_nome').classList.remove('is-valid');
+                                                    }
+                                                    __return = true;
+                                                } else {
+                                                    if (document.getElementById('_invitetoken_levelaccess_nome').classList.contains('is-invalid')) {
+                                                        document.getElementById('_invitetoken_levelaccess_nome').classList.remove('is-invalid');
+                                                        document.getElementById('_invitetoken_levelaccess_nome').classList.add('is-valid');
+                                                    }
+                                                }
+
+                                                if (Object.values(menu).filter(value => { return value === true }).length <= 0) {
+                                                    return error.call(this, 'Defina o nível de acesso. Nenhum elemento foi selecionado.');
+                                                }
+
+                                                if (__return) return;
+
+                                                axios.post('/api/adm/sign/levelaccess',
+                                                    {
+                                                        'webtoken': String(webtoken),
+                                                        'codigo': Number(codigo),
+                                                        'nome': String(nome),
+                                                        'menu': Object(menu)
+                                                    },
+                                                    {
+                                                        headers: {
+                                                            "content-type": 'application/json',
+                                                            "api_key": this.getApiKey()
+                                                        }
+                                                    })
+                                                    .then((data) => {
+                                                        if (!data['data']['error']) {
+                                                            data = data['data']['query']['results'];
+                                                            if (data) {
+                                                                return error.call(this, `O nível de acesso foi criado com sucesso!`);
+                                                            }
+                                                        } else {
+                                                            if (data['data']['code'] === 1) {
+                                                                return error.call(this, `O código(${codigo}) já está sendo usado por outro nível de acesso.`);
+                                                            }
+                                                        }
+                                                    })
+                                                    .catch((err) => {
+                                                        return error.call(this, 'Não foi possível criar um novo nível de aceso. Tente novamente, mais tarde!');
+                                                    })
                                             }}>
                                             <MdHdrWeak /> Criar nível de acesso
                                         </Button>
@@ -803,6 +904,9 @@ export default class Index extends React.Component {
                                             block
                                             onClick={() => {
                                                 animateCSS('administrator', 'fadeIn');
+                                                this.getlevelaccess((data) => {
+                                                    this.setState({ administratormenus: { menu: 'levelaccess', data: data, selected: 0 } });
+                                                })
                                             }}>
                                             <MdHdrWeak /> Lista de níveis de acesso
                                         </Button>
@@ -822,7 +926,7 @@ export default class Index extends React.Component {
                                         </h5>
                                     </MDBCol>
                                     <MDBCol size="12">
-                                        <input className="col-12" defaultValue="1" type="number" placeholder="Escreva o codigo" id="_invitetoken_levelaccess_code_" min="1" max="9999999999" />
+                                        <input className="col-12" defaultValue="1" type="number" placeholder="Escreva o codigo" id="_invitetoken_levelaccess_code_2" min="1" max="9999999999" />
                                         <h5 className="text-left mt-2" style={{ 'color': '#282c34', 'fontSize': 14 }}>
                                             <MdInfo /> Codigo do nível de acesso.<br />
                                             <MdInfo /> O codigo pode conter o total de 10 digitos.
@@ -857,7 +961,7 @@ export default class Index extends React.Component {
                                                         }
                                                     })
                                                     .then((data) => {
-                                                        if (!data['error']) {
+                                                        if (!data['data']['error']) {
                                                             data = data['data']['query']['results'];
 
                                                             console.log(data);
@@ -965,42 +1069,42 @@ export default class Index extends React.Component {
                         </MDBRow>
                     </MDBCol>
                 )
-            } else if (this.state.administratormenus.menu === 'invitetokencodes') {
-                let list = this.state.administratormenus.data.map(invitetoken => {
-                    return <MDBListGroupItem className="mb-2" key={invitetoken['ID']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #282c34' }}>
+            } else if (this.state.administratormenus.menu === 'levelaccess') {
+                let list = this.state.administratormenus.data.map(levelaccess => {
+                    return <MDBListGroupItem className="mb-2" key={levelaccess['ID']} style={{ 'backgroundColor': '#f2f2f2', 'border': '1px solid #282c34' }}>
                         <hr />
                         <p className="text-left mb-2">
-                            <MdInfo /> Código: {Math.abs(Number(invitetoken['codigo']))}
+                            <MdInfo /> Código: {Math.abs(Number(levelaccess['codigo']))}
                         </p>
                         <hr />
                         <p className="text-left mb-2">
-                            <MdInfo /> Nome: {invitetoken['nome']}
+                            <MdInfo /> Nome: {levelaccess['nome']}
                         </p>
                         <hr />
                         <p className="text-left mb-2">
-                            <MdGavel /> Nivel de acesso
+                            <MdGavel /> Nível de acesso
                             </p>
                         <hr />
                         <p className="text-left mb-1">
-                            {invitetoken['menu']['administrator'] ? <MdCheck /> : <MdClose />} Administrator
+                            {levelaccess['menu']['administrator'] ? <MdCheck /> : <MdClose />} Administrator
                             </p>
                         <p className="text-left mb-1">
-                            {invitetoken['menu']['dashboard'] ? <MdCheck /> : <MdClose />} Dashboard
+                            {levelaccess['menu']['dashboard'] ? <MdCheck /> : <MdClose />} Dashboard
                             </p>
                         <p className="text-left mb-1">
-                            {invitetoken['menu']['messages'] ? <MdCheck /> : <MdClose />} Mensagens
+                            {levelaccess['menu']['messages'] ? <MdCheck /> : <MdClose />} Mensagens
                             </p>
                         <p className="text-left mb-1">
-                            {invitetoken['menu']['comercial'] ? <MdCheck /> : <MdClose />} Comercial
+                            {levelaccess['menu']['comercial'] ? <MdCheck /> : <MdClose />} Comercial
                             </p>
                         <p className="text-left mb-1">
-                            {invitetoken['menu']['dp_rh'] ? <MdCheck /> : <MdClose />} DP_RH
+                            {levelaccess['menu']['dp_rh'] ? <MdCheck /> : <MdClose />} DP_RH
                             </p>
                         <p className="text-left mb-1">
-                            {invitetoken['menu']['operacional'] ? <MdCheck /> : <MdClose />} Operacional
+                            {levelaccess['menu']['operacional'] ? <MdCheck /> : <MdClose />} Operacional
                             </p>
                         <p className="text-left mb-1">
-                            {invitetoken['menu']['financeiro'] ? <MdCheck /> : <MdClose />} Financeiro
+                            {levelaccess['menu']['financeiro'] ? <MdCheck /> : <MdClose />} Financeiro
                             </p>
                         <hr />
                     </MDBListGroupItem>
@@ -1011,7 +1115,7 @@ export default class Index extends React.Component {
                             <MDBCol size="12" className="mt-2" style={{ 'backgroundColor': '#f2f2f2' }}>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                                 <h1 className="text-left font-weight-bold" style={{ 'color': '#282c34' }}>
-                                    <MdAssignment /> Chaves de segurança
+                                    <MdAssignment /> Níveis de acesso
                                 </h1>
                                 <hr style={{ 'backgroundColor': '#282c34' }} />
                             </MDBCol>
@@ -1164,7 +1268,7 @@ export default class Index extends React.Component {
                                                         }
                                                     })
                                                         .then((data) => {
-                                                            if (!data['error']) {
+                                                            if (!data['data']['error']) {
                                                                 animateCSS('messages', 'fadeIn');
                                                                 this.getUserMessages((messages) => {
                                                                     this.setState({ 'message': { 'active': false }, 'usermessages': { menu: 'list', data: messages, selected: 0 } })
@@ -1409,7 +1513,7 @@ export default class Index extends React.Component {
                                                                 }
                                                             })
                                                             .then((data) => {
-                                                                if (!data['error']) {
+                                                                if (!data['data']['error']) {
                                                                     data = data['data']['query']['results'];
 
                                                                     animateCSS('messages', 'fadeIn');
@@ -1925,7 +2029,14 @@ export default class Index extends React.Component {
  * Functions
  */
 function animateCSS(element, animationName, callback) {
-    const node = document.querySelector(`.${element}`);
+    const node = (() => {
+        let value = document.querySelector(`.${element}`);
+        if (!value) {
+            value = document.querySelector(`#${element}`)
+        }
+        return value;
+    })();
+
     if (node) {
         node.classList.add('animated', animationName);
 

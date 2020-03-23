@@ -237,7 +237,7 @@ export default class Index extends React.Component {
                 }
             })
             .then((data) => {
-                if (!data['error']) {
+                if (!data['data']['error']) {
                     data = data['data']['query']['results'];
 
                     if (data.user) {
@@ -303,7 +303,7 @@ export default class Index extends React.Component {
                     }
                 })
                 .then((data) => {
-                    if (!data['error']) {
+                    if (!data['data']['error']) {
                         data = data['data']['query']['results'];
 
                         if (data.user) {
@@ -457,7 +457,7 @@ export default class Index extends React.Component {
                 }
             })
             .then((data) => {
-                if (!data['error']) {
+                if (!data['data']['error']) {
                     data = data['data']['query']['results'];
 
                     const
@@ -561,7 +561,7 @@ export default class Index extends React.Component {
                 }
             })
             .then((data) => {
-                if (!data['error']) {
+                if (!data['data']['error']) {
                     data = data['data']['query']['results'];
 
                     if (data.length > 0 && data.filter(user => user['email'] === String(email)).length > 0) {
@@ -663,7 +663,7 @@ export default class Index extends React.Component {
                     }
                 })
                 .then((data) => {
-                    if (!data['error']) {
+                    if (!data['data']['error']) {
                         data = data['data']['query']['results'];
 
                         const
